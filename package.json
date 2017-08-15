@@ -1,0 +1,37 @@
+{
+  "name": "erest",
+  "version": "0.0.1",
+  "description": "Easy rest api helper",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "tslint src/*.ts test/*.ts --fix",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourtion/node-erest.git"
+  },
+  "keywords": [
+    "rest",
+    "api",
+    "express",
+    "api-doc"
+  ],
+  "author": "Yourtion Guo <yourtion@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourtion/node-erest/issues"
+  },
+  "homepage": "https://github.com/yourtion/node-erest#readme",
+  "dependencies": {
+    "debug": "^3.0.0",
+    "validator": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.20",
+    "source-map-support": "^0.4.15",
+    "ts-node": "^3.3.0",
+    "tslint": "^5.6.0",
+    "typescript": "^2.4.2"
+  }
+}
