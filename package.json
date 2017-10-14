@@ -2,10 +2,16 @@
   "name": "erest",
   "version": "0.0.1",
   "description": "Easy rest api helper",
-  "main": "dist/index.js",
+  "main": "dist/lib/index.js",
+  "typing": "dist/lib/index.d.ts",
+  "files": [
+    "dist/lib"
+  ],
   "scripts": {
     "lint": "tslint src/*.ts test/*.ts --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "clean": "rm -rf dist",
+    "compile": "tsc",
+    "prepublish": "npm run clean && npm run compile"
   },
   "repository": {
     "type": "git",

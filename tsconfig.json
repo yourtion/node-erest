@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "moduleResolution": "node",
+    // "declaration": true,
+    // "sourceMap": true,
+    "strictNullChecks": true,
+    // "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "target": "es6"
+  },
+  "include": [
+    "./src/**/*"
+  ]
+}
