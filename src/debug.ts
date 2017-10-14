@@ -18,10 +18,10 @@ const create = (name) => {
 };
 
 const core = create("core");
-const schema =  create("schema");
-const params =  create("params");
-const test =  create("test");
-const docs =  create("docs");
-const plugin =  create("plugin");
+const schema = create("schema");
+const params = create("params");
+const test = create("test");
+const docs = create("docs");
+const plugin = create("plugin");
 
 export { create, core, schema, params, test, docs, plugin };
