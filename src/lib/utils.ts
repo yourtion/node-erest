@@ -7,8 +7,8 @@
 import { resolve } from "path";
 
 interface ISourceResult {
-  relative: string;
-  absolute: string;
+  relative?: string;
+  absolute?: string;
 }
 
 /**
@@ -19,7 +19,8 @@ interface ISourceResult {
  */
 export function getCallerSourceLine(dir: string): ISourceResult {
   const resolvedDir = resolve(dir);
-  const stack = (new Error()).stack.split("\n").slice(1);
+  const err = (new Error()).stack;
+  const stack = err ? err.split("\n").slice(1) : "";
   for (let line of stack) {
     line = line.trim();
     if (line.replace(/\\/g, "/").indexOf(resolvedDir) !== -1) {
