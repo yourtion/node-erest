@@ -5,10 +5,10 @@
  * 参考 hojs
  * @author Yourtion Guo <yourtion@gmail.com>
  */
-module.exports = class Manager {
+export class Manager {
 
+  protected map: Map<string, object>;
   private parent: object;
-  private map: Map<string, object>;
 
   /**
    * Creates an instance of Manager.
@@ -39,4 +39,4 @@ module.exports = class Manager {
     return this.map.forEach(iter);
   }
 
-};
+}
