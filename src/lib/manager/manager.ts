@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * @file API 管理器
@@ -6,7 +6,10 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 module.exports = class Manager {
-  
+
+  private parent: object;
+  private map: Map<string, object>;
+
   /**
    * Creates an instance of Manager.
    * @param {Object} parent 上下文
@@ -15,25 +18,25 @@ module.exports = class Manager {
     this.parent = parent;
     this.map = new Map();
   }
-  
+
   /**
    * 获取
    *
    * @param {String} name
    * @return {Object}
    */
-  get(name) {
+  public get(name) {
     return this.map.get(name);
   }
-  
+
   /**
    * 遍历
    *
    * @param {Function} iter
    * @return {Object}
    */
-  forEach(iter) {
+  public forEach(iter) {
     return this.map.forEach(iter);
   }
-  
+
 };
