@@ -1,29 +1,56 @@
-'use strict';
+"use strict";
 
 /**
  * @file API Scheme
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-const assert = require('assert');
-const debug = require('./debug').core;
-const TypeManager = require('./manager/type');
-const registerDefaultTypes = require('./default/types');
-const Schema = require('./schema');
-const { getCallerSourceLine } = require('./utils');
-const paramChecker = require('./params');
-const extendDocs = require('./extend/docs');
-const extendTest = require('./extend/test');
+import * as assert from "assert";
+import {core as debug } from "./debug";
+import { defaultTypes } from "./default/types";
+import * as extendDocs from "./extend/docs";
+import * as extendTest from "./extend/test";
+import { TypeManager  } from "./manager/type";
+import * as paramChecker from "./params";
+import { Schema } from "./schema";
+import { getCallerSourceLine } from "./utils";
 
-const missingParameter = (msg) => { return new Error(`missing required parameter ${ msg }`); };
-const invalidParameter = (msg) => { return new Error(`incorrect parameter ${ msg }`); };
-const internalError = (msg) => { return new Error(`internal error ${ msg }`); };
+const missingParameter = (msg) => new Error(`missing required parameter ${ msg }`);
+const invalidParameter = (msg) => new Error(`incorrect parameter ${ msg }`);
+const internalError = (msg) => new Error(`internal error ${ msg }`);
 
-module.exports = class API {
+export interface IOPTIONS {
+  info?: any;
+  path?: any;
+  missingParameterError?: any;
+  invalidParameterError?: any;
+  internalError?: any;
+  router?: any;
+  errors?: any;
+  groups?: any;
+}
+
+export interface IAPI {
+  initTest: (app: any) => void;
+}
+
+export class API implements IAPI {
+
+  public app: any;
+  public api: any;
+  public utils: any;
+  public info: any;
+  public config: any;
+  public error: any;
+  public router: any;
+  public type: any;
+  public errors: any;
+  public groups: any;
+  public test: any;
 
   /**
    * Creates an instance of API.
-   * @param {Objcet} [options={}] 
+   * @param {Objcet} [options={}]
    *   - {Object} info 信息
    *   - {Object} groups 分组
    *   - {String} path 路由文件所在路径
@@ -33,8 +60,8 @@ module.exports = class API {
    *   - {Function} invalidParameterError 参数错误生成方法
    *   - {Function} invalidParameterError 内部错误生成方法
    */
-  constructor(options = {}) {
-    this.utils = require('./utils');
+  constructor(options: IOPTIONS) {
+    this.utils = require("./utils");
     this.info = options.info || {};
     this.api = {};
     this.api.$schemas = {};
@@ -52,30 +79,30 @@ module.exports = class API {
     // 参数类型管理
     this.type = new TypeManager(this);
     this.errors = options.errors;
-    registerDefaultTypes.call(this, this.type);
+    defaultTypes.call(this, this.type);
     this.groups = options.groups || {};
     this._register();
   }
 
-  initTest(app) {
-    if(this.app && this.test) return;
-    debug('initTest');
+  public initTest(app) {
+    if (this.app && this.test) { return; }
+    debug("initTest");
     this.app = app;
     extendTest.call(this);
     extendDocs.call(this);
     this.api.docs.markdown();
-    this.api.docs.saveOnExit(process.cwd() + '/docs/');
+    this.api.docs.saveOnExit(process.cwd() + "/docs/");
   }
 
-  setFormatOutput(fn) {
+  public setFormatOutput(fn) {
     this.api.formatOutputReverse = fn;
   }
 
-  setDocOutputForamt(fn) {
+  public setDocOutputForamt(fn) {
     this.api.docOutputForamt = fn;
   }
 
-  _register() {
+  public _register() {
     /**
      * 注册API
      *
@@ -84,29 +111,29 @@ module.exports = class API {
      * @return {Object}
      */
     const register = (method, path) => {
-      const s = new Schema(method, path, getCallerSourceLine(this.config['path']));
+      const s = new Schema(method, path, getCallerSourceLine(this.config.path));
       const s2 = this.api.$schemas[s.key];
       assert(!s2, `尝试注册API：${ s.key }（所在文件：${ s.options.sourceFile.absolute }）失败，因为该API已在文件${ s2 && s2.options.sourceFile.absolute }中注册过`);
-      
+
       this.api.$schemas[s.key] = s;
       return s;
     };
 
     for (const method of Schema.SUPPORT_METHOD) {
       this.api[method] = (path) => {
-        return register(method, path, true);
+        return register(method, path);
       };
     }
   }
 
   /**
    * 绑定路由
-   * 
+   *
    * @param {Object} [router=this.router] 路由
    */
-  bindRouter(router = this.router) {
-    for(const key of Object.keys(this.api.$schemas)) {
-      debug('bind router' + key);
+  public bindRouter(router = this.router) {
+    for (const key of Object.keys(this.api.$schemas)) {
+      debug("bind router" + key);
       const schema = this.api.$schemas[key];
       schema.init(this);
       router[schema.options.method].bind(router)(
@@ -117,20 +144,20 @@ module.exports = class API {
         ...schema.options.middlewares,
         schema.options.handler,
         ...schema.options.afterHooks,
-        ...this.api.afterHooks
+        ...this.api.afterHooks,
       );
     }
   }
 
-  genDocs(path, onExit = true) {
+  public genDocs(path, onExit = true) {
     extendDocs.call(this);
     this.api.docs.markdown();
-    const savePath = path || process.cwd() + '/docs/';
+    const savePath = path || process.cwd() + "/docs/";
     if (onExit) {
       this.api.docs.saveOnExit(savePath);
     } else {
       this.api.docs.save(savePath);
     }
   }
-  
-};
+
+}

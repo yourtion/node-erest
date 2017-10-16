@@ -6,7 +6,7 @@
  */
 import { resolve } from "path";
 
-interface ISourceResult {
+export interface ISourceResult {
   relative?: string;
   absolute?: string;
 }

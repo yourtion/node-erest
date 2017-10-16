@@ -9,7 +9,7 @@
 import * as assert from "assert";
 import * as validator from "validator";
 
-module.exports = function defaultTypes(type) {
+export function defaultTypes(type) {
 
   type.register("Boolean", {
     checker: (v) => typeof v === "boolean" || (typeof v === "string" && validator.isBoolean(v)),
@@ -197,4 +197,4 @@ module.exports = function defaultTypes(type) {
     isDefault: true,
   });
 
-};
+}
