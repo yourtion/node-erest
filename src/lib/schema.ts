@@ -1,18 +1,52 @@
-'use strict';
+"use strict";
 
 /**
  * @file API Scheme
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-const assert = require('assert');
-const pathToRegExp = require('path-to-regexp');
-const debug = require('./debug').schema;
-const SUPPORT_METHOD = [ 'get', 'post', 'put', 'delete', 'patch' ];
-const { getSchemaKey } = require('./utils');
+import * as assert from "assert";
+import * as pathToRegExp from "path-to-regexp";
+import { schema as debug } from "./debug";
+import { getSchemaKey, ISourceResult } from "./utils";
 
-const Schema = module.exports = class Schema {
+export interface IParamsOption {
+  format?: any;
+  type?: string;
+  required?: boolean;
+  params: string;
+  _paramsJSON: string;
+}
 
+export interface ISchemaOption {
+  description?: string;
+  group?: string;
+  format?: boolean;
+  title?: string;
+  env?: boolean;
+  handler?: () => any;
+  sourceFile: ISourceResult;
+  method: string;
+  path: string;
+  examples: any[];
+  beforeHooks: any[];
+  afterHooks: any[];
+  middlewares: any[];
+  required: Set<string>;
+  requiredOneOf: Set<string>;
+  query: object;
+  body: object;
+  params: object;
+  _params: Map<string, IParamsOption>;
+}
+
+export class Schema {
+
+  public static SUPPORT_METHOD = [ "get", "post", "put", "delete", "patch" ];
+  public key: string;
+  public pathTestRegExp: RegExp;
+  public inited: boolean;
+  public options: ISchemaOption;
   /**
    * 构造函数
    *
@@ -22,10 +56,10 @@ const Schema = module.exports = class Schema {
    */
   constructor(method, path, sourceFile) {
 
-    assert(method && typeof method === 'string', '`method`必须是字符串类型');
-    assert(Schema.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, '`method`必须是以下请求方法中的一个：' + Schema.SUPPORT_METHOD);
-    assert(path && typeof path === 'string', '`path`必须是字符串类型');
-    assert(path[0] === '/', '`path`必须以"/"开头');
+    assert(method && typeof method === "string", "`method`必须是字符串类型");
+    assert(Schema.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, "`method`必须是以下请求方法中的一个：" + Schema.SUPPORT_METHOD);
+    assert(path && typeof path === "string", "`path`必须是字符串类型");
+    assert(path[0] === "/", '`path`必须以"/"开头');
 
     this.options = {
       sourceFile,
@@ -40,20 +74,20 @@ const Schema = module.exports = class Schema {
       query: {},
       body: {},
       params: {},
-      _params: {},
+      _params: new Map(),
     };
 
     this.key = getSchemaKey(method, path);
-    this._pathTestRegExp = pathToRegExp(path);
+    this.pathTestRegExp = pathToRegExp(path);
     this.inited = false;
 
-    debug('new: %s %s from %s', method, path, sourceFile);
+    debug("new: %s %s from %s", method, path, sourceFile);
   }
 
   /**
    * 检查是否已经完成初始化，如果是则报错
    */
-  _checkInited() {
+  public _checkInited() {
     if (this.inited) {
       throw new Error(`${ this.key }已经完成初始化，不能再进行更改`);
     }
@@ -66,8 +100,8 @@ const Schema = module.exports = class Schema {
    * @param {String} path
    * @return {Boolean}
    */
-  pathTest(method, path) {
-    return this.options.method === method.toLowerCase() && this._pathTestRegExp.test(path);
+  public pathTest(method, path) {
+    return this.options.method === method.toLowerCase() && this.pathTestRegExp.test(path);
   }
 
   /**
@@ -76,9 +110,9 @@ const Schema = module.exports = class Schema {
    * @param {String} title
    * @return {Object}
    */
-  title(title) {
+  public title(title) {
     this._checkInited();
-    assert(typeof title === 'string', '`title`必须是字符串类型');
+    assert(typeof title === "string", "`title`必须是字符串类型");
     this.options.title = title;
     return this;
   }
@@ -89,9 +123,9 @@ const Schema = module.exports = class Schema {
    * @param {String} description
    * @return {Object}
    */
-  description(description) {
+  public description(description) {
     this._checkInited();
-    assert(typeof description === 'string', '`description`必须是字符串类型');
+    assert(typeof description === "string", "`description`必须是字符串类型");
     this.options.description = description;
     return this;
   }
@@ -102,9 +136,9 @@ const Schema = module.exports = class Schema {
    * @param {String} group
    * @return {Object}
    */
-  group(group) {
+  public group(group) {
     this._checkInited();
-    assert(typeof group === 'string', '`group`必须是字符串类型');
+    assert(typeof group === "string", "`group`必须是字符串类型");
     this.options.group = group;
     return this;
   }
@@ -117,15 +151,15 @@ const Schema = module.exports = class Schema {
    *   - {Object} output 输出结果
    * @return {Object}
    */
-  example(example) {
+  public example(example) {
     // this._checkInited();
-    assert(example.input && typeof example.input === 'object', '`input`必须是一个对象');
-    assert(example.output && typeof example.output === 'object', '`output`必须是一个对象');
+    assert(example.input && typeof example.input === "object", "`input`必须是一个对象");
+    assert(example.output && typeof example.output === "object", "`output`必须是一个对象");
     this._addExample(example);
     return this;
   }
 
-  _addExample(example) {
+  public _addExample(example) {
     this.options.examples.push(example);
   }
 
@@ -140,25 +174,25 @@ const Schema = module.exports = class Schema {
    *   - {String} comment 备注信息（用于文档生成）
    * @param {String} place 位置（body、query、params）
    */
-  _params(name, options = {}, place) {
+  public _params(name, options: IParamsOption, place) {
 
     this._checkInited();
 
-    assert(name && typeof name === 'string', '`name`必须是字符串类型');
-    assert(place && [ 'query', 'body', 'params' ].indexOf(place) > -1, '`place` 必须是 "query" "body", "param"');
-    assert(name.indexOf(' ') === -1, '`name`不能包含空格');
-    assert(name[0] !== '$', '`name`不能以"$"开头');
+    assert(name && typeof name === "string", "`name`必须是字符串类型");
+    assert(place && [ "query", "body", "params" ].indexOf(place) > -1, '`place` 必须是 "query" "body", "param"');
+    assert(name.indexOf(" ") === -1, "`name`不能包含空格");
+    assert(name[0] !== "$", '`name`不能以"$"开头');
     assert(!(name in this.options._params), `参数 ${ name } 已存在`);
 
-    assert(options && (typeof options === 'string' || typeof options === 'object'));
+    assert(options && (typeof options === "string" || typeof options === "object"));
     // if (typeof options === 'string') options = { type: options, format: true };
 
-    if (!('format' in options)) options.format = true;
+    if (!("format" in options)) { options.format = true; }
 
     assert(options.type, `type必须存在：${ place }:${ name } -> ${ options.type }`);
-    assert(/^[A-Z]/.test(options.type[0]), `type必须以大写字母开头：${ options.type }`);
+    assert(options.type && /^[A-Z]/.test(options.type[0]), `type必须以大写字母开头：${ options.type }`);
 
-    if(options.required) this.options.required.add(name);
+    if (options.required) { this.options.required.add(name); }
 
     this.options._params[name] = options;
     this.options[place][name] = options;
@@ -174,10 +208,10 @@ const Schema = module.exports = class Schema {
    *   - {String} comment 备注信息（用于文档生成）
    * @return {Object}
    */
-  body(obj) {
-    for(const key of Object.keys(obj)) {
+  public body(obj) {
+    for (const key of Object.keys(obj)) {
       const o = obj[key];
-      this._params(key, o, 'body');
+      this._params(key, o, "body");
     }
     return this;
   }
@@ -192,10 +226,10 @@ const Schema = module.exports = class Schema {
    *   - {String} comment 备注信息（用于文档生成）
    * @return {Object}
    */
-  query(obj) {
-    for(const key of Object.keys(obj)) {
+  public query(obj) {
+    for (const key of Object.keys(obj)) {
       const o = obj[key];
-      this._params(key, o, 'query');
+      this._params(key, o, "query");
     }
     return this;
   }
@@ -210,10 +244,10 @@ const Schema = module.exports = class Schema {
    *   - {String} comment 备注信息（用于文档生成）
    * @return {Object}
    */
-  param(obj) {
-    for(const key of Object.keys(obj)) {
+  public param(obj) {
+    for (const key of Object.keys(obj)) {
       const o = obj[key];
-      this._params(key, o, 'params');
+      this._params(key, o, "params");
     }
     return this;
   }
@@ -224,10 +258,10 @@ const Schema = module.exports = class Schema {
    * @param {Array} list 参数名列表
    * @return {Object}
    */
-  required(list) {
+  public required(list) {
     this._checkInited();
     for (const item of list) {
-      assert(typeof item === 'string', '`name`必须是字符串类型');
+      assert(typeof item === "string", "`name`必须是字符串类型");
       this.options.required.add(item);
     }
     return this;
@@ -239,10 +273,10 @@ const Schema = module.exports = class Schema {
    * @param {Array} list 参数名列表
    * @return {Object}
    */
-  requiredOneOf(list) {
+  public requiredOneOf(list) {
     this._checkInited();
     for (const item of list) {
-      assert(typeof item === 'string', '`name`必须是字符串类型');
+      assert(typeof item === "string", "`name`必须是字符串类型");
     }
     this.options.requiredOneOf.add(list);
     return this;
@@ -254,10 +288,10 @@ const Schema = module.exports = class Schema {
    * @param {Function} middleware
    * @return {Object}
    */
-  middlewares(...list) {
+  public middlewares(...list) {
     this._checkInited();
-    for(const mid of list) {
-      assert(typeof mid === 'function', '中间件必须是Function类型');
+    for (const mid of list) {
+      assert(typeof mid === "function", "中间件必须是Function类型");
       this.options.middlewares.push(mid);
     }
     return this;
@@ -269,10 +303,10 @@ const Schema = module.exports = class Schema {
    * @param {String} name
    * @return {Object}
    */
-  before(...list) {
+  public before(...list) {
     this._checkInited();
     for (const name of list) {
-      assert(typeof name === 'string', '钩子名称必须是字符串类型');
+      assert(typeof name === "string", "钩子名称必须是字符串类型");
       this.options.beforeHooks.push(name);
     }
     return this;
@@ -284,10 +318,10 @@ const Schema = module.exports = class Schema {
    * @param {String} name
    * @return {Object}
    */
-  after(...list) {
+  public after(...list) {
     this._checkInited();
     for (const name of list) {
-      assert(typeof name === 'string', '钩子名称必须是字符串类型');
+      assert(typeof name === "string", "钩子名称必须是字符串类型");
       this.options.afterHooks.push(name);
     }
     return this;
@@ -299,14 +333,14 @@ const Schema = module.exports = class Schema {
    * @param {Function} fn 函数格式：`async function (params) {}`
    * @return {Object}
    */
-  register(fn) {
+  public register(fn) {
     this._checkInited();
-    assert(typeof fn === 'function', '处理函数必须是一个函数类型');
+    assert(typeof fn === "function", "处理函数必须是一个函数类型");
     this.options.handler = fn;
     return this;
   }
 
-  init(parent) {
+  public init(parent) {
     this._checkInited();
 
     if (!this.options.env) {
@@ -314,15 +348,16 @@ const Schema = module.exports = class Schema {
     }
 
     assert(this.options.group, `请为 API ${ this.key } 选择一个分组`);
-    assert(this.options.group in parent.groups, `请先配置 ${ this.options.group } 类型`);
+    assert(this.options.group && this.options.group in parent.groups, `请先配置 ${ this.options.group } 类型`);
 
     // 初始化时参数类型检查
-    for (const name in this.options._params) {
-      const options = this.options._params[name];
+    for (const [name, options] of this.options._params) {
       const typeName = options.type;
       const type = parent.type.get(typeName);
       assert(type && type.checker, `please register type ${ typeName }`);
-      if (type.isParamsRequire && options.params === undefined) throw new Error(`${ typeName } is require a params`);
+      if (type.isParamsRequire && options.params === undefined) {
+        throw new Error(`${ typeName } is require a params`);
+      }
       if (options.params) {
         assert(type.paramsChecker(options.params), `test type params failed`);
         try {
@@ -346,7 +381,4 @@ const Schema = module.exports = class Schema {
     this.inited = true;
   }
 
-};
-
-/* 支持的HTTP请求方法 */
-Schema.SUPPORT_METHOD = SUPPORT_METHOD;
+}

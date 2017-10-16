@@ -3,6 +3,7 @@
     "tslint:recommended"
   ],
   "rules": {
+    "max-line-length": false,
     "object-literal-sort-keys": false
   }
 }
