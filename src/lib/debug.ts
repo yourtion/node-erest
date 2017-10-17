@@ -5,13 +5,13 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import Debug from "debug";
+import * as Debug from "debug";
 
 /**
  * 创建一个调试输出函数
  *
  * @param {String} name
- * @return {Function}
+ * @return {Debug.IDebugger}
  */
 const create = (name) => {
   return Debug("erest:" + name);
