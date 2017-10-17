@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const utils = require('lei-utils');
+const utils = require('../../utils');
 const debug = require('../../debug').plugin;
 
 module.exports = function generateMarkdown(data, dir) {
