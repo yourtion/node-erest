@@ -11,7 +11,7 @@ import { defaultTypes } from "./default/types";
 import * as extendDocs from "./extend/docs";
 import * as extendTest from "./extend/test";
 import { TypeManager  } from "./manager/type";
-import * as paramChecker from "./params";
+import { apiCheckParams } from "./params";
 import { Schema } from "./schema";
 import { getCallerSourceLine } from "./utils";
 
@@ -34,10 +34,19 @@ export interface IAPI {
   initTest: (app: any) => void;
 }
 
+interface IApiInfo {
+  $schemas: Map<string, Schema>;
+  beforeHooks: any[];
+  afterHooks: any[];
+  docs?: any;
+  formatOutputReverse?: any;
+  docOutputForamt?: any;
+}
+
 export class API implements IAPI {
 
   public app: any;
-  public api: any;
+  public api: IApiInfo;
   public utils: any;
   public info: any;
   public config: any;
@@ -63,10 +72,11 @@ export class API implements IAPI {
   constructor(options: IOPTIONS) {
     this.utils = require("./utils");
     this.info = options.info || {};
-    this.api = {};
-    this.api.$schemas = {};
-    this.api.beforeHooks = [];
-    this.api.afterHooks = [];
+    this.api = {
+      $schemas: new Map(),
+      beforeHooks: [],
+      afterHooks: [],
+    };
     this.config = {
       path: options.path || process.cwd(),
     };
@@ -112,10 +122,10 @@ export class API implements IAPI {
      */
     const register = (method, path) => {
       const s = new Schema(method, path, getCallerSourceLine(this.config.path));
-      const s2 = this.api.$schemas[s.key];
+      const s2 = this.api.$schemas.get(s.key);
       assert(!s2, `尝试注册API：${ s.key }（所在文件：${ s.options.sourceFile.absolute }）失败，因为该API已在文件${ s2 && s2.options.sourceFile.absolute }中注册过`);
 
-      this.api.$schemas[s.key] = s;
+      this.api.$schemas.set(s.key, s);
       return s;
     };
 
@@ -132,15 +142,15 @@ export class API implements IAPI {
    * @param {Object} [router=this.router] 路由
    */
   public bindRouter(router = this.router) {
-    for (const key of Object.keys(this.api.$schemas)) {
+    for (const [key, schema] of this.api.$schemas.entries()) {
       debug("bind router" + key);
-      const schema = this.api.$schemas[key];
+      if (!schema) { continue; }
       schema.init(this);
       router[schema.options.method].bind(router)(
         schema.options.path,
         ...this.api.beforeHooks,
         ...schema.options.beforeHooks,
-        paramChecker(this, schema),
+        apiCheckParams(this, schema),
         ...schema.options.middlewares,
         schema.options.handler,
         ...schema.options.afterHooks,

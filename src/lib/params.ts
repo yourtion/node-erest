@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * @file API 参数检测
@@ -6,27 +6,26 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-const debug = require('./debug').params;
+import {params as debug } from "./debug";
 
 /**
-  * API 参数检查
-  * 
-  * @param {Object} ctx 上下文
-  * @param {Object} schema 定义
-  * @returns {Function} 中间件
-  */
-function apiCheckParams(ctx, schema) {
+ * API 参数检查
+ *
+ * @param {Object} ctx 上下文
+ * @param {Schema} schema 定义
+ * @returns {Function} 中间件
+ */
+export function apiCheckParams(ctx, schema) {
   return (req, res, next) => {
     const newParams = {};
-    for(const place of [ 'query', 'params', 'body' ]) {
+    for (const place of [ "query", "params", "body" ]) {
       const pOptions = schema.options[place];
-      for(const name in pOptions) {
+      for (const [name, options] of pOptions) {
 
         let value = req[place][name];
-        const options = pOptions[name];
         debug(`param check ${ name } : ${ value } with ${ options }`);
 
-        if(typeof value === 'undefined') {
+        if (typeof value === "undefined") {
           if (options.default) {
             // 为未赋值参数添加默认值默认值
             value = options.default;
@@ -53,7 +52,7 @@ function apiCheckParams(ctx, schema) {
           }
           throw ctx.error.invalidParameter(msg);
         }
-  
+
         // 如果类型有 formatter 且开启了 format=true 则格式化参数
         if (options.format && type.formatter) {
           debug(`param ${ name } run format`);
@@ -69,7 +68,9 @@ function apiCheckParams(ctx, schema) {
     // 必填参数检查
     if (schema.options.required.size > 0) {
       for (const name of schema.options.required) {
-        if (!(name in newParams)) throw ctx.error.missingParameter(`'${ name }' is required!`);
+        if (!(name in newParams)) {
+          throw ctx.error.missingParameter(`'${ name }' is required!`);
+        }
       }
     }
 
@@ -78,11 +79,11 @@ function apiCheckParams(ctx, schema) {
       for (const names of schema.options.requiredOneOf) {
         let ok = false;
         for (const name of names) {
-          ok = typeof newParams[name] !== 'undefined';
-          if (ok) break;
+          ok = typeof newParams[name] !== "undefined";
+          if (ok) { break; }
         }
         if (!ok) {
-          throw ctx.error.missingParameter(`one of ${ names.join(', ') } is required`);
+          throw ctx.error.missingParameter(`one of ${ names.join(", ") } is required`);
         }
       }
     }
@@ -91,5 +92,3 @@ function apiCheckParams(ctx, schema) {
     next();
   };
 }
-
-module.exports = apiCheckParams;

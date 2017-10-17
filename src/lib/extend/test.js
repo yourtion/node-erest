@@ -38,13 +38,10 @@ module.exports = function extendTest() {
     debug(method, path, key);
 
     // 检查path无变量情况
-    if (this.api.$schemas[key]) return this.api.$schemas[key];
+    if (this.api.$schemas.get(key)) return this.api.$schemas.get(key);
     // 检查path有变量情况
-    for (const key in this.api.$schemas) {
-      const s = this.api.$schemas[key];
-      if (s.pathTest(method, routerPath)) {
-        return s;
-      }
+    for (const [key,s] in this.api.$schemas.entries()) {
+      if (s.pathTest(method, routerPath)) { return s; }
     }
   };
 

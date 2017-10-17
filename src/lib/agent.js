@@ -122,7 +122,7 @@ const TestAgent = module.exports = class TestAgent {
   _saveExample() {
     debug('Save Example', this.key, this.options.takeExample);
     if(this.options.takeExample) {
-      this.options.parent.api.$schemas[this.key].example({
+      this.options.parent.api.$schemas.get(this.key).example({
         name: this.options.agentTestName,
         path: this.options.agentPath,
         headers: this.options.agentHeader,
@@ -130,7 +130,7 @@ const TestAgent = module.exports = class TestAgent {
         output: this.options.agentOutput,
       });
     }
-    debug(this.options.parent.api.$schemas[this.key].options.examples);
+    debug(this.options.parent.api.$schemas.get(this.key).options.examples);
   }
 
   headers(data) {

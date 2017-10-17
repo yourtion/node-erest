@@ -36,8 +36,8 @@ module.exports = function extendDocs() {
     };
     const formatOutput = this.api.docOutputForamt || function (out) { return out; };
     
-    Object.keys(this.api.$schemas).forEach(k => {
-      const schema = this.api.$schemas[k];
+    this.api.$schemas.keys().forEach(k => {
+      const schema = this.api.$schemas.get(k);
       const o = schema.options;
       data.schemas[k] = {};
       for(const key of DOC) {
