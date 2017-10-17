@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * @file API Agent
@@ -6,26 +6,17 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-const fs = require('fs');
-const util = require('util');
-const assert = require('assert');
-const utils = require('./utils');
-const createDebug = require('./debug').create;
-const debug = require('./debug').test;
+import * as assert from "assert";
+import * as stream from "stream";
+import * as util from "util";
+import { create as createDebug, test as debug } from "./debug";
+import { Schema } from "./schema";
+import * as utils from "./utils";
 
-let request;
-try {
-  request = require('supertest');
-} catch (error) {
-  debug(error);
-}
-
-
-/* 支持的HTTP请求方法 */
-const SUPPORT_METHOD = [ 'get', 'post', 'put', 'delete', 'patch' ];
+import * as request from "supertest";
 
 /* 输出结果断言错误 */
-const AssertionError = utils.customError('AssertionError', { type: 'api_output_error' });
+const AssertionError = utils.customError("AssertionError", { type: "api_output_error" });
 
 /**
  * 返回对象结构字符串
@@ -40,10 +31,22 @@ function inspect(obj) {
   });
 }
 
+export interface IOutput {
+  (callback): utils.IPromiseCallback<any>;
+  success?: any;
+  error?: any;
+}
+
 /**
  * 测试代理类
  */
-const TestAgent = module.exports = class TestAgent {
+export class TestAgent {
+
+  public static SUPPORT_METHOD = Schema.SUPPORT_METHOD;
+  public options: any;
+  public key: string;
+  public debug: any;
+  public output: IOutput;
 
   /**
    * 构造函数
@@ -55,10 +58,10 @@ const TestAgent = module.exports = class TestAgent {
    * @param {Object} parent hojs实例
    */
   constructor(method, path, key, sourceFile, parent) {
-    assert(method && typeof method === 'string', '`method` must be string');
-    assert(TestAgent.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, '`method` must be one of ' + TestAgent.SUPPORT_METHOD);
-    assert(path && typeof path === 'string', '`path` must be string');
-    assert(path[0] === '/', '`path` must be start with "/"');
+    assert(method && typeof method === "string", "`method` must be string");
+    assert(TestAgent.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, "`method` must be one of " + TestAgent.SUPPORT_METHOD);
+    assert(path && typeof path === "string", "`path` must be string");
+    assert(path[0] === "/", '`path` must be start with "/"');
     this.options = {
       parent,
       sourceFile,
@@ -67,9 +70,10 @@ const TestAgent = module.exports = class TestAgent {
       agent: null,
     };
     this.key = key;
+    this.output = this._output;
     this._extendsOutput();
     this.debug = createDebug(`agent:${ this.key }`);
-    this.debug('new: %s %s from %s', method, path, sourceFile.absolute);
+    this.debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
 
   /**
@@ -77,7 +81,7 @@ const TestAgent = module.exports = class TestAgent {
    *
    * @param {Object} agent
    */
-  setAgent(agent) {
+  public setAgent(agent) {
     this.options.agent = agent;
   }
 
@@ -86,10 +90,10 @@ const TestAgent = module.exports = class TestAgent {
    *
    * @param {Object} app Express实例
    */
-  initAgent(app) {
+  public initAgent(app) {
     assert(app, `express app instance could not be empty`);
-    assert(request, 'Install `supertest` first');
-    this.debug('create supertest agent');
+    assert(request, "Install `supertest` first");
+    this.debug("create supertest agent");
     this.setAgent(request(app)[this.options.method](this.options.path));
   }
 
@@ -99,8 +103,8 @@ const TestAgent = module.exports = class TestAgent {
    * @param {Boolean} rawSupertest `true`表示返回`supertest.Agent`实例，`false`返回`TestAgent`实例
    * @return {Object}
    */
-  agent(rawSupertest = false) {
-    debug('agent: rawSupertest=%s', rawSupertest);
+  public agent(rawSupertest = false) {
+    debug("agent: rawSupertest=%s", rawSupertest);
     if (rawSupertest) {
       return this.options.agent;
     }
@@ -109,19 +113,19 @@ const TestAgent = module.exports = class TestAgent {
 
   /**
    * 对测试结果加入文档
-   * 
+   *
    * @param {String} name 测试名
    * @returns {Object}
    */
-  takeExample(name){
+  public takeExample(name) {
     this.options.agentTestName = name;
     this.options.takeExample = true;
     return this;
   }
 
-  _saveExample() {
-    debug('Save Example', this.key, this.options.takeExample);
-    if(this.options.takeExample) {
+  public _saveExample() {
+    debug("Save Example", this.key, this.options.takeExample);
+    if (this.options.takeExample) {
       this.options.parent.api.$schemas.get(this.key).example({
         name: this.options.agentTestName,
         path: this.options.agentPath,
@@ -133,9 +137,9 @@ const TestAgent = module.exports = class TestAgent {
     debug(this.options.parent.api.$schemas.get(this.key).options.examples);
   }
 
-  headers(data) {
+  public headers(data) {
     this.options.agentHeader = data;
-    Object.keys(data).forEach(k => this.options.agent.set(k, data[k]));
+    Object.keys(data).forEach((k) => this.options.agent.set(k, data[k]));
     return this;
   }
 
@@ -145,14 +149,15 @@ const TestAgent = module.exports = class TestAgent {
    * @param {Object} data
    * @return {Object}
    */
-  input(data) {
-    this.debug('input: %j', data);
+  public input(data) {
+    this.debug("input: %j", data);
     this.options.agentInput = data;
-    if (this.options.method === 'get' || this.options.method === 'head' || this.options.method === 'delete') {
+    if (this.options.method === "get" || this.options.method === "head" || this.options.method === "delete") {
       this.options.agent.query(data);
     } else {
       for (const i in data) {
-        if (data[i] instanceof fs.ReadStream) {
+        // TODO: use fs.ReadStream
+        if (data[i] instanceof stream.Readable) {
           this.options.agent.attach(i, data[i]);
           delete data[i];
         }
@@ -168,23 +173,22 @@ const TestAgent = module.exports = class TestAgent {
    * @param {Function} callback
    * @return {Promise}
    */
-  output(callback) {
-    const self = this;
+  private _output(callback) {
     const cb = callback || utils.createPromiseCallback();
-    self.options.agent.end((err, res) => {
-      self.options.agentPath = res.req.path;
-      self.options.agentOutput = res.body;
+    this.options.agent.end((err, res) => {
+      this.options.agentPath = res.req.path;
+      this.options.agentOutput = res.body;
       if (err) {
         return cb(err);
       }
-      const formatOutputReverse = self.options.parent.api.formatOutputReverse;
+      const formatOutputReverse = this.options.parent.api.formatOutputReverse;
       const [ err2, ret ] = formatOutputReverse(res.body);
       cb(err2, ret);
     });
     return cb.promise;
   }
 
-  _extendsOutput() {
+  private _extendsOutput() {
 
     /**
      * 期望输出成功结果
@@ -225,10 +229,6 @@ const TestAgent = module.exports = class TestAgent {
       });
       return cb.promise;
     };
-
   }
 
-};
-
-/* 支持的HTTP请求方法 */
-TestAgent.SUPPORT_METHOD = SUPPORT_METHOD;
+}
