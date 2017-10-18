@@ -8,7 +8,7 @@
 import * as assert from "assert";
 import {core as debug } from "./debug";
 import { defaultTypes } from "./default/types";
-import * as extendDocs from "./extend/docs";
+import { extendDocs } from "./extend/docs";
 import * as extendTest from "./extend/test";
 import { TypeManager  } from "./manager/type";
 import { apiCheckParams } from "./params";
@@ -30,20 +30,22 @@ export interface IOPTIONS {
   groups?: any;
 }
 
-export interface IAPI {
-  initTest: (app: any) => void;
-}
-
 interface IApiInfo {
   $schemas: Map<string, Schema>;
   beforeHooks: any[];
   afterHooks: any[];
   docs?: any;
+  test?: any;
   formatOutputReverse?: any;
   docOutputForamt?: any;
+  $flag: IApiFlag;
 }
 
-export class API implements IAPI {
+interface IApiFlag {
+  saveApiInputOutput: boolean;
+}
+
+export class API {
 
   public app: any;
   public api: IApiInfo;
@@ -76,6 +78,9 @@ export class API implements IAPI {
       $schemas: new Map(),
       beforeHooks: [],
       afterHooks: [],
+      $flag: {
+        saveApiInputOutput: false,
+      },
     };
     this.config = {
       path: options.path || process.cwd(),
@@ -99,7 +104,7 @@ export class API implements IAPI {
     debug("initTest");
     this.app = app;
     extendTest.call(this);
-    extendDocs.call(this);
+    extendDocs(this);
     this.api.docs.markdown();
     this.api.docs.saveOnExit(process.cwd() + "/docs/");
   }
@@ -160,7 +165,7 @@ export class API implements IAPI {
   }
 
   public genDocs(path, onExit = true) {
-    extendDocs.call(this);
+    extendDocs(this);
     this.api.docs.markdown();
     const savePath = path || process.cwd() + "/docs/";
     if (onExit) {
