@@ -9,7 +9,7 @@ import * as assert from "assert";
 import {core as debug } from "./debug";
 import { defaultTypes } from "./default/types";
 import { extendDocs } from "./extend/docs";
-import * as extendTest from "./extend/test";
+import { extendTest } from "./extend/test";
 import { TypeManager  } from "./manager/type";
 import { apiCheckParams } from "./params";
 import { Schema } from "./schema";
@@ -103,7 +103,7 @@ export class API {
     if (this.app && this.test) { return; }
     debug("initTest");
     this.app = app;
-    extendTest.call(this);
+    extendTest(this);
     extendDocs(this);
     this.api.docs.markdown();
     this.api.docs.saveOnExit(process.cwd() + "/docs/");
