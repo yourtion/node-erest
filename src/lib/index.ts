@@ -10,6 +10,7 @@ import {core as debug } from "./debug";
 import { defaultTypes } from "./default/types";
 import { extendDocs } from "./extend/docs";
 import { extendTest } from "./extend/test";
+import { IApiInfo, IApiOption } from "./interfaces";
 import { TypeManager  } from "./manager/type";
 import { apiCheckParams } from "./params";
 import { Schema } from "./schema";
@@ -19,33 +20,7 @@ const missingParameter = (msg) => new Error(`missing required parameter ${ msg }
 const invalidParameter = (msg) => new Error(`incorrect parameter ${ msg }`);
 const internalError = (msg) => new Error(`internal error ${ msg }`);
 
-export interface IOPTIONS {
-  info?: any;
-  path?: any;
-  missingParameterError?: any;
-  invalidParameterError?: any;
-  internalError?: any;
-  router?: any;
-  errors?: any;
-  groups?: any;
-}
-
-interface IApiInfo {
-  $schemas: Map<string, Schema>;
-  beforeHooks: any[];
-  afterHooks: any[];
-  docs?: any;
-  test?: any;
-  formatOutputReverse?: any;
-  docOutputForamt?: any;
-  $flag: IApiFlag;
-}
-
-interface IApiFlag {
-  saveApiInputOutput: boolean;
-}
-
-export class API {
+export default class API {
 
   public app: any;
   public api: IApiInfo;
@@ -61,7 +36,7 @@ export class API {
 
   /**
    * Creates an instance of API.
-   * @param {Objcet} [options={}]
+   * @param {IApiOption} [options={}]
    *   - {Object} info 信息
    *   - {Object} groups 分组
    *   - {String} path 路由文件所在路径
@@ -71,7 +46,7 @@ export class API {
    *   - {Function} invalidParameterError 参数错误生成方法
    *   - {Function} invalidParameterError 内部错误生成方法
    */
-  constructor(options: IOPTIONS) {
+  constructor(options: IApiOption) {
     this.utils = require("./utils");
     this.info = options.info || {};
     this.api = {
@@ -143,6 +118,7 @@ export class API {
 
   /**
    * 绑定路由
+   * （加载顺序：beforeHooks -> apiCheckParams -> middlewares -> handler -> afterHooks ）
    *
    * @param {Object} [router=this.router] 路由
    */

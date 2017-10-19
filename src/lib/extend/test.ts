@@ -9,7 +9,7 @@
 import * as assert from "assert";
 import { TestAgent } from "../agent";
 import { test as debug } from "../debug";
-import { API } from "../index";
+import API from "../index";
 import { getCallerSourceLine, getSchemaKey } from "../utils";
 
 import * as supertest from "supertest";

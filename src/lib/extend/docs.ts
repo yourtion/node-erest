@@ -10,7 +10,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import { docs as debug} from "../debug";
-import { API } from "../index";
+import API from "../index";
 import { generateMarkdown } from "../plugin/generate_markdown";
 import { generateSwagger } from "../plugin/generate_swagger";
 

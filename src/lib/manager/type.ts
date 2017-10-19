@@ -10,7 +10,7 @@ import * as assert from "assert";
 import { core as debug } from "../debug";
 import { Manager } from "./manager";
 
-export interface ITypeManger {
+export interface ITypeMangerOption {
   checker: () => boolean;
   formatter?: () => any;
   parser?: () => any;
@@ -34,7 +34,7 @@ export class TypeManager extends Manager {
    * ```
    *
    * @param {String} name
-   * @param {ITypeManger} options
+   * @param {ITypeMangerOption} options
    *   - {Function} checker 参数检查器，函数格式：`function (v, params) { return true; }`
    *   - {Function} formatter 参数格式化，函数格式：`function (v) { return v; }`
    *   - {Function} parser 参数解析，函数格式：`function (v) { return v; }`
@@ -44,7 +44,7 @@ export class TypeManager extends Manager {
    *   - {Boolean} isParamsRequire 是否强制需要paramsChecker
    * @return {Object}
    */
-  public register(name, options: ITypeManger) {
+  public register(name, options: ITypeMangerOption) {
 
     let { isDefault, isParamsRequire } = options;
     const { formatter, parser, paramsChecker, checker, description = "" } = options;
