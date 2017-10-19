@@ -121,3 +121,20 @@ export function createPromiseCallback<T>(): IPromiseCallback<T> {
   });
   return callback;
 }
+
+/**
+ * 合并对象
+ *
+ * @param {Object} a
+ * @param {Object} b
+ * @return {Object}
+ */
+export function merge(...args) {
+  const ret = {};
+  for (const obj of args) {
+    Object.keys(obj).forEach((k) => {
+      ret[k] = obj[k];
+    });
+  }
+  return ret;
+}
