@@ -16,6 +16,8 @@ export interface IParamsOption {
   required?: boolean;
   params: string;
   _paramsJSON: string;
+  enum?: string[];
+
 }
 
 export interface ISchemaOption {
