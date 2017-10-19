@@ -11,7 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { docs as debug} from "../debug";
 import { API } from "../index";
-import * as generateMarkdown from "../plugin/generate_markdown";
+import { generateMarkdown } from "../plugin/generate_markdown";
 import { generateSwagger } from "../plugin/generate_swagger";
 
 const DOC = [ "method", "path", "examples", "middlewares", "required", "requiredOneOf", "query", "body", "params", "group", "title", "description" ];
