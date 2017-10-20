@@ -86,13 +86,12 @@ function typeDocs(data) {
   const defaultTypes: any[] = [];
   const customTypes: any[] = [];
   for (const name in data.types) {
-    if (name) {
-      const info = data.types[name];
-      if (info.isDefault) {
-        defaultTypes.push(info);
-      } else {
-        customTypes.push(info);
-      }
+    if (!data.types.hasOwnProperty(name)) { continue; }
+    const info = data.types[name];
+    if (info.isDefault) {
+      defaultTypes.push(info);
+    } else {
+      customTypes.push(info);
     }
   }
 
@@ -121,9 +120,8 @@ function errorDocs(data) {
 
   const errors: any[] = [];
   for (const name in data.errors) {
-    if (name) {
-      errors.push(Object.assign({ name }, data.errors[name]));
-    }
+    if (!data.errors.hasOwnProperty(name)) { continue; }
+    errors.push(Object.assign({ name }, data.errors[name]));
   }
 
   errors.sort((a, b) => {
@@ -156,24 +154,23 @@ function schemaDocs(data) {
     paramsList.push(`------|----- |-----|-------|------|-----`);
     for (const place of [ "params", "query", "body" ]) {
       for (const name in item[place]) {
-        if (name) {
-          const info = item[place][name];
-          let required = "否";
-          if (item.required.has(name)) {
-            required = "是";
-          } else {
-            for (const names of item.requiredOneOf) {
-              if (names.indexOf(name) !== -1) {
-                // required = `\`${ names.join('`, `') }\` 其中一个`;
-                required = "选填";
-                break;
-              }
+        if (!item[place].hasOwnProperty(name)) { continue; }
+        const info = item[place][name];
+        let required = "否";
+        if (item.required.has(name)) {
+          required = "是";
+        } else {
+          for (const names of item.requiredOneOf) {
+            if (names.indexOf(name) !== -1) {
+              // required = `\`${ names.join('`, `') }\` 其中一个`;
+              required = "选填";
+              break;
             }
           }
-          paramsList.push(`
-    \`${ stringOrEmpty(name) }\` | ${ place } | ${ stringOrEmpty(info.type) } | ${ info.format ? "是" : "否" } | ${ required } | ${ stringOrEmpty(info.comment) }
-          `.trim());
         }
+        paramsList.push(`
+  \`${ stringOrEmpty(name) }\` | ${ place } | ${ stringOrEmpty(info.type) } | ${ info.format ? "是" : "否" } | ${ required } | ${ stringOrEmpty(info.comment) }
+        `.trim());
       }
     }
     if (item.requiredOneOf.size > 0) {
@@ -189,9 +186,7 @@ function schemaDocs(data) {
   function formatExampleInput(inputData) {
     const ret = Object.assign({}, inputData);
     for (const name in ret) {
-      if (name[0] === "$") {
-        delete ret[name];
-      }
+      if (name[0] === "$") { delete ret[name]; }
     }
     return ret;
   }
@@ -244,12 +239,11 @@ ${ examples(item.examples) }
 
   const list: Array<{name: string, content: string}> = [];
   for (const name in group) {
-    if (name) {
-      list.push({
-        name,
-        content: group[name].join("\n\n"),
-      });
-    }
+    if (!group.hasOwnProperty(name)) { continue; }
+    list.push({
+      name,
+      content: group[name].join("\n\n"),
+    });
   }
 
   return list;

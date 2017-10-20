@@ -20,8 +20,9 @@ export function apiCheckParams(ctx, schema) {
     const newParams = {};
     for (const place of [ "query", "params", "body" ]) {
       const pOptions = schema.options[place];
-      for (const [name, options] of pOptions) {
-
+      for (const name in pOptions) {
+        if (!pOptions.hasOwnProperty(name)) { continue; }
+        const options = pOptions[name];
         let value = req[place][name];
         debug(`param check ${ name } : ${ value } with ${ options }`);
 

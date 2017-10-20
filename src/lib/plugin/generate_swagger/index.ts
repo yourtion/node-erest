@@ -57,14 +57,17 @@ export function generateSwagger(data, dir) {
     paths: {},
   };
 
-  for (const k of data.group) {
+  for (const k in data.group) {
+    if (!data.group.hasOwnProperty(k)) { continue; }
     result.tags.push({ name: k, description: data.group[k] });
   }
   result.tags = result.tags.sort((a, b) => a.name > b.name ? 1 : -1);
 
   const paths = result.paths;
-  const schemas: Map<string, ISchemaOption> = data.schemas;
-  for (const [key, schema] of schemas.entries()) {
+  const schemas = data.schemas;
+  for (const key in schemas) {
+    if (!schemas.hasOwnProperty(key)) { continue; }
+    const schema = schemas[key];
     const pathArray: string[] = [];
     for (const p of schema.path.split("/")) {
       if (p.indexOf(":") === 0) {
@@ -109,41 +112,41 @@ export function generateSwagger(data, dir) {
     example = example || { input: {}, output: {}};
     for (const place of [ "params", "query", "body" ]) {
       for (const sKey in schema[place]) {
-        if (sKey) {
-          const obj: ISwaggerResultParams = {
-            name: sKey,
-            in: place === "params" ? "path" : place,
-            description: schema[place][sKey].comment,
-            type: schema[place][sKey].type.toLowerCase(),
-            required: schema[place][sKey].required,
-            example: example.input[sKey],
-          };
-          if (schema.required.has(sKey)) {
-            obj.required = true;
-          }
-          if (schema[place][sKey].type === "ENUM") {
-            obj.type = "string";
-            obj.enum = schema[place][sKey].params;
-          }
-          if (schema[place][sKey].type === "IntArray") {
-            obj.type = "array";
-            obj.items = { type: "integer" };
-          }
-          if (schema[place][sKey].type === "Date") {
-            obj.type = "string";
-            obj.format = "date";
-          }
-          if (place === "body") {
-            delete obj.in;
-            delete obj.name;
-            delete obj.required;
-            bodySchema[sKey] = obj;
-          }else {
-            sc[schema.method].parameters.push(obj);
-          }
+        if (!schema[place].hasOwnProperty(sKey)) { continue; }
+        const obj: ISwaggerResultParams = {
+          name: sKey,
+          in: place === "params" ? "path" : place,
+          description: schema[place][sKey].comment,
+          type: schema[place][sKey].type.toLowerCase(),
+          required: schema[place][sKey].required,
+          example: example.input[sKey],
+        };
+        if (schema.required.has(sKey)) {
+          obj.required = true;
+        }
+        if (schema[place][sKey].type === "ENUM") {
+          obj.type = "string";
+          obj.enum = schema[place][sKey].params;
+        }
+        if (schema[place][sKey].type === "IntArray") {
+          obj.type = "array";
+          obj.items = { type: "integer" };
+        }
+        if (schema[place][sKey].type === "Date") {
+          obj.type = "string";
+          obj.format = "date";
+        }
+        if (place === "body") {
+          delete obj.in;
+          delete obj.name;
+          delete obj.required;
+          bodySchema[sKey] = obj;
+        }else {
+          sc[schema.method].parameters.push(obj);
         }
       }
     }
+
     sc[schema.method].responses[200].example = example.output;
     if (schema.method === "post" && schema.body) {
       const required = schema.required && [ ...schema.required ].filter((it) => Object.keys(bodySchema).indexOf(it) > -1);
