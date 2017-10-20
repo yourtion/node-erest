@@ -10,6 +10,7 @@ import * as assert from "assert";
 import { TestAgent } from "../agent";
 import { test as debug } from "../debug";
 import API from "../index";
+import { IKVObject } from "../interfaces";
 import { getCallerSourceLine, getSchemaKey } from "../utils";
 
 import * as supertest from "supertest";
@@ -25,7 +26,7 @@ export function extendTest(apiService: API) {
    * @param {String} path
    * @return {Object}
    */
-  const findSchema = (method, path) => {
+  const findSchema = (method: string, path: string) => {
 
     // 如果定义了 API 的 basePath，需要在测试时替换掉
     const routerPath = apiService.info.basePath ? path.replace(apiService.info.basePath, "") : path;
@@ -44,12 +45,13 @@ export function extendTest(apiService: API) {
 
   // test.get, apiService.post, ...
   for (const method of TestAgent.SUPPORT_METHOD) {
-    apiService.test[method] = (path, rawSupertest) => {
+    apiService.test[method] = (path: string, rawSupertest: supertest.SuperTest<any>) => {
 
       const s = findSchema(method, path);
 
       assert(s, `尝试请求未注册的API：${ method } ${ path }`);
-      const a = new TestAgent(method, path, s && s.key, getCallerSourceLine(apiService.config.get("api.path")), apiService);
+      if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
+      const a = new TestAgent(method, path, s.key, getCallerSourceLine(apiService.config.get("api.path")), apiService);
 
       assert(apiService.app, "请先调用 setApp() 设置 exprss 实例");
       a.initAgent(apiService.app);
@@ -66,17 +68,18 @@ export function extendTest(apiService: API) {
 
     assert(apiService.app, "请先调用 setApp() 设置 exprss 实例");
     assert(supertest, "请先安装 supertest");
-    const session = {
+    const session: IKVObject = {
       $$agent: supertest.agent(apiService.app),
     };
 
     for (const method of TestAgent.SUPPORT_METHOD) {
-      session[method] = (path, rawSupertest) => {
+      session[method] = (path: string, rawSupertest: supertest.SuperTest<any>) => {
 
         const s = findSchema(method, path);
 
         assert(s, `尝试请求未注册的API：${ method } ${ path }`);
-        const a = new TestAgent(method, path, s && s.key, "a", apiService);
+        if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
+        const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, apiService);
 
         a.setAgent(session.$$agent[method](path));
         return a.agent(rawSupertest);

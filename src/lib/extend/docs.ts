@@ -11,6 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { docs as debug} from "../debug";
 import API from "../index";
+import { IKVObject } from "../interfaces";
 import { generateMarkdown } from "../plugin/generate_markdown";
 import { generateSwagger } from "../plugin/generate_swagger";
 
@@ -21,7 +22,7 @@ export function extendDocs(apiService: API) {
   apiService.api.docs = {};
   const plugins: any[] = [];
 
-  const docOutputForamt = (out) => out;
+  const docOutputForamt = (out: any) => out;
 
   /**
    * 获取文档数据
@@ -32,15 +33,15 @@ export function extendDocs(apiService: API) {
 
     const data = {
       info: apiService.info,
-      types: {},
+      types: {} as IKVObject,
       errors: apiService.errors,
-      schemas: {},
+      schemas: {} as IKVObject,
       group: apiService.groups,
     };
     const formatOutput = apiService.api.docOutputForamt || docOutputForamt;
 
     // types
-    apiService.type.forEach((item) => {
+    apiService.type.forEach((item: any) => {
       const t = apiService.utils.merge(item);
       t.parser = t.parser && t.parser.toString();
       t.checker = t.checker && t.checker.toString();
@@ -56,7 +57,7 @@ export function extendDocs(apiService: API) {
       }
       const examples = data.schemas[k].examples;
       if (examples) {
-        examples.forEach((item) => {
+        examples.forEach((item: any) => {
           const v = item;
           v.output = formatOutput(v.output);
         });
@@ -93,7 +94,7 @@ export function extendDocs(apiService: API) {
    * @param {String} dir 存储目录
    * @return {Object}
    */
-  apiService.api.docs.save = (dir) => {
+  apiService.api.docs.save = (dir: string) => {
 
     assert(typeof dir === "string" && dir.length > 0, `文档存储目录"${ dir }"格式不正确：必须是字符串类型`);
 
@@ -131,7 +132,7 @@ export function extendDocs(apiService: API) {
    * @param {String} dir 存储目录
    * @return {Object}
    */
-  apiService.api.docs.saveOnExit = (dir) => {
+  apiService.api.docs.saveOnExit = (dir: string) => {
     process.on("exit", () => {
       apiService.api.docs.save(dir);
     });
