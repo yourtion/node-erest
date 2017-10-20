@@ -14,7 +14,7 @@ export class Manager {
    * Creates an instance of Manager.
    * @param {Object} parent 上下文
    */
-  constructor(parent) {
+  constructor(parent: object) {
     this.parent = parent;
     this.map = new Map();
   }
@@ -25,7 +25,7 @@ export class Manager {
    * @param {String} name
    * @return {Object}
    */
-  public get(name) {
+  public get(name: string) {
     return this.map.get(name);
   }
 
@@ -35,7 +35,7 @@ export class Manager {
    * @param {Function} iter
    * @return {Object}
    */
-  public forEach(iter) {
+  public forEach(iter: any) {
     return this.map.forEach(iter);
   }
 
