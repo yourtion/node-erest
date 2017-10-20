@@ -37,6 +37,7 @@
   "devDependencies": {
     "@types/debug": "0.0.30",
     "@types/node": "^8.0.41",
+    "@types/supertest": "^2.0.3",
     "@types/validator": "^6.3.0",
     "source-map-support": "^0.4.15",
     "ts-node": "^3.3.0",
