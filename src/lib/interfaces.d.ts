@@ -1,5 +1,17 @@
 import { Schema } from "./schema";
 
+export type ICallback<T> = (err: Error | null, ret?: T) => void;
+
+export interface IPromiseCallback<T> extends ICallback<T> {
+  reject?: any;
+  resolve?: any;
+  promise?: Promise<T>;
+}
+
+export interface IKVObject {
+  [key: string]: any;
+}
+
 export interface IApiOption {
   info?: any;
   path?: any;
@@ -11,7 +23,7 @@ export interface IApiOption {
   groups?: any;
 }
 
-export interface IApiInfo {
+export interface IApiInfo extends IKVObject {
   $schemas: Map<string, Schema>;
   beforeHooks: any[];
   afterHooks: any[];
