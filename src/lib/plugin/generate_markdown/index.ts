@@ -8,19 +8,20 @@
 import * as fs from "fs";
 import * as path from "path";
 import { plugin as debug } from "../../debug";
+import { IKVObject } from "../../interfaces";
 import { ISchemaOption } from "../../schema";
 import * as utils from "../../utils";
 
-export function generateMarkdown(data, dir) {
+export function generateMarkdown(data: any, dir: string) {
 
-  function filePath(name) {
+  function filePath(name: string) {
     const filename = name === "Home" ? name : name.toLowerCase();
     const p = path.resolve(dir, filename + ".md");
     debug("filePath", p);
     return p;
   }
 
-  function getGroupName(name) {
+  function getGroupName(name: string) {
     return data.group[name] ? `${ data.group[name] } ( ${ name } )` : name;
   }
 
@@ -64,24 +65,24 @@ export function generateMarkdown(data, dir) {
   fs.writeFileSync(filePath("API文档-" + data.info.title), trimSpaces(allInOneDoc.join("\n")));
 }
 
-function trimSpaces(text) {
+function trimSpaces(text: string) {
   return text.replace(/\r\n/g, "\n").replace(/\n\n+/g, "\n\n").replace(/\n\s+\n/g, "\n\n");
 }
 
-function toString(str, defaultStr) {
+function toString(str: string, defaultStr: string) {
   if (typeof str === "undefined") { return defaultStr || ""; }
   return String(str);
 }
 
-function stringOrEmpty(str) {
+function stringOrEmpty(str: string) {
   return toString(str, "（无）");
 }
 
-function itemTF(obj) {
+function itemTF(obj: any) {
   return obj ? "是" : "否";
 }
 
-function typeDocs(data) {
+function typeDocs(data: any) {
 
   const defaultTypes: any[] = [];
   const customTypes: any[] = [];
@@ -116,7 +117,7 @@ function typeDocs(data) {
   return typeList.join("\n") + "\n";
 }
 
-function errorDocs(data) {
+function errorDocs(data: any) {
 
   const errors: any[] = [];
   for (const name in data.errors) {
@@ -138,16 +139,16 @@ function errorDocs(data) {
   return errorList.join("\n");
 }
 
-function schemaDocs(data) {
+function schemaDocs(data: any) {
 
-  const group = {};
+  const group: IKVObject = {};
 
-  function add(name, content) {
+  function add(name: string, content: string) {
     if (!Array.isArray(group[name])) { group[name] = []; }
     group[name].push(content.trim());
   }
 
-  function paramsTable(item) {
+  function paramsTable(item: IKVObject) {
 
     const paramsList: string[] = [];
     paramsList.push(`参数名 | 位置 | 类型 | 格式化 | 必填 | 说明`);
@@ -183,7 +184,7 @@ function schemaDocs(data) {
     return paramsList.join("\n");
   }
 
-  function formatExampleInput(inputData) {
+  function formatExampleInput(inputData: IKVObject) {
     const ret = Object.assign({}, inputData);
     for (const name in ret) {
       if (name[0] === "$") { delete ret[name]; }
@@ -191,7 +192,7 @@ function schemaDocs(data) {
     return ret;
   }
 
-  function examples(exampleList) {
+  function examples(exampleList: any[]) {
     return exampleList.map((item) => {
       return `
 // ${ stringOrEmpty(item.name) } - ${ item.path } ${ item.headers ? "\nheaders = " + utils.jsonStringify(item.headers, 2) : "" }
@@ -211,7 +212,7 @@ output = ${ utils.jsonStringify(item.output, 2) };
 `;
 
     if (item.description) {
-      line += "\n\n" + item.description.split("\n").map((it) => it.trim()).join("\n") + "\n";
+      line += "\n\n" + item.description.split("\n").map((it: string) => it.trim()).join("\n") + "\n";
     }
     const paramsDoc = paramsTable(item);
     if (paramsDoc) {

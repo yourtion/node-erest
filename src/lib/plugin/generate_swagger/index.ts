@@ -7,6 +7,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { IKVObject } from "../../interfaces";
 import { ISchemaOption } from "../../schema";
 
 interface ISwaggerResult {
@@ -32,7 +33,7 @@ interface ISwaggerResultParams {
   format?: string;
 }
 
-export function generateSwagger(data, dir) {
+export function generateSwagger(data: any, dir: string) {
 
   const result: ISwaggerResult = {
     swagger: "2.0",
@@ -99,7 +100,7 @@ export function generateSwagger(data, dir) {
     };
 
     sc[schema.method].parameters = [];
-    const bodySchema = {};
+    const bodySchema: IKVObject = {};
     let example = schema.examples && schema.examples[0];
     if (schema.examples && schema.examples.length > 1) {
       for (const item of schema.examples) {
