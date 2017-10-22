@@ -5,6 +5,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 import { resolve as pathResolve } from "path";
+import { IPromiseCallback } from "./interfaces";
 
 export interface ISourceResult {
   relative?: string;
@@ -43,7 +44,7 @@ export function getCallerSourceLine(dir: string): ISourceResult {
  * @param {String} path
  * @return {String}
  */
-export function getSchemaKey(method, path): string {
+export function getSchemaKey(method: string, path: string): string {
   return `${ method.toUpperCase() }_${ path }`;
 }
 
@@ -54,7 +55,7 @@ export function getSchemaKey(method, path): string {
  * @param {String|Number} space 缩进
  * @return {String}
  */
-export function jsonStringify(data, space) {
+export function jsonStringify(data: object, space: string|number) {
   const seen: any[] = [];
   return JSON.stringify(data, (key, val) => {
     if (!val || typeof val !== "object") {
@@ -75,7 +76,7 @@ export function jsonStringify(data, space) {
  * @param {Object} info
  * @return {Function}
  */
-export function customError(name, info) {
+export function customError(name: string, info: object) {
   name = name || "CustomError";
   info = info || {};
   const code = "" +
@@ -90,16 +91,6 @@ export function customError(name, info) {
 name + ".prototype = Error.prototype;" + name;
   // tslint:disable-next-line no-eval
   return eval(code);
-}
-
-/**
- * 带 Promise 的回调函数
- */
-export interface IPromiseCallback<T> {
-  (err: Error | null, ret?: T): void;
-  reject?: any;
-  resolve?: any;
-  promise?: Promise<T>;
 }
 
 /**
@@ -129,12 +120,10 @@ export function createPromiseCallback<T>(): IPromiseCallback<T> {
  * @param {Object} b
  * @return {Object}
  */
-export function merge(...args) {
+export function merge(...args: object[]) {
   const ret = {};
   for (const obj of args) {
-    Object.keys(obj).forEach((k) => {
-      ret[k] = obj[k];
-    });
+    Object.assign(ret, obj);
   }
   return ret;
 }

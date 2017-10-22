@@ -13,7 +13,7 @@ import * as Debug from "debug";
  * @param {String} name
  * @return {Debug.IDebugger}
  */
-const create = (name) => {
+const create = (name: string) => {
   return Debug("erest:" + name);
 };
 
