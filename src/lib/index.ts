@@ -16,9 +16,9 @@ import { apiCheckParams } from "./params";
 import { Schema } from "./schema";
 import { getCallerSourceLine } from "./utils";
 
-const missingParameter = (msg) => new Error(`missing required parameter ${ msg }`);
-const invalidParameter = (msg) => new Error(`incorrect parameter ${ msg }`);
-const internalError = (msg) => new Error(`internal error ${ msg }`);
+const missingParameter = (msg: string) => new Error(`missing required parameter ${ msg }`);
+const invalidParameter = (msg: string) => new Error(`incorrect parameter ${ msg }`);
+const internalError = (msg: string) => new Error(`internal error ${ msg }`);
 
 export default class API {
 
@@ -74,7 +74,7 @@ export default class API {
     this._register();
   }
 
-  public initTest(app) {
+  public initTest(app: any) {
     if (this.app && this.test) { return; }
     debug("initTest");
     this.app = app;
@@ -84,11 +84,11 @@ export default class API {
     this.api.docs.saveOnExit(process.cwd() + "/docs/");
   }
 
-  public setFormatOutput(fn) {
+  public setFormatOutput(fn: any) {
     this.api.formatOutputReverse = fn;
   }
 
-  public setDocOutputForamt(fn) {
+  public setDocOutputForamt(fn: any) {
     this.api.docOutputForamt = fn;
   }
 
@@ -100,7 +100,7 @@ export default class API {
      * @param {String} path 请求路径
      * @return {Object}
      */
-    const register = (method, path) => {
+    const register = (method: string, path: string) => {
       const s = new Schema(method, path, getCallerSourceLine(this.config.path));
       const s2 = this.api.$schemas.get(s.key);
       assert(!s2, `尝试注册API：${ s.key }（所在文件：${ s.options.sourceFile.absolute }）失败，因为该API已在文件${ s2 && s2.options.sourceFile.absolute }中注册过`);
@@ -110,7 +110,7 @@ export default class API {
     };
 
     for (const method of Schema.SUPPORT_METHOD) {
-      this.api[method] = (path) => {
+      this.api[method] = (path: string) => {
         return register(method, path);
       };
     }
@@ -140,7 +140,7 @@ export default class API {
     }
   }
 
-  public genDocs(path, onExit = true) {
+  public genDocs(path: string, onExit = true) {
     extendDocs(this);
     this.api.docs.markdown();
     const savePath = path || process.cwd() + "/docs/";

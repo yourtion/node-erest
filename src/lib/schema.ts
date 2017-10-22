@@ -8,7 +8,14 @@
 import * as assert from "assert";
 import * as pathToRegExp from "path-to-regexp";
 import { schema as debug } from "./debug";
+import API from "./index";
+import { IKVObject } from "./interfaces";
 import { getSchemaKey, ISourceResult } from "./utils";
+
+export interface IExample {
+  input: object;
+  output: object;
+}
 
 export interface IParamsOption {
   format?: any;
@@ -20,7 +27,7 @@ export interface IParamsOption {
 
 }
 
-export interface ISchemaOption {
+export interface ISchemaOption extends IKVObject {
   description?: string;
   group?: string;
   format?: boolean;
@@ -30,12 +37,12 @@ export interface ISchemaOption {
   sourceFile: ISourceResult;
   method: string;
   path: string;
-  examples: any[];
+  examples: IExample[];
   beforeHooks: any[];
   afterHooks: any[];
   middlewares: any[];
   required: Set<string>;
-  requiredOneOf: Set<string>;
+  requiredOneOf: string[][];
   query: object;
   body: object;
   params: object;
@@ -56,7 +63,7 @@ export class Schema {
    * @param {String} path 请求路径
    * @param {Object} sourceFile 源文件路径描述对象
    */
-  constructor(method, path, sourceFile) {
+  constructor(method: string, path: any, sourceFile: ISourceResult) {
 
     assert(method && typeof method === "string", "`method`必须是字符串类型");
     assert(Schema.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, "`method`必须是以下请求方法中的一个：" + Schema.SUPPORT_METHOD);
@@ -72,7 +79,7 @@ export class Schema {
       afterHooks: [],
       middlewares: [],
       required: new Set(),
-      requiredOneOf: new Set(),
+      requiredOneOf: [],
       query: {},
       body: {},
       params: {},
@@ -102,7 +109,7 @@ export class Schema {
    * @param {String} path
    * @return {Boolean}
    */
-  public pathTest(method, path) {
+  public pathTest(method: string, path: string) {
     return this.options.method === method.toLowerCase() && this.pathTestRegExp.test(path);
   }
 
@@ -112,7 +119,7 @@ export class Schema {
    * @param {String} title
    * @return {Object}
    */
-  public title(title) {
+  public title(title: string) {
     this._checkInited();
     assert(typeof title === "string", "`title`必须是字符串类型");
     this.options.title = title;
@@ -125,7 +132,7 @@ export class Schema {
    * @param {String} description
    * @return {Object}
    */
-  public description(description) {
+  public description(description: string) {
     this._checkInited();
     assert(typeof description === "string", "`description`必须是字符串类型");
     this.options.description = description;
@@ -138,7 +145,7 @@ export class Schema {
    * @param {String} group
    * @return {Object}
    */
-  public group(group) {
+  public group(group: string) {
     this._checkInited();
     assert(typeof group === "string", "`group`必须是字符串类型");
     this.options.group = group;
@@ -153,7 +160,7 @@ export class Schema {
    *   - {Object} output 输出结果
    * @return {Object}
    */
-  public example(example) {
+  public example(example: IExample) {
     // this._checkInited();
     assert(example.input && typeof example.input === "object", "`input`必须是一个对象");
     assert(example.output && typeof example.output === "object", "`output`必须是一个对象");
@@ -161,7 +168,7 @@ export class Schema {
     return this;
   }
 
-  public _addExample(example) {
+  public _addExample(example: IExample) {
     this.options.examples.push(example);
   }
 
@@ -176,7 +183,7 @@ export class Schema {
    *   - {String} comment 备注信息（用于文档生成）
    * @param {String} place 位置（body、query、params）
    */
-  public _params(name, options: IParamsOption, place) {
+  public _params(name: string, options: IParamsOption, place: string) {
 
     this._checkInited();
 
@@ -196,7 +203,7 @@ export class Schema {
 
     if (options.required) { this.options.required.add(name); }
 
-    this.options._params[name] = options;
+    this.options._params.set(name, options);
     this.options[place][name] = options;
   }
 
@@ -210,7 +217,7 @@ export class Schema {
    *   - {String} comment 备注信息（用于文档生成）
    * @return {Object}
    */
-  public body(obj) {
+  public body(obj: IKVObject) {
     for (const key of Object.keys(obj)) {
       const o = obj[key];
       this._params(key, o, "body");
@@ -228,7 +235,7 @@ export class Schema {
    *   - {String} comment 备注信息（用于文档生成）
    * @return {Object}
    */
-  public query(obj) {
+  public query(obj: IKVObject) {
     for (const key of Object.keys(obj)) {
       const o = obj[key];
       this._params(key, o, "query");
@@ -246,7 +253,7 @@ export class Schema {
    *   - {String} comment 备注信息（用于文档生成）
    * @return {Object}
    */
-  public param(obj) {
+  public param(obj: IKVObject) {
     for (const key of Object.keys(obj)) {
       const o = obj[key];
       this._params(key, o, "params");
@@ -260,7 +267,7 @@ export class Schema {
    * @param {Array} list 参数名列表
    * @return {Object}
    */
-  public required(list) {
+  public required(list: string[]) {
     this._checkInited();
     for (const item of list) {
       assert(typeof item === "string", "`name`必须是字符串类型");
@@ -275,12 +282,12 @@ export class Schema {
    * @param {Array} list 参数名列表
    * @return {Object}
    */
-  public requiredOneOf(list) {
+  public requiredOneOf(list: string[]) {
     this._checkInited();
     for (const item of list) {
       assert(typeof item === "string", "`name`必须是字符串类型");
     }
-    this.options.requiredOneOf.add(list);
+    this.options.requiredOneOf.push(list);
     return this;
   }
 
@@ -290,7 +297,7 @@ export class Schema {
    * @param {Function} middleware
    * @return {Object}
    */
-  public middlewares(...list) {
+  public middlewares(...list: any[]) {
     this._checkInited();
     for (const mid of list) {
       assert(typeof mid === "function", "中间件必须是Function类型");
@@ -305,7 +312,7 @@ export class Schema {
    * @param {String} name
    * @return {Object}
    */
-  public before(...list) {
+  public before(...list: any[]) {
     this._checkInited();
     for (const name of list) {
       assert(typeof name === "string", "钩子名称必须是字符串类型");
@@ -320,7 +327,7 @@ export class Schema {
    * @param {String} name
    * @return {Object}
    */
-  public after(...list) {
+  public after(...list: any[]) {
     this._checkInited();
     for (const name of list) {
       assert(typeof name === "string", "钩子名称必须是字符串类型");
@@ -335,14 +342,14 @@ export class Schema {
    * @param {Function} fn 函数格式：`async function (params) {}`
    * @return {Object}
    */
-  public register(fn) {
+  public register(fn: () => any[]) {
     this._checkInited();
     assert(typeof fn === "function", "处理函数必须是一个函数类型");
     this.options.handler = fn;
     return this;
   }
 
-  public init(parent) {
+  public init(parent: API) {
     this._checkInited();
 
     if (!this.options.env) {
@@ -368,16 +375,6 @@ export class Schema {
           throw new Error(`cannot JSON.stringify(options.params) for param ${ name }`);
         }
       }
-    }
-
-    // 初始化时检查before钩子是否正确
-    for (const name of this.options.beforeHooks) {
-      assert(parent.hook.get(name), `初始化${ this.key }时出错：钩子"${ name }"不存在`);
-    }
-
-    // 初始化时检查after钩子是否正确
-    for (const name of this.options.afterHooks) {
-      assert(parent.hook.get(name), `初始化${ this.key }时出错：钩子"${ name }"不存在`);
     }
 
     this.inited = true;

@@ -7,6 +7,8 @@
  */
 
 import {params as debug } from "./debug";
+import { IKVObject } from "./interfaces";
+import { Schema } from "./schema";
 
 /**
  * API 参数检查
@@ -15,9 +17,9 @@ import {params as debug } from "./debug";
  * @param {Schema} schema 定义
  * @returns {Function} 中间件
  */
-export function apiCheckParams(ctx, schema) {
-  return (req, res, next) => {
-    const newParams = {};
+export function apiCheckParams(ctx: any, schema: Schema) {
+  return (req: any, res: any, next: any) => {
+    const newParams: IKVObject = {};
     for (const place of [ "query", "params", "body" ]) {
       const pOptions = schema.options[place];
       for (const name in pOptions) {
@@ -76,7 +78,7 @@ export function apiCheckParams(ctx, schema) {
     }
 
     // 可选参数检查
-    if (schema.options.requiredOneOf.size > 0) {
+    if (schema.options.requiredOneOf.length > 0) {
       for (const names of schema.options.requiredOneOf) {
         let ok = false;
         for (const name of names) {
