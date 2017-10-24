@@ -6,6 +6,6 @@ Easy to write, easy to test, easy to generate document.
 
 ## Install 
 
-```javascript
+```bash
 $ npm install erest --save
 ```
