@@ -8,6 +8,7 @@
     "dist/lib"
   ],
   "scripts": {
+    "test": "mocha --require ts-node/register src/test/**/*.test.*",
     "lint": "tslint --project tsconfig.json --fix",
     "clean": "rm -rf dist",
     "compile": "tsc",
@@ -35,10 +36,14 @@
     "validator": "^8.2.0"
   },
   "devDependencies": {
+    "@types/chai": "^4.0.4",
     "@types/debug": "0.0.30",
+    "@types/mocha": "^2.2.43",
     "@types/node": "^8.0.41",
     "@types/supertest": "^2.0.3",
     "@types/validator": "^6.3.0",
+    "chai": "^4.1.2",
+    "mocha": "^4.0.1",
     "source-map-support": "^0.4.15",
     "ts-node": "^3.3.0",
     "tslint": "^5.6.0",
