@@ -210,7 +210,7 @@ export class Schema {
   /**
    * Body 参数
    *
-   * @param {Array<Object>} obj
+   * @param {IKVObject} obj
    *   - {String} type 参数类型
    *   - {Boolean} format 是否格式化，默认true
    *   - {Mixed} default 默认值，默认无
@@ -228,7 +228,7 @@ export class Schema {
   /**
    * Query 参数
    *
-   * @param {Array<Object>} obj
+   * @param {IKVObject} obj
    *   - {String} type 参数类型
    *   - {Boolean} format 是否格式化，默认true
    *   - {Mixed} default 默认值，默认无
@@ -246,7 +246,7 @@ export class Schema {
   /**
    * Param 参数
    *
-   * @param {Array<Object>} obj
+   * @param {IKVObject} obj
    *   - {String} type 参数类型
    *   - {Boolean} format 是否格式化，默认true
    *   - {Mixed} default 默认值，默认无
