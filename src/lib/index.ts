@@ -10,10 +10,10 @@ import {core as debug } from "./debug";
 import { defaultTypes } from "./default/types";
 import { extendDocs } from "./extend/docs";
 import { extendTest } from "./extend/test";
-import { IApiInfo, IApiOption } from "./interfaces";
+import { IApiInfo, IApiOption, IKVObject } from "./interfaces";
 import { TypeManager  } from "./manager/type";
-import { apiCheckParams } from "./params";
-import { Schema } from "./schema";
+import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
+import { ISchemaOption, Schema } from "./schema";
 import { getCallerSourceLine } from "./utils";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${ msg }`);
@@ -90,6 +90,14 @@ export default class API {
 
   public setDocOutputForamt(fn: any) {
     this.api.docOutputForamt = fn;
+  }
+
+  public paramsChecker() {
+    return (name: string, value: any, schema: ISchemaOption) => paramsChecker(this, name, value, schema);
+  }
+
+  public schemaChecker() {
+    return (data: IKVObject, schema: ISchemaOption[], requiredOneOf: string[] = []) => schemaChecker(this, data, schema, requiredOneOf);
   }
 
   public _register() {
