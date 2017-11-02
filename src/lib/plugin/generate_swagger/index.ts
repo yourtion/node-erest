@@ -165,5 +165,5 @@ export function generateSwagger(data: any, dir: string) {
     }
   }
 
-  fs.writeFileSync(path.resolve(dir, "swagger.json"), JSON.stringify(result, [ 2 ], "  "));
+  fs.writeFileSync(path.resolve(dir, "swagger.json"), JSON.stringify(result, null, "  "));
 }
