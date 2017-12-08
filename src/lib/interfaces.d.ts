@@ -23,6 +23,15 @@ export interface IApiOption {
   groups?: any;
 }
 
+export interface IDocOptions {
+  markdown: boolean,
+  index: boolean,
+  home: boolean,
+  swagger: boolean,
+  json: boolean,
+  all: boolean,
+}
+
 export interface IApiInfo extends IKVObject {
   $schemas: Map<string, Schema>;
   beforeHooks: any[];
