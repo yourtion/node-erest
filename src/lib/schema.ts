@@ -309,13 +309,13 @@ export class Schema {
   /**
    * 注册执行之前的钩子
    *
-   * @param {String} name
+   * @param {Function} name
    * @return {Object}
    */
   public before(...list: any[]) {
     this._checkInited();
     for (const name of list) {
-      assert(typeof name === "string", "钩子名称必须是字符串类型");
+      assert(typeof name === "function", "钩子名称必须是Function类型");
       this.options.beforeHooks.push(name);
     }
     return this;
@@ -324,13 +324,13 @@ export class Schema {
   /**
    * 注册执行之后的钩子
    *
-   * @param {String} name
+   * @param {Function} name
    * @return {Object}
    */
   public after(...list: any[]) {
     this._checkInited();
     for (const name of list) {
-      assert(typeof name === "string", "钩子名称必须是字符串类型");
+      assert(typeof name === "function", "钩子名称必须是Function类型");
       this.options.afterHooks.push(name);
     }
     return this;
