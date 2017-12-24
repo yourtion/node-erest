@@ -15,7 +15,7 @@ import { IKVObject } from "../interfaces";
 import { generateMarkdown } from "../plugin/generate_markdown";
 import { generateSwagger } from "../plugin/generate_swagger";
 
-const DOC = [ "method", "path", "examples", "middlewares", "required", "requiredOneOf", "query", "body", "params", "group", "title", "description" ];
+const DOC = [ "method", "path", "examples", "middlewares", "required", "requiredOneOf", "query", "body", "params", "group", "title", "description", "schema" ];
 
 export function extendDocs(apiService: API) {
 

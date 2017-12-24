@@ -24,7 +24,6 @@ export interface IParamsOption {
   params: string;
   _paramsJSON: string;
   enum?: string[];
-
 }
 
 export interface ISchemaOption extends IKVObject {
@@ -47,6 +46,7 @@ export interface ISchemaOption extends IKVObject {
   body: object;
   params: object;
   _params: Map<string, IParamsOption>;
+  schema?: object;
 }
 
 export class Schema {
@@ -170,6 +170,18 @@ export class Schema {
 
   public _addExample(example: IExample) {
     this.options.examples.push(example);
+  }
+
+  /**
+   * 输出结果对象
+   *
+   * @param {Object} schema 输出结果对象
+   * @return {Object}
+   */
+  public schema(schema: object) {
+    assert(typeof schema === "object", "`schema`必须是一个对象");
+    this.options.schema = schema;
+    return this;
   }
 
   /**

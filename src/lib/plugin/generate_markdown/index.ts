@@ -184,6 +184,25 @@ function schemaDocs(data: any) {
     return paramsList.join("\n");
   }
 
+  function schemaTable(item: IKVObject) {
+
+    const schemaList: string[] = [];
+    schemaList.push("参数名 | 类型 | 说明");
+    schemaList.push("------|-----|-----");
+    for (const name in item) {
+      if (!item[name].hasOwnProperty(name)) { continue; }
+      const info = item[name];
+      schemaList.push(`
+\`${ stringOrEmpty(name) }\` | ${ stringOrEmpty(info.type) } | ${ stringOrEmpty(info.comment) }
+      `.trim());
+    }
+
+    if (schemaList.length === 2) {
+      return;
+    }
+    return list.join("\n");
+  }
+
   function formatExampleInput(inputData: IKVObject) {
     const ret = Object.assign({}, inputData);
     for (const name in ret) {
@@ -223,6 +242,15 @@ ${ paramsDoc }
 `;
     } else {
       line += "\n参数：无参数\n";
+    }
+
+    const schemaDoc = schemaTable(item.schema);
+    if (schemaDoc) {
+      line += `
+### 输出结果说明：
+
+${ schemaDoc }
+`;
     }
 
     if (item.examples.length > 0) {
