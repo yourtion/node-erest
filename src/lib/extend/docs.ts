@@ -78,12 +78,21 @@ export function extendDocs(apiService: API) {
   };
 
   /**
-   * 生成Markdown文档
+   * 生成 Markdown 文档
    *
    * @return {Object}
    */
   apiService.api.docs.markdown = () => {
     plugins.push(generateMarkdown);
+    return apiService.api.docs;
+  };
+
+  /**
+   * 生成 Swagger 文档
+   *
+   * @return {Object}
+   */
+  apiService.api.docs.swagger = () => {
     plugins.push(generateSwagger);
     return apiService.api.docs;
   };
