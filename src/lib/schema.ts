@@ -94,15 +94,6 @@ export class Schema {
   }
 
   /**
-   * 检查是否已经完成初始化，如果是则报错
-   */
-  public _checkInited() {
-    if (this.inited) {
-      throw new Error(`${ this.key }已经完成初始化，不能再进行更改`);
-    }
-  }
-
-  /**
    * 检查URL是否符合API规则
    *
    * @param {String} method
@@ -168,10 +159,6 @@ export class Schema {
     return this;
   }
 
-  public _addExample(example: IExample) {
-    this.options.examples.push(example);
-  }
-
   /**
    * 输出结果对象
    *
@@ -182,41 +169,6 @@ export class Schema {
     assert(typeof schema === "object", "`schema`必须是一个对象");
     this.options.schema = schema;
     return this;
-  }
-
-  /**
-   * 输入参数
-   *
-   * @param {String} name 参数名称
-   * @param {Object} options
-   *   - {String} type 参数类型
-   *   - {Boolean} format 是否格式化，默认true
-   *   - {Mixed} default 默认值，默认无
-   *   - {String} comment 备注信息（用于文档生成）
-   * @param {String} place 位置（body、query、params）
-   */
-  public _params(name: string, options: IParamsOption, place: string) {
-
-    this._checkInited();
-
-    assert(name && typeof name === "string", "`name`必须是字符串类型");
-    assert(place && [ "query", "body", "params" ].indexOf(place) > -1, '`place` 必须是 "query" "body", "param"');
-    assert(name.indexOf(" ") === -1, "`name`不能包含空格");
-    assert(name[0] !== "$", '`name`不能以"$"开头');
-    assert(!(name in this.options._params), `参数 ${ name } 已存在`);
-
-    assert(options && (typeof options === "string" || typeof options === "object"));
-    // if (typeof options === 'string') options = { type: options, format: true };
-
-    if (!("format" in options)) { options.format = true; }
-
-    assert(options.type, `type必须存在：${ place }:${ name } -> ${ options.type }`);
-    assert(options.type && /^[A-Z]/.test(options.type[0]), `type必须以大写字母开头：${ options.type }`);
-
-    if (options.required) { this.options.required.add(name); }
-
-    this.options._params.set(name, options);
-    this.options[place][name] = options;
   }
 
   /**
@@ -390,6 +342,54 @@ export class Schema {
     }
 
     this.inited = true;
+  }
+
+  /**
+   * 检查是否已经完成初始化，如果是则报错
+   */
+  private _checkInited() {
+    if (this.inited) {
+      throw new Error(`${ this.key }已经完成初始化，不能再进行更改`);
+    }
+  }
+
+  private _addExample(example: IExample) {
+    this.options.examples.push(example);
+  }
+
+  /**
+   * 输入参数
+   *
+   * @param {String} name 参数名称
+   * @param {Object} options
+   *   - {String} type 参数类型
+   *   - {Boolean} format 是否格式化，默认true
+   *   - {Mixed} default 默认值，默认无
+   *   - {String} comment 备注信息（用于文档生成）
+   * @param {String} place 位置（body、query、params）
+   */
+  private _params(name: string, options: IParamsOption, place: string) {
+
+    this._checkInited();
+
+    assert(name && typeof name === "string", "`name`必须是字符串类型");
+    assert(place && [ "query", "body", "params" ].indexOf(place) > -1, '`place` 必须是 "query" "body", "param"');
+    assert(name.indexOf(" ") === -1, "`name`不能包含空格");
+    assert(name[0] !== "$", '`name`不能以"$"开头');
+    assert(!(name in this.options._params), `参数 ${ name } 已存在`);
+
+    assert(options && (typeof options === "string" || typeof options === "object"));
+    // if (typeof options === 'string') options = { type: options, format: true };
+
+    if (!("format" in options)) { options.format = true; }
+
+    assert(options.type, `type必须存在：${ place }:${ name } -> ${ options.type }`);
+    assert(options.type && /^[A-Z]/.test(options.type[0]), `type必须以大写字母开头：${ options.type }`);
+
+    if (options.required) { this.options.required.add(name); }
+
+    this.options._params.set(name, options);
+    this.options[place][name] = options;
   }
 
 }
