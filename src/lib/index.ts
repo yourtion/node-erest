@@ -44,6 +44,16 @@ export interface IApiOption {
   router?: any;
   errors?: any;
   groups?: any;
+  docs?: IDocOptions;
+}
+
+export interface IDocOptions {
+  wiki?: string|boolean;
+  index?: string|boolean;
+  home?: string|boolean;
+  swagger?: string|boolean;
+  json?: string|boolean;
+  all?: string|boolean;
 }
 
 export default class API {
@@ -59,6 +69,7 @@ export default class API {
   public errors: any;
   public groups: any;
   public test: any;
+  public docsOptions: IDocOptions;
 
   /**
    * Creates an instance of API.
@@ -90,6 +101,14 @@ export default class API {
       missingParameter: options.missingParameterError || missingParameter,
       invalidParameter: options.invalidParameterError || invalidParameter,
       internalError: options.internalError || internalError,
+    };
+    this.docsOptions = {
+      wiki: options.docs && options.docs.wiki && options.docs.wiki !== undefined ? options.docs.wiki : true,
+      index: options.docs && options.docs.index && options.docs.index !== undefined ? options.docs.index : false,
+      home: options.docs && options.docs.home && options.docs.home !== undefined ? options.docs.home : true,
+      swagger: options.docs && options.docs.swagger && options.docs.swagger !== undefined ? options.docs.swagger : false,
+      json: options.docs && options.docs.json && options.docs.json !== undefined ? options.docs.json : false,
+      all: options.docs && options.docs.all && options.docs.all !== undefined ? options.docs.all : false,
     };
     this.router = options.router;
     // 参数类型管理
@@ -176,7 +195,7 @@ export default class API {
 
   public genDocs(path: string, onExit = true) {
     extendDocs(this);
-    this.api.docs.markdown();
+    this.api.docs.genDocs();
     const savePath = path || process.cwd() + "/docs/";
     if (onExit) {
       this.api.docs.saveOnExit(savePath);

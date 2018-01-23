@@ -8,11 +8,12 @@
 import * as fs from "fs";
 import * as path from "path";
 import { plugin as debug } from "../../debug";
-import { IKVObject } from "../../interfaces";
+import { IDocOptions } from "../../index";
+import { IDocGeneratePlugin, IKVObject  } from "../../interfaces";
 import { ISchemaOption } from "../../schema";
 import * as utils from "../../utils";
 
-export function generateMarkdown(data: any, dir: string) {
+const generateMarkdown: IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => {
 
   function filePath(name: string) {
     const filename = name === "Home" ? name : name.toLowerCase();
@@ -28,8 +29,10 @@ export function generateMarkdown(data: any, dir: string) {
   const typeDoc = trimSpaces(typeDocs(data));
   const errorDoc = trimSpaces(errorDocs(data));
 
-  fs.writeFileSync(filePath("types"), typeDoc);
-  fs.writeFileSync(filePath("errors"), errorDoc);
+  if (options.wiki) {
+    fs.writeFileSync(filePath("types"), typeDoc);
+    fs.writeFileSync(filePath("errors"), errorDoc);
+  }
 
   const list = schemaDocs(data);
   const indexDoc: string[] = [];
@@ -40,32 +43,40 @@ export function generateMarkdown(data: any, dir: string) {
   indexDoc.push("文档列表：\n");
   const allInOneDoc = indexDoc.slice(0, indexDoc.length);
   const wikiDoc = indexDoc.slice(0, indexDoc.length);
-  for (const item of list) {
-    // console.log(trimSpaces(item.content));
-    const titie = `# ${ getGroupName(item.name) } 相关文档\n\n`;
-    fs.writeFileSync(filePath(item.name), titie + trimSpaces(item.content));
-  }
+
+  const wikiPath = utils.getPath("wiki", options.wiki);
+
   for (const item of data.group) {
     indexDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](./${ item.name.toLowerCase() }.md)`);
     allInOneDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关](#${ item.toLowerCase() })`);
-    wikiDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](wiki/${ item.toLowerCase() })`);
+    wikiDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](${ wikiPath }/${ item.toLowerCase() })`);
   }
-  fs.writeFileSync(filePath("index"), trimSpaces(indexDoc.join("\n")));
-  fs.writeFileSync(filePath("Home"), trimSpaces(wikiDoc.join("\n")));
-  allInOneDoc.push(`- [类型相关文档](#types)`);
-  allInOneDoc.push(`- [错误信息文档](#errors)`);
-  allInOneDoc.push("\n");
-  for (const item of list) {
-    // console.log(trimSpaces(item.content));
-    allInOneDoc.push(`# <a id="${ item.name.toLowerCase() }">${ getGroupName(item.name) } 相关文档</a>\n\n`);
-    allInOneDoc.push(item.content);
+  if (options.index) {
+    fs.writeFileSync(filePath("index"), trimSpaces(indexDoc.join("\n")));
   }
-  allInOneDoc.push(`# <a id="types">类型相关文档</a>\n\n`);
-  allInOneDoc.push(typeDoc);
-  allInOneDoc.push(`# <a id="errors">错误信息文档</a>\n\n`);
-  allInOneDoc.push(errorDoc);
-  fs.writeFileSync(filePath("API文档-" + data.info.title), trimSpaces(allInOneDoc.join("\n")));
-}
+  if (options.wiki) {
+    for (const item of list) {
+      const titie = `# ${ getGroupName(item.name) } 相关文档\n\n`;
+      fs.writeFileSync(filePath(item.name), titie + trimSpaces(item.content));
+    }
+    fs.writeFileSync(filePath("Home"), trimSpaces(wikiDoc.join("\n")));
+  }
+
+  if (options.all) {
+    allInOneDoc.push(`- [类型相关文档](#types)`);
+    allInOneDoc.push(`- [错误信息文档](#errors)`);
+    allInOneDoc.push("\n");
+    for (const item of list) {
+      allInOneDoc.push(`# <a id="${ item.name.toLowerCase() }">${ getGroupName(item.name) } 相关文档</a>\n\n`);
+      allInOneDoc.push(item.content);
+    }
+    allInOneDoc.push(`# <a id="types">类型相关文档</a>\n\n`);
+    allInOneDoc.push(typeDoc);
+    allInOneDoc.push(`# <a id="errors">错误信息文档</a>\n\n`);
+    allInOneDoc.push(errorDoc);
+    fs.writeFileSync(filePath("API文档-" + data.info.title), trimSpaces(allInOneDoc.join("\n")));
+  }
+};
 
 function trimSpaces(text: string) {
   return text.replace(/\r\n/g, "\n").replace(/\n\n+/g, "\n\n").replace(/\n\s+\n/g, "\n\n");
@@ -279,3 +290,5 @@ ${ examples(item.examples) }
 
   return list;
 }
+
+export default generateMarkdown;

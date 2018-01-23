@@ -7,8 +7,10 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { IKVObject } from "../../interfaces";
+import { IDocOptions } from "../../index";
+import { IDocGeneratePlugin, IKVObject } from "../../interfaces";
 import { ISchemaOption } from "../../schema";
+import * as utils from "../../utils";
 
 interface ISwaggerResult {
   swagger: string;
@@ -33,7 +35,7 @@ interface ISwaggerResultParams {
   format?: string;
 }
 
-export function generateSwagger(data: any, dir: string) {
+const generateSwagger: IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => {
 
   const result: ISwaggerResult = {
     swagger: "2.0",
@@ -165,5 +167,9 @@ export function generateSwagger(data: any, dir: string) {
     }
   }
 
-  fs.writeFileSync(path.resolve(dir, "swagger.json"), JSON.stringify(result, null, "  "));
-}
+  const filename = utils.getPath("swagger.json", options.swagger);
+
+  fs.writeFileSync(path.resolve(dir, filename), JSON.stringify(result, null, "  "));
+};
+
+export default generateSwagger;

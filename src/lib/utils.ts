@@ -127,3 +127,7 @@ export function merge(...args: object[]) {
   }
   return ret;
 }
+
+export function getPath(def: string, opt?: string|boolean): string {
+  return typeof opt === "string" ? opt : def;
+}
