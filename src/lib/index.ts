@@ -10,7 +10,7 @@ import {core as debug } from "./debug";
 import { defaultTypes } from "./default/types";
 import { extendDocs } from "./extend/docs";
 import { extendTest } from "./extend/test";
-import { IApiInfo, IApiOption, IKVObject } from "./interfaces";
+import { IKVObject } from "./interfaces";
 import { TypeManager  } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { ISchemaOption, Schema } from "./schema";
@@ -19,6 +19,32 @@ import { getCallerSourceLine } from "./utils";
 const missingParameter = (msg: string) => new Error(`missing required parameter ${ msg }`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${ msg }`);
 const internalError = (msg: string) => new Error(`internal error ${ msg }`);
+
+export interface IApiFlag {
+  saveApiInputOutput: boolean;
+}
+
+export interface IApiInfo extends IKVObject {
+  $schemas: Map<string, Schema>;
+  beforeHooks: any[];
+  afterHooks: any[];
+  docs?: any;
+  test?: any;
+  formatOutputReverse?: any;
+  docOutputForamt?: any;
+  $flag: IApiFlag;
+}
+
+export interface IApiOption {
+  info?: any;
+  path?: any;
+  missingParameterError?: any;
+  invalidParameterError?: any;
+  internalError?: any;
+  router?: any;
+  errors?: any;
+  groups?: any;
+}
 
 export default class API {
 
