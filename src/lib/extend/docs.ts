@@ -12,7 +12,7 @@ import * as path from "path";
 import { docs as debug} from "../debug";
 import API from "../index";
 import { IDocOptions } from "../index";
-import { IKVObject } from "../interfaces";
+import { IDocGeneratePlugin, IKVObject } from "../interfaces";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
 
@@ -21,7 +21,7 @@ const DOC = [ "method", "path", "examples", "middlewares", "required", "required
 export function extendDocs(apiService: API) {
 
   apiService.api.docs = {};
-  const plugins: any[] = [];
+  const plugins: IDocGeneratePlugin[] = [];
 
   const docOutputForamt = (out: any) => out;
 
@@ -88,6 +88,9 @@ export function extendDocs(apiService: API) {
     if (apiService.docsOptions.swagger) {
       apiService.api.docs.swagger();
     }
+    if (apiService.docsOptions.json) {
+      apiService.api.docs.json();
+    }
     return apiService.api.docs;
   };
 
@@ -108,6 +111,21 @@ export function extendDocs(apiService: API) {
    */
   apiService.api.docs.swagger = () => {
     plugins.push(generateSwagger);
+    return apiService.api.docs;
+  };
+
+  const generateJson: IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => {
+    const filename = apiService.utils.getPath("doc.json", options.json);
+    fs.writeFileSync(path.resolve(dir, filename), apiService.utils.jsonStringify(data, 2));
+  };
+
+  /**
+   * 生成 JSON 文档
+   *
+   * @return {Object}
+   */
+  apiService.api.docs.json = () => {
+    plugins.push(generateJson);
     return apiService.api.docs;
   };
 
@@ -139,11 +157,10 @@ export function extendDocs(apiService: API) {
     }
 
     debug(dir);
-    fs.writeFileSync(path.resolve(dir, "doc.json"), apiService.utils.jsonStringify(data, 2));
 
     // 根据插件生成文档
     for (const fn of plugins) {
-      fn(data, dir);
+      fn(data, dir, apiService.docsOptions);
     }
 
     return apiService.api.docs;

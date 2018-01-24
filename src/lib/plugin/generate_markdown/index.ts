@@ -46,8 +46,9 @@ const generateMarkdown: IDocGeneratePlugin = (data: any, dir: string, options: I
 
   const wikiPath = utils.getPath("wiki", options.wiki);
 
-  for (const item of data.group) {
-    indexDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](./${ item.name.toLowerCase() }.md)`);
+  for (const item in data.group) {
+    if (!data.group.hasOwnProperty(item)) { continue; }
+    indexDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](./${ item.toLowerCase() }.md)`);
     allInOneDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关](#${ item.toLowerCase() })`);
     wikiDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](${ wikiPath }/${ item.toLowerCase() })`);
   }
