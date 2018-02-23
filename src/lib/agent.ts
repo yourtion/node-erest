@@ -14,8 +14,6 @@ import { ICallback, IKVObject, IPromiseCallback } from "./interfaces";
 import { Schema } from "./schema";
 import * as utils from "./utils";
 
-import * as request from "supertest";
-
 /* 输出结果断言错误 */
 const AssertionError = utils.customError("AssertionError", { type: "api_output_error" });
 
@@ -92,6 +90,12 @@ export class TestAgent {
    * @param {Object} app Express实例
    */
   public initAgent(app: object) {
+    let request;
+    try {
+      request = require("supertest");
+    } catch (err) {
+      debug(err);
+    }
     assert(app, `express app instance could not be empty`);
     assert(request, "Install `supertest` first");
     this.debug("create supertest agent");
