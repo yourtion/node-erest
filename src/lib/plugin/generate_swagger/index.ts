@@ -144,7 +144,7 @@ const generateSwagger: IDocGeneratePlugin = (data: any, dir: string, options: ID
           delete obj.name;
           delete obj.required;
           bodySchema[sKey] = obj;
-        }else {
+        } else {
           sc[schema.method].parameters.push(obj);
         }
       }
