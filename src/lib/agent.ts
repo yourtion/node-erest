@@ -15,7 +15,9 @@ import { Schema } from "./schema";
 import * as utils from "./utils";
 
 /* 输出结果断言错误 */
-const AssertionError = utils.customError("AssertionError", { type: "api_output_error" });
+const AssertionError = utils.customError("AssertionError", {
+  type: "api_output_error",
+});
 
 /**
  * 返回对象结构字符串
@@ -40,7 +42,6 @@ export interface IOutput {
  * 测试代理类
  */
 export class TestAgent {
-
   public static SUPPORT_METHOD = Schema.SUPPORT_METHOD;
   public options: any;
   public key: string;
@@ -56,9 +57,18 @@ export class TestAgent {
    * @param {Object} sourceFile 源文件路径描述对象
    * @param {Object} parent hojs实例
    */
-  constructor(method: string, path: string, key: string, sourceFile: utils.ISourceResult, parent: object) {
+  constructor(
+    method: string,
+    path: string,
+    key: string,
+    sourceFile: utils.ISourceResult,
+    parent: object,
+  ) {
     assert(method && typeof method === "string", "`method` must be string");
-    assert(TestAgent.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, "`method` must be one of " + TestAgent.SUPPORT_METHOD);
+    assert(
+      TestAgent.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
+      "`method` must be one of " + TestAgent.SUPPORT_METHOD,
+    );
     assert(path && typeof path === "string", "`path` must be string");
     assert(path[0] === "/", '`path` must be start with "/"');
     this.options = {
@@ -71,7 +81,7 @@ export class TestAgent {
     this.key = key;
     this.output = this._output;
     this._extendsOutput();
-    this.debug = createDebug(`agent:${ this.key }`);
+    this.debug = createDebug(`agent:${this.key}`);
     this.debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
 
@@ -99,7 +109,9 @@ export class TestAgent {
     assert(app, `express app instance could not be empty`);
     assert(request, "Install `supertest` first");
     this.debug("create supertest agent");
-    this.setAgent((request(app) as IKVObject)[this.options.method](this.options.path));
+    this.setAgent(
+      (request(app) as IKVObject)[this.options.method](this.options.path),
+    );
   }
 
   /**
@@ -157,7 +169,11 @@ export class TestAgent {
   public input(data: IKVObject) {
     this.debug("input: %j", data);
     this.options.agentInput = data;
-    if (this.options.method === "get" || this.options.method === "head" || this.options.method === "delete") {
+    if (
+      this.options.method === "get" ||
+      this.options.method === "head" ||
+      this.options.method === "delete"
+    ) {
       this.options.agent.query(data);
     } else {
       for (const i in data) {
@@ -179,7 +195,8 @@ export class TestAgent {
    * @return {Promise}
    */
   private _output(callback: ICallback<any>): Promise<any> {
-    const cb = callback as IPromiseCallback<any> || utils.createPromiseCallback();
+    const cb =
+      (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.options.agent.end((err: Error, res: IKVObject) => {
       this.options.agentPath = res.req.path;
       this.options.agentOutput = res.body;
@@ -187,14 +204,13 @@ export class TestAgent {
         return cb(err);
       }
       const formatOutputReverse = this.options.parent.api.formatOutputReverse;
-      const [ err2, ret ] = formatOutputReverse(res.body);
+      const [err2, ret] = formatOutputReverse(res.body);
       cb(err2, ret);
     });
     return cb.promise as Promise<any>;
   }
 
   private _extendsOutput() {
-
     /**
      * 期望输出成功结果
      *
@@ -202,10 +218,15 @@ export class TestAgent {
      * @return {Promise}
      */
     this.output.success = (callback: ICallback<any>) => {
-      const cb = callback as IPromiseCallback<any> || utils.createPromiseCallback() ;
+      const cb =
+        (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
       this.output((err, ret) => {
         if (err) {
-          const err2 = new AssertionError(`${ this.key } 期望API输出成功结果，但实际输出失败结果：${ inspect(err) }`);
+          const err2 = new AssertionError(
+            `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(
+              err,
+            )}`,
+          );
           cb(err2);
         } else {
           this._saveExample();
@@ -222,18 +243,22 @@ export class TestAgent {
      * @return {Promise}
      */
     this.output.error = (callback: ICallback<any>) => {
-      const cb = callback as IPromiseCallback<any> || utils.createPromiseCallback() ;
+      const cb =
+        (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
       this.output((err, ret) => {
         if (err) {
           this._saveExample();
           cb(null, err);
         } else {
-          const err2 = new AssertionError(`${ this.key } 期望API输出失败结果，但实际输出成功结果：${ inspect(ret) }`);
+          const err2 = new AssertionError(
+            `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(
+              ret,
+            )}`,
+          );
           cb(err2);
         }
       });
       return cb.promise;
     };
   }
-
 }

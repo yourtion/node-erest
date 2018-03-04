@@ -20,7 +20,7 @@ export interface ISourceResult {
  */
 export function getCallerSourceLine(dir: string): ISourceResult {
   const resolvedDir = pathResolve(dir);
-  const err = (new Error()).stack;
+  const err = new Error().stack;
   const stack = err ? err.split("\n").slice(1) : "";
   for (let line of stack) {
     line = line.trim();
@@ -45,7 +45,7 @@ export function getCallerSourceLine(dir: string): ISourceResult {
  * @return {String}
  */
 export function getSchemaKey(method: string, path: string): string {
-  return `${ method.toUpperCase() }_${ path }`;
+  return `${method.toUpperCase()}_${path}`;
 }
 
 /**
@@ -55,18 +55,22 @@ export function getSchemaKey(method: string, path: string): string {
  * @param {String|Number} space 缩进
  * @return {String}
  */
-export function jsonStringify(data: object, space: string|number) {
+export function jsonStringify(data: object, space: string | number) {
   const seen: any[] = [];
-  return JSON.stringify(data, (key, val) => {
-    if (!val || typeof val !== "object") {
+  return JSON.stringify(
+    data,
+    (key, val) => {
+      if (!val || typeof val !== "object") {
+        return val;
+      }
+      if (seen.indexOf(val) !== -1) {
+        return "[Circular]";
+      }
+      seen.push(val);
       return val;
-    }
-    if (seen.indexOf(val) !== -1) {
-      return "[Circular]";
-    }
-    seen.push(val);
-    return val;
-  }, space);
+    },
+    space,
+  );
 }
 
 /**
@@ -79,16 +83,25 @@ export function jsonStringify(data: object, space: string|number) {
 export function customError(name: string, info: object) {
   name = name || "CustomError";
   info = info || {};
-  const code = "" +
-"function " + name + "(message, info2) {\n" +
-"  Error.captureStackTrace(this, " + name + ");\n" +
-'  this.name = "' + name + '";\n' +
-'  this.message = (message || "");\n' +
-"  info2 = info2 || {};\n" +
-"  for (var i in info) this[i] = info[i];\n" +
-"  for (var i in info2) this[i] = info2[i];\n" +
-"}\n" +
-name + ".prototype = Error.prototype;" + name;
+  const code =
+    "" +
+    "function " +
+    name +
+    "(message, info2) {\n" +
+    "  Error.captureStackTrace(this, " +
+    name +
+    ");\n" +
+    '  this.name = "' +
+    name +
+    '";\n' +
+    '  this.message = (message || "");\n' +
+    "  info2 = info2 || {};\n" +
+    "  for (var i in info) this[i] = info[i];\n" +
+    "  for (var i in info2) this[i] = info2[i];\n" +
+    "}\n" +
+    name +
+    ".prototype = Error.prototype;" +
+    name;
   // tslint:disable-next-line no-eval
   return eval(code);
 }
@@ -128,6 +141,6 @@ export function merge(...args: object[]) {
   return ret;
 }
 
-export function getPath(def: string, opt?: string|boolean): string {
+export function getPath(def: string, opt?: string | boolean): string {
   return typeof opt === "string" ? opt : def;
 }
