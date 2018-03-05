@@ -6,46 +6,59 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import {params as debug } from "./debug";
+import { params as debug } from "./debug";
 import { IKVObject } from "./interfaces";
 import { ISchemaOption, Schema } from "./schema";
 
-export function paramsChecker(ctx: any, name: string, value: any, typeInfo: ISchemaOption) {
+export function paramsChecker(
+  ctx: any,
+  name: string,
+  value: any,
+  typeInfo: ISchemaOption,
+) {
   const type = ctx.type.get(typeInfo.type);
   let result = value;
   // 如果类型有 parser 则先执行
   if (type.parser) {
-    debug(`param ${ name } run parser`);
+    debug(`param ${name} run parser`);
     result = type.parser(result);
   }
 
   // 如果类型有 checker 则检查
   if (!type.checker(result, typeInfo.params)) {
-    debug(`param ${ name } run checker`);
-    let msg = `'${ name }' should be valid ${ typeInfo.type }`;
+    debug(`param ${name} run checker`);
+    let msg = `'${name}' should be valid ${typeInfo.type}`;
     if (typeInfo.params) {
-      msg = `${ msg } with additional restrictions: ${ typeInfo._paramsJSON || typeInfo.params }`;
+      msg = `${msg} with additional restrictions: ${typeInfo._paramsJSON ||
+        typeInfo.params}`;
     }
     throw ctx.error.invalidParameter(msg);
   }
 
   // 如果类型有 formatter 且开启了 format=true 则格式化参数
   if (typeInfo.format && type.formatter) {
-    debug(`param ${ name } run format`);
-    debug(`befor format : ${ result }`);
+    debug(`param ${name} run format`);
+    debug(`befor format : ${result}`);
     result = type.formatter(result, typeInfo.params);
-    debug(`after format : ${ result }`);
+    debug(`after format : ${result}`);
   }
   return result;
 }
 
-export function schemaChecker(ctx: any, data: IKVObject, schema: ISchemaOption[], requiredOneOf: string[] = []) {
+export function schemaChecker(
+  ctx: any,
+  data: IKVObject,
+  schema: ISchemaOption[],
+  requiredOneOf: string[] = [],
+) {
   const result: IKVObject = {};
   for (const name in schema) {
-    if (!schema.hasOwnProperty(name)) { continue; }
+    if (!schema.hasOwnProperty(name)) {
+      continue;
+    }
     let value = data[name];
     const options = schema[name];
-    debug(`param check ${ name } : ${ value } with ${ options }`);
+    debug(`param check ${name} : ${value} with ${options}`);
 
     if (typeof value === "undefined") {
       if (options.default) {
@@ -53,7 +66,7 @@ export function schemaChecker(ctx: any, data: IKVObject, schema: ISchemaOption[]
         value = options.default;
       } else {
         if (options.required) {
-          throw ctx.error.missingParameter(`'${ name }' is required!`);
+          throw ctx.error.missingParameter(`'${name}' is required!`);
         }
         // 其他情况忽略
         continue;
@@ -66,10 +79,14 @@ export function schemaChecker(ctx: any, data: IKVObject, schema: ISchemaOption[]
   let ok = requiredOneOf.length < 1;
   for (const name of requiredOneOf) {
     ok = typeof result[name] !== "undefined";
-    if (ok) { break; }
+    if (ok) {
+      break;
+    }
   }
   if (!ok) {
-    throw ctx.error.missingParameter(`one of ${ requiredOneOf.join(", ") } is required`);
+    throw ctx.error.missingParameter(
+      `one of ${requiredOneOf.join(", ")} is required`,
+    );
   }
   return result;
 }
@@ -84,13 +101,15 @@ export function schemaChecker(ctx: any, data: IKVObject, schema: ISchemaOption[]
 export function apiCheckParams(ctx: any, schema: Schema) {
   return (req: any, res: any, next: any) => {
     const newParams: IKVObject = {};
-    for (const place of [ "query", "params", "body" ]) {
+    for (const place of ["query", "params", "body"]) {
       const pOptions = schema.options[place];
       for (const name in pOptions) {
-        if (!pOptions.hasOwnProperty(name)) { continue; }
+        if (!pOptions.hasOwnProperty(name)) {
+          continue;
+        }
         let value = req[place][name];
         const options = pOptions[name];
-        debug(`param check ${ name } : ${ value } with ${ options }`);
+        debug(`param check ${name} : ${value} with ${options}`);
 
         if (typeof value === "undefined") {
           if (options.default) {
@@ -110,7 +129,7 @@ export function apiCheckParams(ctx: any, schema: Schema) {
     if (schema.options.required.size > 0) {
       for (const name of schema.options.required) {
         if (!(name in newParams)) {
-          throw ctx.error.missingParameter(`'${ name }' is required!`);
+          throw ctx.error.missingParameter(`'${name}' is required!`);
         }
       }
     }
@@ -121,10 +140,14 @@ export function apiCheckParams(ctx: any, schema: Schema) {
         let ok = false;
         for (const name of names) {
           ok = typeof newParams[name] !== "undefined";
-          if (ok) { break; }
+          if (ok) {
+            break;
+          }
         }
         if (!ok) {
-          throw ctx.error.missingParameter(`one of ${ names.join(", ") } is required`);
+          throw ctx.error.missingParameter(
+            `one of ${names.join(", ")} is required`,
+          );
         }
       }
     }

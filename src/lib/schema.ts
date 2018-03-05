@@ -50,8 +50,7 @@ export interface ISchemaOption extends IKVObject {
 }
 
 export class Schema {
-
-  public static SUPPORT_METHOD = [ "get", "post", "put", "delete", "patch" ];
+  public static SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"];
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
@@ -64,9 +63,11 @@ export class Schema {
    * @param {Object} sourceFile 源文件路径描述对象
    */
   constructor(method: string, path: any, sourceFile: ISourceResult) {
-
     assert(method && typeof method === "string", "`method`必须是字符串类型");
-    assert(Schema.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, "`method`必须是以下请求方法中的一个：" + Schema.SUPPORT_METHOD);
+    assert(
+      Schema.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
+      "`method`必须是以下请求方法中的一个：" + Schema.SUPPORT_METHOD,
+    );
     assert(path && typeof path === "string", "`path`必须是字符串类型");
     assert(path[0] === "/", '`path`必须以"/"开头');
 
@@ -101,7 +102,10 @@ export class Schema {
    * @return {Boolean}
    */
   public pathTest(method: string, path: string) {
-    return this.options.method === method.toLowerCase() && this.pathTestRegExp.test(path);
+    return (
+      this.options.method === method.toLowerCase() &&
+      this.pathTestRegExp.test(path)
+    );
   }
 
   /**
@@ -153,8 +157,14 @@ export class Schema {
    */
   public example(example: IExample) {
     // this._checkInited();
-    assert(example.input && typeof example.input === "object", "`input`必须是一个对象");
-    assert(example.output && typeof example.output === "object", "`output`必须是一个对象");
+    assert(
+      example.input && typeof example.input === "object",
+      "`input`必须是一个对象",
+    );
+    assert(
+      example.output && typeof example.output === "object",
+      "`output`必须是一个对象",
+    );
     this._addExample(example);
     return this;
   }
@@ -317,26 +327,31 @@ export class Schema {
     this._checkInited();
 
     if (!this.options.env) {
-      assert(this.options.handler, `请为 API ${ this.key } 注册一个处理函数`);
+      assert(this.options.handler, `请为 API ${this.key} 注册一个处理函数`);
     }
 
-    assert(this.options.group, `请为 API ${ this.key } 选择一个分组`);
-    assert(this.options.group && this.options.group in parent.groups, `请先配置 ${ this.options.group } 类型`);
+    assert(this.options.group, `请为 API ${this.key} 选择一个分组`);
+    assert(
+      this.options.group && this.options.group in parent.groups,
+      `请先配置 ${this.options.group} 类型`,
+    );
 
     // 初始化时参数类型检查
     for (const [name, options] of this.options._params) {
       const typeName = options.type;
       const type = parent.type.get(typeName);
-      assert(type && type.checker, `please register type ${ typeName }`);
+      assert(type && type.checker, `please register type ${typeName}`);
       if (type.isParamsRequire && options.params === undefined) {
-        throw new Error(`${ typeName } is require a params`);
+        throw new Error(`${typeName} is require a params`);
       }
       if (options.params) {
         assert(type.paramsChecker(options.params), `test type params failed`);
         try {
           options._paramsJSON = JSON.stringify(options.params);
         } catch (err) {
-          throw new Error(`cannot JSON.stringify(options.params) for param ${ name }`);
+          throw new Error(
+            `cannot JSON.stringify(options.params) for param ${name}`,
+          );
         }
       }
     }
@@ -349,7 +364,7 @@ export class Schema {
    */
   private _checkInited() {
     if (this.inited) {
-      throw new Error(`${ this.key }已经完成初始化，不能再进行更改`);
+      throw new Error(`${this.key}已经完成初始化，不能再进行更改`);
     }
   }
 
@@ -369,27 +384,37 @@ export class Schema {
    * @param {String} place 位置（body、query、params）
    */
   private _params(name: string, options: IParamsOption, place: string) {
-
     this._checkInited();
 
     assert(name && typeof name === "string", "`name`必须是字符串类型");
-    assert(place && [ "query", "body", "params" ].indexOf(place) > -1, '`place` 必须是 "query" "body", "param"');
+    assert(
+      place && ["query", "body", "params"].indexOf(place) > -1,
+      '`place` 必须是 "query" "body", "param"',
+    );
     assert(name.indexOf(" ") === -1, "`name`不能包含空格");
     assert(name[0] !== "$", '`name`不能以"$"开头');
-    assert(!(name in this.options._params), `参数 ${ name } 已存在`);
+    assert(!(name in this.options._params), `参数 ${name} 已存在`);
 
-    assert(options && (typeof options === "string" || typeof options === "object"));
+    assert(
+      options && (typeof options === "string" || typeof options === "object"),
+    );
     // if (typeof options === 'string') options = { type: options, format: true };
 
-    if (!("format" in options)) { options.format = true; }
+    if (!("format" in options)) {
+      options.format = true;
+    }
 
-    assert(options.type, `type必须存在：${ place }:${ name } -> ${ options.type }`);
-    assert(options.type && /^[A-Z]/.test(options.type[0]), `type必须以大写字母开头：${ options.type }`);
+    assert(options.type, `type必须存在：${place}:${name} -> ${options.type}`);
+    assert(
+      options.type && /^[A-Z]/.test(options.type[0]),
+      `type必须以大写字母开头：${options.type}`,
+    );
 
-    if (options.required) { this.options.required.add(name); }
+    if (options.required) {
+      this.options.required.add(name);
+    }
 
     this.options._params.set(name, options);
     this.options[place][name] = options;
   }
-
 }

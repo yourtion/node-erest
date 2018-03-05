@@ -6,19 +6,21 @@
  */
 
 import * as assert from "assert";
-import {core as debug } from "./debug";
+import { core as debug } from "./debug";
 import { defaultTypes } from "./default/types";
 import { extendDocs } from "./extend/docs";
 import { extendTest } from "./extend/test";
 import { IKVObject } from "./interfaces";
-import { TypeManager  } from "./manager/type";
+import { TypeManager } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { ISchemaOption, Schema } from "./schema";
 import { getCallerSourceLine } from "./utils";
 
-const missingParameter = (msg: string) => new Error(`missing required parameter ${ msg }`);
-const invalidParameter = (msg: string) => new Error(`incorrect parameter ${ msg }`);
-const internalError = (msg: string) => new Error(`internal error ${ msg }`);
+const missingParameter = (msg: string) =>
+  new Error(`missing required parameter ${msg}`);
+const invalidParameter = (msg: string) =>
+  new Error(`incorrect parameter ${msg}`);
+const internalError = (msg: string) => new Error(`internal error ${msg}`);
 
 export interface IApiFlag {
   saveApiInputOutput: boolean;
@@ -48,16 +50,15 @@ export interface IApiOption {
 }
 
 export interface IDocOptions {
-  wiki?: string|boolean;
-  index?: string|boolean;
-  home?: string|boolean;
-  swagger?: string|boolean;
-  json?: string|boolean;
-  all?: string|boolean;
+  wiki?: string | boolean;
+  index?: string | boolean;
+  home?: string | boolean;
+  swagger?: string | boolean;
+  json?: string | boolean;
+  all?: string | boolean;
 }
 
 export default class API {
-
   public app: any;
   public api: IApiInfo;
   public utils: any;
@@ -103,12 +104,32 @@ export default class API {
       internalError: options.internalError || internalError,
     };
     this.docsOptions = {
-      wiki: options.docs && options.docs.wiki && options.docs.wiki !== undefined ? options.docs.wiki : true,
-      index: options.docs && options.docs.index && options.docs.index !== undefined ? options.docs.index : false,
-      home: options.docs && options.docs.home && options.docs.home !== undefined ? options.docs.home : true,
-      swagger: options.docs && options.docs.swagger && options.docs.swagger !== undefined ? options.docs.swagger : false,
-      json: options.docs && options.docs.json && options.docs.json !== undefined ? options.docs.json : false,
-      all: options.docs && options.docs.all && options.docs.all !== undefined ? options.docs.all : false,
+      wiki:
+        options.docs && options.docs.wiki && options.docs.wiki !== undefined
+          ? options.docs.wiki
+          : true,
+      index:
+        options.docs && options.docs.index && options.docs.index !== undefined
+          ? options.docs.index
+          : false,
+      home:
+        options.docs && options.docs.home && options.docs.home !== undefined
+          ? options.docs.home
+          : true,
+      swagger:
+        options.docs &&
+        options.docs.swagger &&
+        options.docs.swagger !== undefined
+          ? options.docs.swagger
+          : false,
+      json:
+        options.docs && options.docs.json && options.docs.json !== undefined
+          ? options.docs.json
+          : false,
+      all:
+        options.docs && options.docs.all && options.docs.all !== undefined
+          ? options.docs.all
+          : false,
     };
     this.router = options.router;
     // 参数类型管理
@@ -120,7 +141,9 @@ export default class API {
   }
 
   public initTest(app: any) {
-    if (this.app && this.test) { return; }
+    if (this.app && this.test) {
+      return;
+    }
     debug("initTest");
     this.app = app;
     extendTest(this);
@@ -138,11 +161,16 @@ export default class API {
   }
 
   public paramsChecker() {
-    return (name: string, value: any, schema: ISchemaOption) => paramsChecker(this, name, value, schema);
+    return (name: string, value: any, schema: ISchemaOption) =>
+      paramsChecker(this, name, value, schema);
   }
 
   public schemaChecker() {
-    return (data: IKVObject, schema: ISchemaOption[], requiredOneOf: string[] = []) => schemaChecker(this, data, schema, requiredOneOf);
+    return (
+      data: IKVObject,
+      schema: ISchemaOption[],
+      requiredOneOf: string[] = [],
+    ) => schemaChecker(this, data, schema, requiredOneOf);
   }
 
   public _register() {
@@ -156,7 +184,13 @@ export default class API {
     const register = (method: string, path: string) => {
       const s = new Schema(method, path, getCallerSourceLine(this.config.path));
       const s2 = this.api.$schemas.get(s.key);
-      assert(!s2, `尝试注册API：${ s.key }（所在文件：${ s.options.sourceFile.absolute }）失败，因为该API已在文件${ s2 && s2.options.sourceFile.absolute }中注册过`);
+      assert(
+        !s2,
+        `尝试注册API：${s.key}（所在文件：${
+          s.options.sourceFile.absolute
+        }）失败，因为该API已在文件${s2 &&
+          s2.options.sourceFile.absolute}中注册过`,
+      );
 
       this.api.$schemas.set(s.key, s);
       return s;
@@ -178,7 +212,9 @@ export default class API {
   public bindRouter(router = this.router) {
     for (const [key, schema] of this.api.$schemas.entries()) {
       debug("bind router" + key);
-      if (!schema) { continue; }
+      if (!schema) {
+        continue;
+      }
       schema.init(this);
       router[schema.options.method].bind(router)(
         schema.options.path,
@@ -203,5 +239,4 @@ export default class API {
       this.api.docs.save(savePath);
     }
   }
-
 }
