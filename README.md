@@ -1,5 +1,7 @@
 # node-erest
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/yourtion/node-erest.svg)](https://greenkeeper.io/)
+
 Easy to build api server depend on express.
 
 Easy to write, easy to test, easy to generate document.
