@@ -1,20 +1,7 @@
-import API from "../dist/lib";
+import lib from "./lib";
+import { GROUPS, INFO } from "./lib";
 
-const INFO = {
-  title: "erest-demo",
-  description: "Easy to write, easy to test, easy to generate document.",
-  version: new Date(),
-  host: "http://127.0.0.1:3001",
-  basePath: "/api",
-};
-const GROUPS = {
-  Index: "首页",
-};
-
-const apiService = new API({
-  info: INFO,
-  groups: GROUPS,
-});
+const apiService = lib();
 
 test("API service Info", () => {
   const apiInfo = apiService.info;
