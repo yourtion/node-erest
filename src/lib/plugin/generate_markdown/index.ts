@@ -214,7 +214,7 @@ function schemaDocs(data: any) {
     if (schemaList.length === 2) {
       return;
     }
-    return list.join("\n");
+    return schemaList.join("\n");
   }
 
   function formatExampleInput(inputData: IKVObject) {
