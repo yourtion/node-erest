@@ -49,7 +49,7 @@ export interface IApiOption {
   docs?: IDocOptions;
 }
 
-export interface IDocOptions {
+export interface IDocOptions extends IKVObject {
   wiki?: string | boolean;
   index?: string | boolean;
   home?: string | boolean;
@@ -103,33 +103,20 @@ export default class API {
       invalidParameter: options.invalidParameterError || invalidParameter,
       internalError: options.internalError || internalError,
     };
+
+    const getDocOpt = (key: string, def: boolean): string | boolean => {
+      return options.docs &&
+        options.docs[key] !== undefined
+        ? options.docs[key]
+        : def;
+    };
     this.docsOptions = {
-      wiki:
-        options.docs && options.docs.wiki && options.docs.wiki !== undefined
-          ? options.docs.wiki
-          : true,
-      index:
-        options.docs && options.docs.index && options.docs.index !== undefined
-          ? options.docs.index
-          : false,
-      home:
-        options.docs && options.docs.home && options.docs.home !== undefined
-          ? options.docs.home
-          : true,
-      swagger:
-        options.docs &&
-        options.docs.swagger &&
-        options.docs.swagger !== undefined
-          ? options.docs.swagger
-          : false,
-      json:
-        options.docs && options.docs.json && options.docs.json !== undefined
-          ? options.docs.json
-          : false,
-      all:
-        options.docs && options.docs.all && options.docs.all !== undefined
-          ? options.docs.all
-          : false,
+      wiki: getDocOpt("wiki", true),
+      index: getDocOpt("index", false),
+      home: getDocOpt("home", true),
+      swagger: getDocOpt("swagger", false),
+      json: getDocOpt("json", false),
+      all: getDocOpt("all", false),
     };
     this.router = options.router;
     // 参数类型管理
@@ -140,7 +127,7 @@ export default class API {
     this._register();
   }
 
-  public initTest(app: any) {
+  public initTest(app: any, path: string = "/docs/") {
     if (this.app && this.test) {
       return;
     }
@@ -149,7 +136,7 @@ export default class API {
     extendTest(this);
     extendDocs(this);
     this.api.docs.markdown();
-    this.api.docs.saveOnExit(process.cwd() + "/docs/");
+    this.api.docs.saveOnExit(process.cwd() + path);
   }
 
   public setFormatOutput(fn: any) {
