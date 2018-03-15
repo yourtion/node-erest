@@ -14,7 +14,7 @@ import { IKVObject } from "./interfaces";
 import { TypeManager } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { ISchemaOption, Schema } from "./schema";
-import { getCallerSourceLine } from "./utils";
+import { camelCase2underscore, getCallerSourceLine } from "./utils";
 
 const missingParameter = (msg: string) =>
   new Error(`missing required parameter ${msg}`);
@@ -28,8 +28,8 @@ export interface IApiFlag {
 
 export interface IApiInfo extends IKVObject {
   $schemas: Map<string, Schema>;
-  beforeHooks: any[];
-  afterHooks: any[];
+  beforeHooks: Set<any>;
+  afterHooks: Set<any>;
   docs?: any;
   test?: any;
   formatOutputReverse?: any;
@@ -43,7 +43,6 @@ export interface IApiOption {
   missingParameterError?: any;
   invalidParameterError?: any;
   internalError?: any;
-  router?: any;
   errors?: any;
   groups?: any;
   docs?: IDocOptions;
@@ -65,7 +64,6 @@ export default class API {
   public info: any;
   public config: any;
   public error: any;
-  public router: any;
   public type: any;
   public errors: any;
   public groups: any;
@@ -89,8 +87,8 @@ export default class API {
     this.info = options.info || {};
     this.api = {
       $schemas: new Map(),
-      beforeHooks: [],
-      afterHooks: [],
+      beforeHooks: new Set(),
+      afterHooks: new Set(),
       $flag: {
         saveApiInputOutput: false,
       },
@@ -105,8 +103,7 @@ export default class API {
     };
 
     const getDocOpt = (key: string, def: boolean): string | boolean => {
-      return options.docs &&
-        options.docs[key] !== undefined
+      return options.docs && options.docs[key] !== undefined
         ? options.docs[key]
         : def;
     };
@@ -118,7 +115,6 @@ export default class API {
       json: getDocOpt("json", false),
       all: getDocOpt("all", false),
     };
-    this.router = options.router;
     // 参数类型管理
     this.type = new TypeManager(this);
     this.errors = options.errors;
@@ -145,6 +141,16 @@ export default class API {
 
   public setDocOutputForamt(fn: any) {
     this.api.docOutputForamt = fn;
+  }
+
+  public beforeHooks(fn: any) {
+    assert(typeof fn === "function", "钩子名称必须是Function类型");
+    this.api.beforeHooks.add(fn);
+  }
+
+  public afterHooks(fn: any) {
+    assert(typeof fn === "function", "钩子名称必须是Function类型");
+    this.api.afterHooks.add(fn);
   }
 
   public paramsChecker() {
@@ -194,9 +200,9 @@ export default class API {
    * 绑定路由
    * （加载顺序：beforeHooks -> apiCheckParams -> middlewares -> handler -> afterHooks ）
    *
-   * @param {Object} [router=this.router] 路由
+   * @param {Object} router 路由
    */
-  public bindRouter(router = this.router) {
+  public bindRouter(router: any) {
     for (const [key, schema] of this.api.$schemas.entries()) {
       debug("bind router" + key);
       if (!schema) {
@@ -214,6 +220,43 @@ export default class API {
         ...this.api.afterHooks,
       );
     }
+  }
+
+  /**
+   * 绑定路由到Express
+   *
+   * @param {Object} app Express App 实例
+   * @param {Object} express Express 对象
+   * @param {string} prefix 路由前缀
+   */
+  public bindRouterToApp(app: any, express: any, prefix: string) {
+    const routes = new Map();
+    for (const key of Object.keys(this.api.$schemas)) {
+      const schema = this.api.$schemas.get(key);
+      if (!schema) {
+        continue;
+      }
+      schema.init(this);
+      const group = camelCase2underscore(schema.options.group || "");
+      debug("bindRouterToApp" + key + group);
+      if (!routes.get(group)) {
+        routes.set(group, new express.Router());
+      }
+      routes.get(group)[schema.options.method].bind(routes.get(group))(
+        schema.options.path,
+        ...this.api.beforeHooks,
+        ...schema.options.beforeHooks,
+        apiCheckParams(this, schema),
+        ...schema.options.middlewares,
+        schema.options.handler,
+        ...schema.options.afterHooks,
+        ...this.api.afterHooks,
+      );
+    }
+    Object.keys(routes).forEach((value, key) => {
+      debug("bindRouterToApp - " + key);
+      app.use(prefix ? `/${prefix}/${key}` : "/" + key, value);
+    });
   }
 
   public genDocs(path: string, onExit = true) {

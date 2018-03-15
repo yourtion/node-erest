@@ -37,9 +37,9 @@ export interface ISchemaOption extends IKVObject {
   method: string;
   path: string;
   examples: IExample[];
-  beforeHooks: any[];
-  afterHooks: any[];
-  middlewares: any[];
+  beforeHooks: Set<any>;
+  afterHooks: Set<any>;
+  middlewares: Set<any>;
   required: Set<string>;
   requiredOneOf: string[][];
   query: object;
@@ -76,9 +76,9 @@ export class Schema {
       method: method.toLowerCase(),
       path,
       examples: [],
-      beforeHooks: [],
-      afterHooks: [],
-      middlewares: [],
+      beforeHooks: new Set(),
+      afterHooks: new Set(),
+      middlewares: new Set(),
       required: new Set(),
       requiredOneOf: [],
       query: {},
@@ -275,7 +275,7 @@ export class Schema {
     this._checkInited();
     for (const mid of list) {
       assert(typeof mid === "function", "中间件必须是Function类型");
-      this.options.middlewares.push(mid);
+      this.options.middlewares.add(mid);
     }
     return this;
   }
@@ -290,7 +290,7 @@ export class Schema {
     this._checkInited();
     for (const name of list) {
       assert(typeof name === "function", "钩子名称必须是Function类型");
-      this.options.beforeHooks.push(name);
+      this.options.beforeHooks.add(name);
     }
     return this;
   }
@@ -305,7 +305,7 @@ export class Schema {
     this._checkInited();
     for (const name of list) {
       assert(typeof name === "function", "钩子名称必须是Function类型");
-      this.options.afterHooks.push(name);
+      this.options.afterHooks.add(name);
     }
     return this;
   }

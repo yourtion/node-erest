@@ -1,5 +1,5 @@
-import { Schema } from "./schema";
 import { IDocOptions } from "./index";
+import { Schema } from "./schema";
 
 export type ICallback<T> = (err: Error | null, ret?: T) => void;
 
@@ -13,6 +13,8 @@ export interface IKVObject {
   [key: string]: any;
 }
 
-export interface IDocGeneratePlugin {
-  (data: any, dir: string, options: IDocOptions): void;
-}
+export type IDocGeneratePlugin = (
+  data: any,
+  dir: string,
+  options: IDocOptions,
+) => void;

@@ -141,6 +141,25 @@ export function merge(...args: object[]) {
   return ret;
 }
 
+/**
+ * 获取路径
+ *
+ * @param {string} def 定义的key
+ * @param {(string | boolean)} [opt] 配置项
+ * @returns {string} 结果路径
+ */
 export function getPath(def: string, opt?: string | boolean): string {
   return typeof opt === "string" ? opt : def;
+}
+
+/**
+ * 驼峰线转下划
+ *
+ * @param {String} str 输入字符串
+ */
+export function camelCase2underscore(str: string): string {
+  return str
+    .replace(/^\S/, (s) => s.toLowerCase())
+    .replace(/([A-Z])/g, "_$1")
+    .toLowerCase();
 }
