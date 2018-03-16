@@ -10,12 +10,7 @@ import { params as debug } from "./debug";
 import { IKVObject } from "./interfaces";
 import { ISchemaOption, Schema } from "./schema";
 
-export function paramsChecker(
-  ctx: any,
-  name: string,
-  value: any,
-  typeInfo: ISchemaOption,
-) {
+export function paramsChecker(ctx: any, name: string, value: any, typeInfo: ISchemaOption) {
   const type = ctx.type.get(typeInfo.type);
   let result = value;
   // 如果类型有 parser 则先执行
@@ -29,8 +24,7 @@ export function paramsChecker(
     debug(`param ${name} run checker`);
     let msg = `'${name}' should be valid ${typeInfo.type}`;
     if (typeInfo.params) {
-      msg = `${msg} with additional restrictions: ${typeInfo._paramsJSON ||
-        typeInfo.params}`;
+      msg = `${msg} with additional restrictions: ${typeInfo._paramsJSON || typeInfo.params}`;
     }
     throw ctx.error.invalidParameter(msg);
   }
@@ -84,9 +78,7 @@ export function schemaChecker(
     }
   }
   if (!ok) {
-    throw ctx.error.missingParameter(
-      `one of ${requiredOneOf.join(", ")} is required`,
-    );
+    throw ctx.error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
   }
   return result;
 }
@@ -145,9 +137,7 @@ export function apiCheckParams(ctx: any, schema: Schema) {
           }
         }
         if (!ok) {
-          throw ctx.error.missingParameter(
-            `one of ${names.join(", ")} is required`,
-          );
+          throw ctx.error.missingParameter(`one of ${names.join(", ")} is required`);
         }
       }
     }

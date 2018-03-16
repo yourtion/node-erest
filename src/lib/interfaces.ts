@@ -13,8 +13,4 @@ export interface IKVObject {
   [key: string]: any;
 }
 
-export type IDocGeneratePlugin = (
-  data: any,
-  dir: string,
-  options: IDocOptions,
-) => void;
+export type IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => void;

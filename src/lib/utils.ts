@@ -83,25 +83,18 @@ export function jsonStringify(data: object, space: string | number) {
 export function customError(name: string, info: object) {
   name = name || "CustomError";
   info = info || {};
-  const code =
-    "" +
-    "function " +
-    name +
-    "(message, info2) {\n" +
-    "  Error.captureStackTrace(this, " +
-    name +
-    ");\n" +
-    '  this.name = "' +
-    name +
-    '";\n' +
-    '  this.message = (message || "");\n' +
-    "  info2 = info2 || {};\n" +
-    "  for (var i in info) this[i] = info[i];\n" +
-    "  for (var i in info2) this[i] = info2[i];\n" +
-    "}\n" +
-    name +
-    ".prototype = Error.prototype;" +
-    name;
+  const code = `
+function ${name}(message, info2) {
+  Error.captureStackTrace(this, ${name});
+  this.name = ${name};
+  this.message = (message || "");
+  info2 = info2 || {}
+  for (var i in info) this[i] = info[i];
+  for (var i in info2) this[i] = info2[i];
+}
+${name}.prototype = Error.prototype;
+${name};
+`;
   // tslint:disable-next-line no-eval
   return eval(code);
 }

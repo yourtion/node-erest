@@ -109,9 +109,7 @@ export class TestAgent {
     assert(app, `express app instance could not be empty`);
     assert(request, "Install `supertest` first");
     this.debug("create supertest agent");
-    this.setAgent(
-      (request(app) as IKVObject)[this.options.method](this.options.path),
-    );
+    this.setAgent((request(app) as IKVObject)[this.options.method](this.options.path));
   }
 
   /**
@@ -195,8 +193,7 @@ export class TestAgent {
    * @return {Promise}
    */
   private _output(callback: ICallback<any>): Promise<any> {
-    const cb =
-      (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
+    const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.options.agent.end((err: Error, res: IKVObject) => {
       this.options.agentPath = res.req.path;
       this.options.agentOutput = res.body;
@@ -218,14 +215,11 @@ export class TestAgent {
      * @return {Promise}
      */
     this.output.success = (callback: ICallback<any>) => {
-      const cb =
-        (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
+      const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
       this.output((err, ret) => {
         if (err) {
           const err2 = new AssertionError(
-            `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(
-              err,
-            )}`,
+            `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
           );
           cb(err2);
         } else {
@@ -243,17 +237,14 @@ export class TestAgent {
      * @return {Promise}
      */
     this.output.error = (callback: ICallback<any>) => {
-      const cb =
-        (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
+      const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
       this.output((err, ret) => {
         if (err) {
           this._saveExample();
           cb(null, err);
         } else {
           const err2 = new AssertionError(
-            `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(
-              ret,
-            )}`,
+            `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`,
           );
           cb(err2);
         }

@@ -16,10 +16,8 @@ import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { ISchemaOption, Schema } from "./schema";
 import { camelCase2underscore, getCallerSourceLine } from "./utils";
 
-const missingParameter = (msg: string) =>
-  new Error(`missing required parameter ${msg}`);
-const invalidParameter = (msg: string) =>
-  new Error(`incorrect parameter ${msg}`);
+const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
+const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
 const internalError = (msg: string) => new Error(`internal error ${msg}`);
 
 export interface IApiFlag {
@@ -103,9 +101,7 @@ export default class API {
     };
 
     const getDocOpt = (key: string, def: boolean): string | boolean => {
-      return options.docs && options.docs[key] !== undefined
-        ? options.docs[key]
-        : def;
+      return options.docs && options.docs[key] !== undefined ? options.docs[key] : def;
     };
     this.docsOptions = {
       wiki: getDocOpt("wiki", true),
@@ -159,11 +155,8 @@ export default class API {
   }
 
   public schemaChecker() {
-    return (
-      data: IKVObject,
-      schema: ISchemaOption[],
-      requiredOneOf: string[] = [],
-    ) => schemaChecker(this, data, schema, requiredOneOf);
+    return (data: IKVObject, schema: ISchemaOption[], requiredOneOf: string[] = []) =>
+      schemaChecker(this, data, schema, requiredOneOf);
   }
 
   public _register() {
@@ -181,8 +174,7 @@ export default class API {
         !s2,
         `尝试注册API：${s.key}（所在文件：${
           s.options.sourceFile.absolute
-        }）失败，因为该API已在文件${s2 &&
-          s2.options.sourceFile.absolute}中注册过`,
+        }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`,
       );
 
       this.api.$schemas.set(s.key, s);

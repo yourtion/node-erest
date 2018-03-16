@@ -102,10 +102,7 @@ export class Schema {
    * @return {Boolean}
    */
   public pathTest(method: string, path: string) {
-    return (
-      this.options.method === method.toLowerCase() &&
-      this.pathTestRegExp.test(path)
-    );
+    return this.options.method === method.toLowerCase() && this.pathTestRegExp.test(path);
   }
 
   /**
@@ -157,14 +154,8 @@ export class Schema {
    */
   public example(example: IExample) {
     // this._checkInited();
-    assert(
-      example.input && typeof example.input === "object",
-      "`input`必须是一个对象",
-    );
-    assert(
-      example.output && typeof example.output === "object",
-      "`output`必须是一个对象",
-    );
+    assert(example.input && typeof example.input === "object", "`input`必须是一个对象");
+    assert(example.output && typeof example.output === "object", "`output`必须是一个对象");
     this._addExample(example);
     return this;
   }
@@ -349,9 +340,7 @@ export class Schema {
         try {
           options._paramsJSON = JSON.stringify(options.params);
         } catch (err) {
-          throw new Error(
-            `cannot JSON.stringify(options.params) for param ${name}`,
-          );
+          throw new Error(`cannot JSON.stringify(options.params) for param ${name}`);
         }
       }
     }
@@ -395,9 +384,7 @@ export class Schema {
     assert(name[0] !== "$", '`name`不能以"$"开头');
     assert(!(name in this.options._params), `参数 ${name} 已存在`);
 
-    assert(
-      options && (typeof options === "string" || typeof options === "object"),
-    );
+    assert(options && (typeof options === "string" || typeof options === "object"));
     // if (typeof options === 'string') options = { type: options, format: true };
 
     if (!("format" in options)) {

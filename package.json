@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Easy to build api server depend on express.",
   "main": "dist/lib/index.js",
   "typing": "dist/lib/index.d.ts",
@@ -11,9 +11,9 @@
     "test": "npm run compile && jest",
     "test:cov": "export ISCOV=1 && jest --coverage",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
-    "lint": "prettier --no-config --write src/**/*.ts && tslint --project tsconfig.json --fix",
+    "lint": "prettier --write src/**/*.ts && tslint --project tsconfig.json --fix",
     "clean": "rm -rf dist",
-    "compile": "npm run clean && tsc && prettier --no-config --write dist/**/*.js",
+    "compile": "npm run clean && tsc && prettier --single-quote --write dist/**/*.js",
     "prepublishOnly": "npm run lint && npm run compile"
   },
   "repository": {
@@ -34,21 +34,21 @@
   "homepage": "https://github.com/yourtion/node-erest#readme",
   "dependencies": {
     "debug": "^3.0.0",
-    "path-to-regexp": "^2.1.0",
+    "path-to-regexp": "^2.2.0",
     "validator": "^9.4.1"
   },
   "devDependencies": {
     "@types/chai": "^4.1.2",
     "@types/debug": "0.0.30",
-    "@types/jest": "^22.1.4",
-    "@types/node": "^8.0.41",
+    "@types/jest": "^22.2.0",
+    "@types/node": "^9.4.7",
     "@types/supertest": "^2.0.3",
-    "@types/validator": "^6.3.0",
+    "@types/validator": "^9.4.0",
     "jest": "^22.1.4",
     "prettier": "^1.11.1",
     "supertest": "^3.0.0",
     "ts-jest": "^22.4.1",
-    "ts-node": "^3.3.0",
+    "ts-node": "^5.0.1",
     "tslint": "^5.6.0",
     "typescript": "^2.4.2"
   },
