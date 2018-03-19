@@ -36,6 +36,7 @@ export interface IOutput {
   (callback: ICallback<any>): Promise<any>;
   success?: any;
   error?: any;
+  raw?: any;
 }
 
 /**
@@ -190,9 +191,10 @@ export class TestAgent {
    * 输出结果
    *
    * @param {Function} callback
+   * @param {Boolean} raw 原始输出
    * @return {Promise}
    */
-  private _output(callback: ICallback<any>): Promise<any> {
+  private _output(callback: ICallback<any>, raw = false): Promise<any> {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.options.agent.end((err: Error, res: IKVObject) => {
       this.options.agentPath = res.req.path;
@@ -249,6 +251,18 @@ export class TestAgent {
           cb(err2);
         }
       });
+      return cb.promise;
+    };
+
+    /**
+     * 获取原始输出
+     *
+     * @param {Function} callback
+     * @return {Promise}
+     */
+    this.output.raw = (callback: ICallback<any>) => {
+      const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
+      this._output(cb, true);
       return cb.promise;
     };
   }
