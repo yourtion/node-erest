@@ -33,7 +33,7 @@ function inspect(obj: object) {
 }
 
 export interface IOutput {
-  (callback: ICallback<any>): Promise<any>;
+  (callback: ICallback<any>, raw?: boolean): Promise<any>;
   success?: any;
   error?: any;
   raw?: any;
@@ -262,7 +262,17 @@ export class TestAgent {
      */
     this.output.raw = (callback: ICallback<any>) => {
       const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-      this._output(cb, true);
+      this.output((err, ret) => {
+        if (err) {
+          const err2 = new AssertionError(
+            `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
+          );
+          cb(err2);
+        } else {
+          this._saveExample();
+          cb(null, ret);
+        }
+      }, true);
       return cb.promise;
     };
   }
