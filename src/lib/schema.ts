@@ -26,20 +26,22 @@ export interface IParamsOption {
   enum?: string[];
 }
 
-export interface ISchemaOption extends IKVObject {
+export type IHandler<T, U> = (req: T, res: U, next?: any) => any;
+
+export interface ISchemaOption<T, U> extends IKVObject {
   description?: string;
   group?: string;
   format?: boolean;
   title?: string;
   env?: boolean;
-  handler?: () => any;
+  handler?: IHandler<T, U>;
   sourceFile: ISourceResult;
   method: string;
   path: string;
   examples: IExample[];
-  beforeHooks: Set<any>;
-  afterHooks: Set<any>;
-  middlewares: Set<any>;
+  beforeHooks: Set<IHandler<T, U>>;
+  afterHooks: Set<IHandler<T, U>>;
+  middlewares: Set<IHandler<T, U>>;
   required: Set<string>;
   requiredOneOf: string[][];
   query: object;
@@ -49,12 +51,12 @@ export interface ISchemaOption extends IKVObject {
   schema?: object;
 }
 
-export class Schema {
+export class Schema<T, U> {
   public static SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"];
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
-  public options: ISchemaOption;
+  public options: ISchemaOption<T, U>;
   /**
    * 构造函数
    *
@@ -262,7 +264,7 @@ export class Schema {
    * @param {Function} middleware
    * @return {Object}
    */
-  public middlewares(...list: any[]) {
+  public middlewares(...list: Array<IHandler<T, U>>) {
     this._checkInited();
     for (const mid of list) {
       assert(typeof mid === "function", "中间件必须是Function类型");
@@ -277,7 +279,7 @@ export class Schema {
    * @param {Function} name
    * @return {Object}
    */
-  public before(...list: any[]) {
+  public before(...list: Array<IHandler<T, U>>) {
     this._checkInited();
     for (const name of list) {
       assert(typeof name === "function", "钩子名称必须是Function类型");
@@ -292,7 +294,7 @@ export class Schema {
    * @param {Function} name
    * @return {Object}
    */
-  public after(...list: any[]) {
+  public after(...list: Array<IHandler<T, U>>) {
     this._checkInited();
     for (const name of list) {
       assert(typeof name === "function", "钩子名称必须是Function类型");
@@ -307,7 +309,7 @@ export class Schema {
    * @param {Function} fn 函数格式：`async function (params) {}`
    * @return {Object}
    */
-  public register(fn: () => any[]) {
+  public register(fn: IHandler<T, U>) {
     this._checkInited();
     assert(typeof fn === "function", "处理函数必须是一个函数类型");
     this.options.handler = fn;

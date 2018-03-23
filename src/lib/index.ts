@@ -13,7 +13,7 @@ import { extendTest } from "./extend/test";
 import { IKVObject } from "./interfaces";
 import { TypeManager } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
-import { ISchemaOption, Schema } from "./schema";
+import { IHandler, ISchemaOption, Schema } from "./schema";
 import { camelCase2underscore, getCallerSourceLine } from "./utils";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
@@ -24,15 +24,20 @@ export interface IApiFlag {
   saveApiInputOutput: boolean;
 }
 
-export interface IApiInfo extends IKVObject {
-  $schemas: Map<string, Schema>;
-  beforeHooks: Set<any>;
-  afterHooks: Set<any>;
+export interface IApiInfo<T, U> extends IKVObject {
+  readonly $schemas: Map<string, Schema<T, U>>;
+  beforeHooks: Set<IHandler<T, U>>;
+  afterHooks: Set<IHandler<T, U>>;
   docs?: any;
   test?: any;
   formatOutputReverse?: any;
   docOutputForamt?: any;
   $flag: IApiFlag;
+  readonly get: (path: string) => Schema<T, U>;
+  readonly post: (path: string) => Schema<T, U>;
+  readonly put: (path: string) => Schema<T, U>;
+  readonly delete: (path: string) => Schema<T, U>;
+  readonly patch: (path: string) => Schema<T, U>;
 }
 
 export interface IApiOption {
@@ -55,9 +60,9 @@ export interface IDocOptions extends IKVObject {
   all?: string | boolean;
 }
 
-export default class API {
+export default class API<T = any, U = any> {
   public app: any;
-  public api: IApiInfo;
+  public api: IApiInfo<T, U>;
   public utils: any;
   public info: any;
   public config: any;
@@ -83,12 +88,40 @@ export default class API {
   constructor(options: IApiOption) {
     this.utils = require("./utils");
     this.info = options.info || {};
+    const register = (method: string, path: string) => {
+      const s = new Schema<T, U>(method, path, getCallerSourceLine(this.config.path));
+      const s2 = this.api.$schemas.get(s.key);
+      assert(
+        !s2,
+        `尝试注册API：${s.key}（所在文件：${
+          s.options.sourceFile.absolute
+        }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`,
+      );
+
+      this.api.$schemas.set(s.key, s);
+      return s;
+    };
     this.api = {
       $schemas: new Map(),
       beforeHooks: new Set(),
       afterHooks: new Set(),
       $flag: {
         saveApiInputOutput: false,
+      },
+      get: (path: string) => {
+        return register("get", path);
+      },
+      post: (path: string) => {
+        return register("post", path);
+      },
+      put: (path: string) => {
+        return register("put", path);
+      },
+      delete: (path: string) => {
+        return register("delete", path);
+      },
+      patch: (path: string) => {
+        return register("patch", path);
       },
     };
     this.config = {
@@ -116,7 +149,6 @@ export default class API {
     this.errors = options.errors;
     defaultTypes.call(this, this.type);
     this.groups = options.groups || {};
-    this._register();
   }
 
   public initTest(app: any, path: string = "/docs/") {
@@ -139,53 +171,24 @@ export default class API {
     this.api.docOutputForamt = fn;
   }
 
-  public beforeHooks(fn: any) {
+  public beforeHooks(fn: IHandler<T, U>) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
     this.api.beforeHooks.add(fn);
   }
 
-  public afterHooks(fn: any) {
+  public afterHooks(fn: IHandler<T, U>) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
     this.api.afterHooks.add(fn);
   }
 
   public paramsChecker() {
-    return (name: string, value: any, schema: ISchemaOption) =>
+    return (name: string, value: any, schema: ISchemaOption<T, U>) =>
       paramsChecker(this, name, value, schema);
   }
 
   public schemaChecker() {
-    return (data: IKVObject, schema: ISchemaOption[], requiredOneOf: string[] = []) =>
+    return (data: IKVObject, schema: Array<ISchemaOption<T, U>>, requiredOneOf: string[] = []) =>
       schemaChecker(this, data, schema, requiredOneOf);
-  }
-
-  public _register() {
-    /**
-     * 注册API
-     *
-     * @param {String} method HTTP请求方法
-     * @param {String} path 请求路径
-     * @return {Object}
-     */
-    const register = (method: string, path: string) => {
-      const s = new Schema(method, path, getCallerSourceLine(this.config.path));
-      const s2 = this.api.$schemas.get(s.key);
-      assert(
-        !s2,
-        `尝试注册API：${s.key}（所在文件：${
-          s.options.sourceFile.absolute
-        }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`,
-      );
-
-      this.api.$schemas.set(s.key, s);
-      return s;
-    };
-
-    for (const method of Schema.SUPPORT_METHOD) {
-      this.api[method] = (path: string) => {
-        return register(method, path);
-      };
-    }
   }
 
   /**

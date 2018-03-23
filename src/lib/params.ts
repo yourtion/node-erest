@@ -10,7 +10,7 @@ import { params as debug } from "./debug";
 import { IKVObject } from "./interfaces";
 import { ISchemaOption, Schema } from "./schema";
 
-export function paramsChecker(ctx: any, name: string, value: any, typeInfo: ISchemaOption) {
+export function paramsChecker<T, U>(ctx: any, name: string, value: any, typeInfo: ISchemaOption<T, U>) {
   const type = ctx.type.get(typeInfo.type);
   let result = value;
   // 如果类型有 parser 则先执行
@@ -39,10 +39,10 @@ export function paramsChecker(ctx: any, name: string, value: any, typeInfo: ISch
   return result;
 }
 
-export function schemaChecker(
+export function schemaChecker<T, U>(
   ctx: any,
   data: IKVObject,
-  schema: ISchemaOption[],
+  schema: Array<ISchemaOption<T, U>>,
   requiredOneOf: string[] = [],
 ) {
   const result: IKVObject = {};
@@ -90,7 +90,7 @@ export function schemaChecker(
  * @param {Schema} schema 定义
  * @returns {Function} 中间件
  */
-export function apiCheckParams(ctx: any, schema: Schema) {
+export function apiCheckParams<T, U>(ctx: any, schema: Schema<T, U>) {
   return (req: any, res: any, next: any) => {
     const newParams: IKVObject = {};
     for (const place of ["query", "params", "body"]) {
