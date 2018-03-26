@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @file API Agent
  * 参考 hojs
@@ -7,7 +5,10 @@
  */
 
 import * as assert from "assert";
+import { IDebugger } from "debug";
 import * as stream from "stream";
+import { SuperAgent, SuperAgentRequest } from "superagent";
+import { Test } from "supertest";
 import * as util from "util";
 import { create as createDebug, test as debug } from "./debug";
 import { ICallback, IKVObject, IPromiseCallback } from "./interfaces";
@@ -25,7 +26,7 @@ const AssertionError = utils.customError("AssertionError", {
  * @param {Object} obj
  * @return {String}
  */
-function inspect(obj: object) {
+function inspect(obj: any) {
   return util.inspect(obj, {
     depth: 5,
     colors: true,
@@ -33,10 +34,27 @@ function inspect(obj: object) {
 }
 
 export interface IOutput {
-  (callback: ICallback<any>, raw?: boolean): Promise<any>;
-  success?: any;
-  error?: any;
-  raw?: any;
+  // (callback: ICallback<any>, raw?: boolean): Promise<any>;
+  success: (callback?: ICallback<any>) => Promise<any> | undefined;
+  error: (callback?: ICallback<any>) => Promise<any> | undefined;
+  raw: (callback?: ICallback<any>) => Promise<any> | undefined;
+}
+
+export interface ITestAgentOption {
+  parent: any;
+  sourceFile: utils.ISourceResult;
+  method: string;
+  path: string;
+  agent?: Test;
+  takeExample: boolean;
+  agentTestName?: string;
+  headers?: IKVObject;
+  input?: IKVObject;
+  output?: IKVObject;
+  agentPath?: IKVObject;
+  agentHeader?: IKVObject;
+  agentInput?: IKVObject;
+  agentOutput?: IKVObject;
 }
 
 /**
@@ -44,9 +62,9 @@ export interface IOutput {
  */
 export class TestAgent {
   public static SUPPORT_METHOD = Schema.SUPPORT_METHOD;
-  public options: any;
+  public options: ITestAgentOption;
   public key: string;
-  public debug: any;
+  public debug: IDebugger;
   public output: IOutput;
 
   /**
@@ -63,7 +81,7 @@ export class TestAgent {
     path: string,
     key: string,
     sourceFile: utils.ISourceResult,
-    parent: object,
+    parent: any,
   ) {
     assert(method && typeof method === "string", "`method` must be string");
     assert(
@@ -77,11 +95,14 @@ export class TestAgent {
       sourceFile,
       method: method.toLowerCase(),
       path,
-      agent: null,
+      takeExample: false,
     };
     this.key = key;
-    this.output = this._output;
-    this._extendsOutput();
+    this.output = {
+      success: this.success,
+      error: this.error,
+      raw: this.raw,
+    };
     this.debug = createDebug(`agent:${this.key}`);
     this.debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
@@ -91,7 +112,7 @@ export class TestAgent {
    *
    * @param {Object} agent
    */
-  public setAgent(agent: TestAgent) {
+  public setAgent(agent: Test) {
     this.options.agent = agent;
   }
 
@@ -104,26 +125,23 @@ export class TestAgent {
     let request;
     try {
       request = require("supertest");
+      // const ad = supertest(app).post("/aa");
     } catch (err) {
       debug(err);
     }
     assert(app, `express app instance could not be empty`);
     assert(request, "Install `supertest` first");
     this.debug("create supertest agent");
-    this.setAgent((request(app) as IKVObject)[this.options.method](this.options.path));
+    this.setAgent(request(app)[this.options.method](this.options.path) as Test);
   }
 
   /**
    * 获取测试代理
    *
-   * @param {Boolean} rawSupertest `true`表示返回`supertest.Agent`实例，`false`返回`TestAgent`实例
    * @return {Object}
    */
-  public agent(rawSupertest: any = false) {
-    debug("agent: rawSupertest=%s", rawSupertest);
-    if (rawSupertest) {
-      return this.options.agent;
-    }
+  public agent(): TestAgent {
+    debug("agent");
     return this;
   }
 
@@ -155,7 +173,7 @@ export class TestAgent {
 
   public headers(data: IKVObject) {
     this.options.agentHeader = data;
-    Object.keys(data).forEach((k) => this.options.agent.set(k, data[k]));
+    Object.keys(data).forEach((k) => this.options.agent && this.options.agent.set(k, data[k]));
     return this;
   }
 
@@ -166,6 +184,9 @@ export class TestAgent {
    * @return {Object}
    */
   public input(data: IKVObject) {
+    if (!this.options.agent) {
+      throw Error("Install `supertest` first");
+    }
     this.debug("input: %j", data);
     this.options.agentInput = data;
     if (
@@ -194,7 +215,10 @@ export class TestAgent {
    * @param {Boolean} raw 原始输出
    * @return {Promise}
    */
-  private _output(callback: ICallback<any>, raw = false): Promise<any> {
+  private _output(callback?: ICallback<any>, raw = false): Promise<any> {
+    if (!this.options.agent) {
+      throw Error("Install `supertest` first");
+    }
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.options.agent.end((err: Error, res: IKVObject) => {
       this.options.agentPath = res.req.path;
@@ -209,71 +233,69 @@ export class TestAgent {
     return cb.promise as Promise<any>;
   }
 
-  private _extendsOutput() {
-    /**
-     * 期望输出成功结果
-     *
-     * @param {Function} callback
-     * @return {Promise}
-     */
-    this.output.success = (callback: ICallback<any>) => {
-      const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-      this.output((err, ret) => {
-        if (err) {
-          const err2 = new AssertionError(
-            `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
-          );
-          cb(err2);
-        } else {
-          this._saveExample();
-          cb(null, ret);
-        }
-      });
-      return cb.promise;
-    };
+  /**
+   * 期望输出成功结果
+   *
+   * @param {Function} callback
+   * @return {Promise}
+   */
+  private success = (callback?: ICallback<any>) => {
+    const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
+    this._output((err, ret) => {
+      if (err) {
+        const err2 = new AssertionError(
+          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
+        );
+        cb(err2);
+      } else {
+        this._saveExample();
+        cb(null, ret);
+      }
+    });
+    return cb.promise;
+  }
 
-    /**
-     * 期望输出失败结果
-     *
-     * @param {Function} callback
-     * @return {Promise}
-     */
-    this.output.error = (callback: ICallback<any>) => {
-      const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-      this.output((err, ret) => {
-        if (err) {
-          this._saveExample();
-          cb(null, err);
-        } else {
-          const err2 = new AssertionError(
-            `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`,
-          );
-          cb(err2);
-        }
-      });
-      return cb.promise;
-    };
+  /**
+   * 期望输出失败结果
+   *
+   * @param {Function} callback
+   * @return {Promise}
+   */
+  private error = (callback?: ICallback<any>) => {
+    const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
+    this._output((err, ret) => {
+      if (err) {
+        this._saveExample();
+        cb(null, err);
+      } else {
+        const err2 = new AssertionError(
+          `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`,
+        );
+        cb(err2);
+      }
+    });
+    return cb.promise;
+  }
 
-    /**
-     * 获取原始输出
-     *
-     * @param {Function} callback
-     * @return {Promise}
-     */
-    this.output.raw = (callback: ICallback<any>) => {
-      const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-      this.output((err, ret) => {
-        if (err) {
-          const err2 = new AssertionError(
-            `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
-          );
-          cb(err2);
-        } else {
-          this._saveExample();
-          cb(null, ret);
-        }
-      }, true);
-      return cb.promise;
-    };
+  /**
+   * 获取原始输出
+   *
+   * @param {Function} callback
+   * @return {Promise}
+   */
+  private raw = (callback?: ICallback<any>) => {
+    const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
+    this._output((err, ret) => {
+      if (err) {
+        const err2 = new AssertionError(
+          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
+        );
+        cb(err2);
+      } else {
+        this._saveExample();
+        cb(null, ret);
+      }
+    }, true);
+    return cb.promise;
   }
 }

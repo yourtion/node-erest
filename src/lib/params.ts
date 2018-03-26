@@ -10,7 +10,12 @@ import { params as debug } from "./debug";
 import { IKVObject } from "./interfaces";
 import { ISchemaOption, Schema } from "./schema";
 
-export function paramsChecker<T, U>(ctx: any, name: string, value: any, typeInfo: ISchemaOption<T, U>) {
+export function paramsChecker<T, U>(
+  ctx: any,
+  name: string,
+  value: any,
+  typeInfo: ISchemaOption<T, U>,
+) {
   const type = ctx.type.get(typeInfo.type);
   let result = value;
   // 如果类型有 parser 则先执行

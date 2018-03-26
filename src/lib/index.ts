@@ -9,7 +9,7 @@ import * as assert from "assert";
 import { core as debug } from "./debug";
 import { defaultTypes } from "./default/types";
 import { extendDocs } from "./extend/docs";
-import { extendTest } from "./extend/test";
+import { extendTest, ITest } from "./extend/test";
 import { IKVObject } from "./interfaces";
 import { TypeManager } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
@@ -70,7 +70,7 @@ export default class API<T = any, U = any> {
   public type: any;
   public errors: any;
   public groups: any;
-  public test: any;
+  public test: ITest = {} as ITest;
   public docsOptions: IDocOptions;
 
   /**

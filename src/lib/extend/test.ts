@@ -15,9 +15,23 @@ import { getCallerSourceLine, getSchemaKey } from "../utils";
 
 import * as supertest from "supertest";
 
-export function extendTest(apiService: API) {
+export interface IAgent {
+  get: (path: string) => TestAgent;
+  post: (path: string) => TestAgent;
+  put: (path: string) => TestAgent;
+  delete: (path: string) => TestAgent;
+  patch: (path: string) => TestAgent;
+}
 
-  apiService.test = {};
+export interface ITest extends IAgent {
+  session: () => ITestSession;
+}
+
+export interface ITestSession extends IAgent {
+  $agent: supertest.SuperTest<any>;
+}
+
+export function extendTest(apiService: API) {
 
   /**
    * 根据请求方法和请求路径查找对应的schema
@@ -44,8 +58,8 @@ export function extendTest(apiService: API) {
   };
 
   // test.get, apiService.post, ...
-  for (const method of TestAgent.SUPPORT_METHOD) {
-    apiService.test[method] = (path: string, rawSupertest: supertest.SuperTest<any>) => {
+  const regTest = (method: string) => {
+   return (path: string) => {
 
       const s = findSchema(method, path);
 
@@ -55,39 +69,54 @@ export function extendTest(apiService: API) {
 
       assert(apiService.app, "请先调用 setApp() 设置 exprss 实例");
       a.initAgent(apiService.app);
-      return a.agent(rawSupertest);
+      return a.agent();
     };
-  }
+  };
 
   /**
    * 创建测试会话
    *
    * @return {Object}
    */
-  apiService.test.session = () => {
+  const session = () => {
 
     assert(apiService.app, "请先调用 setApp() 设置 exprss 实例");
     assert(supertest, "请先安装 supertest");
-    const session: IKVObject = {
-      $$agent: supertest.agent(apiService.app),
+    const agent = supertest.agent(apiService.app);
+
+    const regSession = (method: string) => {
+      return (path: string) => {
+
+      const s = findSchema(method, path);
+
+      assert(s, `尝试请求未注册的API：${ method } ${ path }`);
+      if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
+      const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, apiService);
+
+      a.setAgent((agent as IKVObject)[method](path));
+      return a.agent();
+
+    };
+  };
+    const ss: ITestSession = {
+      $agent: agent,
+      get: regTest("get"),
+      post: regTest("post"),
+      put: regTest("put"),
+      delete: regTest("delete"),
+      patch: regTest("patch"),
     };
 
-    for (const method of TestAgent.SUPPORT_METHOD) {
-      session[method] = (path: string, rawSupertest: supertest.SuperTest<any>) => {
+    return ss;
+  };
 
-        const s = findSchema(method, path);
-
-        assert(s, `尝试请求未注册的API：${ method } ${ path }`);
-        if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
-        const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, apiService);
-
-        a.setAgent(session.$$agent[method](path));
-        return a.agent(rawSupertest);
-
-      };
-    }
-
-    return session;
+  apiService.test = {
+    session,
+    get: regTest("get"),
+    post: regTest("post"),
+    put: regTest("put"),
+    delete: regTest("delete"),
+    patch: regTest("patch"),
   };
 
 }
