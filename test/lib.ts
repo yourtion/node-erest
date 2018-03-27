@@ -12,7 +12,7 @@ export const GROUPS = {
   Index: "首页",
 };
 
-export default (options = { info: INFO, groups: GROUPS}) => {
+export default (options = { info: INFO, groups: GROUPS }) => {
   const packPath = process.env.ISCOV ? "../src/lib" : "../dist/lib";
   const pack = require(packPath);
   const API = pack.default;

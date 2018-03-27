@@ -23,7 +23,7 @@ describe("Core - params checker", () => {
   it("Test - simple checker success", () => {
     expect(paramsChecker("st1", "1", stringP1)).toBe("1");
     stringP3.format = true;
-    expect(paramsChecker("st2", " 1 ", stringP3)).toBe( "1");
+    expect(paramsChecker("st2", " 1 ", stringP3)).toBe("1");
     expect(paramsChecker("nu1", "1", numP)).toBe(1);
     expect(paramsChecker("en1", "A", enumP)).toBe("A");
     expect(paramsChecker("json", '{ "a": 1 }', jsonP)).toEqual('{ "a": 1 }');
@@ -34,7 +34,9 @@ describe("Core - params checker", () => {
   it("Test - ENUM", () => {
     expect(paramsChecker("en1", 1, enumP)).toBe(1);
     const fn = () => paramsChecker("en2", "C", enumP);
-    expect(fn).toThrow("incorrect parameter 'en2' should be valid ENUM with additional restrictions: A,B,1");
+    expect(fn).toThrow(
+      "incorrect parameter 'en2' should be valid ENUM with additional restrictions: A,B,1"
+    );
   });
 });
 

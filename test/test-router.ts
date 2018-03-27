@@ -18,8 +18,8 @@ test("Router - api after init error", () => {
   const api = apiService.api;
   const router = express.Router();
   const getApi = apiGet(api);
-  getApi.description("hello");
   getApi.title("aaa");
+
   apiService.bindRouter(router);
   const fn = () => getApi.title("bbb");
   expect(fn).toThrow();
@@ -38,19 +38,27 @@ test("Router - hooks", () => {
   const afterHook = hook("afterHook");
   const middleware = hook("middleware");
   api
-  .get("/")
-  .group("Index")
-  .title("Get")
-  .before(beforHook)
-  .after(afterHook)
-  .middlewares(middleware)
-  .register(function fn(req, res) {
-    res.end("Hello, API Framework Index");
-  });
+    .get("/")
+    .group("Index")
+    .title("Get")
+    .before(beforHook)
+    .after(afterHook)
+    .middlewares(middleware)
+    .register(function fn(req, res) {
+      res.end("Hello, API Framework Index");
+    });
   apiService.bindRouter(router);
   expect(router.stack.length).toBe(1);
 
-  const order = [ "globalBefore", "beforHook", "apiParamsChecker", "middleware", "fn", "afterHook", "globalAfter" ];
+  const order = [
+    "globalBefore",
+    "beforHook",
+    "apiParamsChecker",
+    "middleware",
+    "fn",
+    "afterHook",
+    "globalAfter",
+  ];
   const routerStack = router.stack[0].route.stack;
   expect(routerStack.length).toBe(7);
   const hooksName = routerStack.map((r) => r.name);

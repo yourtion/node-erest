@@ -46,7 +46,7 @@ export interface ISchemaOption<T, U> extends IKVObject {
   requiredOneOf: string[][];
   query: object;
   body: object;
-  params: object;
+  params: IKVObject;
   _params: Map<string, IParamsOption>;
   schema?: object;
 }
