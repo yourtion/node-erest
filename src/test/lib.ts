@@ -1,4 +1,4 @@
-import * as api from "../src/lib";
+import * as api from "../lib";
 
 export const INFO = {
   title: "erest-demo",
@@ -13,7 +13,7 @@ export const GROUPS = {
 };
 
 export default (options = { info: INFO, groups: GROUPS }) => {
-  const packPath = process.env.ISCOV ? "../src/lib" : "../dist/lib";
+  const packPath = process.env.ISCOV ? "../lib" : "../../dist/lib";
   const pack = require(packPath);
   const API = pack.default;
   const apiService = new API({

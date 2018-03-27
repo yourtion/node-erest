@@ -3,7 +3,7 @@ import { GROUPS, INFO } from "./lib";
 
 const apiService = lib();
 
-import { IKVObject } from "../src/lib/interfaces";
+import { IKVObject } from "../lib/interfaces";
 import { build, TYPES } from "./helper";
 const paramsChecker = apiService.paramsChecker();
 const schemaChecker = apiService.schemaChecker();
@@ -35,7 +35,7 @@ describe("Core - params checker", () => {
     expect(paramsChecker("en1", 1, enumP)).toBe(1);
     const fn = () => paramsChecker("en2", "C", enumP);
     expect(fn).toThrow(
-      "incorrect parameter 'en2' should be valid ENUM with additional restrictions: A,B,1"
+      "incorrect parameter 'en2' should be valid ENUM with additional restrictions: A,B,1",
     );
   });
 });

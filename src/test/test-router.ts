@@ -61,7 +61,7 @@ test("Router - hooks", () => {
   ];
   const routerStack = router.stack[0].route.stack;
   expect(routerStack.length).toBe(7);
-  const hooksName = routerStack.map((r) => r.name);
+  const hooksName = routerStack.map((r: any) => r.name);
   expect(hooksName).toEqual(order);
 });
 
