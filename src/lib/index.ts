@@ -182,12 +182,12 @@ export default class API<T = any, U = any> {
   }
 
   public paramsChecker() {
-    return (name: string, value: any, schema: ISchemaOption<T, U>) =>
+    return (name: string, value: any, schema: IKVObject) =>
       paramsChecker(this, name, value, schema);
   }
 
   public schemaChecker() {
-    return (data: IKVObject, schema: Array<ISchemaOption<T, U>>, requiredOneOf: string[] = []) =>
+    return (data: IKVObject, schema: IKVObject<IKVObject>, requiredOneOf: string[] = []) =>
       schemaChecker(this, data, schema, requiredOneOf);
   }
 

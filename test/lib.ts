@@ -1,15 +1,16 @@
-const INFO = {
+import * as api from "../src/lib";
+
+export const INFO = {
   title: "erest-demo",
   description: "Easy to write, easy to test, easy to generate document.",
   version: new Date(),
   host: "http://127.0.0.1:3001",
   basePath: "/api",
 };
-const GROUPS = {
+
+export const GROUPS = {
   Index: "首页",
 };
-
-export { INFO, GROUPS };
 
 export default (options = { info: INFO, groups: GROUPS}) => {
   const packPath = process.env.ISCOV ? "../src/lib" : "../dist/lib";
@@ -19,5 +20,5 @@ export default (options = { info: INFO, groups: GROUPS}) => {
     info: INFO,
     groups: GROUPS,
   });
-  return apiService;
+  return apiService as api.default;
 };

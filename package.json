@@ -58,7 +58,8 @@
     },
     "testRegex": "/test/",
     "testPathIgnorePatterns": [
-      "lib.ts"
+      "lib.ts",
+      "helper.ts"
     ],
     "moduleFileExtensions": [
       "ts",

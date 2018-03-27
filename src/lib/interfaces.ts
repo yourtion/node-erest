@@ -9,8 +9,8 @@ export interface IPromiseCallback<T> extends ICallback<T> {
   promise?: Promise<T>;
 }
 
-export interface IKVObject {
-  [key: string]: any;
+export interface IKVObject<T = any> {
+  [key: string]: T;
 }
 
 export type IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => void;
