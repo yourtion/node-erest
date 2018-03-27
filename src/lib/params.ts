@@ -91,7 +91,7 @@ export function schemaChecker<T, U>(
  * @returns {Function} 中间件
  */
 export function apiCheckParams<T, U>(ctx: any, schema: Schema<T, U>) {
-  return (req: any, res: any, next: any) => {
+  return function apiParamsChecker(req: any, res: any, next: any) {
     const newParams: IKVObject = {};
     for (const place of ["query", "params", "body"]) {
       const pOptions = schema.options[place];
