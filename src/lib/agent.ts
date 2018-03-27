@@ -33,13 +33,6 @@ function inspect(obj: any) {
   });
 }
 
-export interface IOutput {
-  // (callback: ICallback<any>, raw?: boolean): Promise<any>;
-  success: (callback?: ICallback<any>) => Promise<any> | undefined;
-  error: (callback?: ICallback<any>) => Promise<any> | undefined;
-  raw: (callback?: ICallback<any>) => Promise<any> | undefined;
-}
-
 export interface ITestAgentOption {
   parent: any;
   sourceFile: utils.ISourceResult;
@@ -65,7 +58,6 @@ export class TestAgent {
   public options: ITestAgentOption;
   public key: string;
   public debug: IDebugger;
-  public output: IOutput;
 
   /**
    * 构造函数
@@ -98,11 +90,6 @@ export class TestAgent {
       takeExample: false,
     };
     this.key = key;
-    this.output = {
-      success: this.success,
-      error: this.error,
-      raw: this.raw,
-    };
     this.debug = createDebug(`agent:${this.key}`);
     this.debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
@@ -157,20 +144,6 @@ export class TestAgent {
     return this;
   }
 
-  public _saveExample() {
-    debug("Save Example", this.key, this.options.takeExample);
-    if (this.options.takeExample) {
-      this.options.parent.api.$schemas.get(this.key).example({
-        name: this.options.agentTestName,
-        path: this.options.agentPath,
-        headers: this.options.agentHeader,
-        input: this.options.agentInput || {},
-        output: this.options.agentOutput,
-      });
-    }
-    debug(this.options.parent.api.$schemas.get(this.key).options.examples);
-  }
-
   public headers(data: IKVObject) {
     this.options.agentHeader = data;
     Object.keys(data).forEach((k) => this.options.agent && this.options.agent.set(k, data[k]));
@@ -209,46 +182,21 @@ export class TestAgent {
   }
 
   /**
-   * 输出结果
-   *
-   * @param {Function} callback
-   * @param {Boolean} raw 原始输出
-   * @return {Promise}
-   */
-  private _output(callback?: ICallback<any>, raw = false): Promise<any> {
-    if (!this.options.agent) {
-      throw Error("Install `supertest` first");
-    }
-    const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-    this.options.agent.end((err: Error, res: IKVObject) => {
-      this.options.agentPath = res.req.path;
-      this.options.agentOutput = res.body;
-      if (err) {
-        return cb(err);
-      }
-      const formatOutputReverse = this.options.parent.api.formatOutputReverse;
-      const [err2, ret] = formatOutputReverse(res.body);
-      cb(err2, ret);
-    });
-    return cb.promise as Promise<any>;
-  }
-
-  /**
    * 期望输出成功结果
    *
    * @param {Function} callback
    * @return {Promise}
    */
-  private success = (callback?: ICallback<any>) => {
+  public success(callback?: ICallback<any>) {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-    this._output((err, ret) => {
+    this.output((err, ret) => {
       if (err) {
         const err2 = new AssertionError(
           `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
         );
         cb(err2);
       } else {
-        this._saveExample();
+        this.saveExample();
         cb(null, ret);
       }
     });
@@ -261,11 +209,11 @@ export class TestAgent {
    * @param {Function} callback
    * @return {Promise}
    */
-  private error = (callback?: ICallback<any>) => {
+  public error(callback?: ICallback<any>) {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-    this._output((err, ret) => {
+    this.output((err, ret) => {
       if (err) {
-        this._saveExample();
+        this.saveExample();
         cb(null, err);
       } else {
         const err2 = new AssertionError(
@@ -283,19 +231,58 @@ export class TestAgent {
    * @param {Function} callback
    * @return {Promise}
    */
-  private raw = (callback?: ICallback<any>) => {
+  public raw(callback?: ICallback<any>) {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-    this._output((err, ret) => {
+    this.output((err, ret) => {
       if (err) {
         const err2 = new AssertionError(
           `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
         );
         cb(err2);
       } else {
-        this._saveExample();
+        this.saveExample();
         cb(null, ret);
       }
     }, true);
     return cb.promise;
+  }
+
+  private saveExample() {
+    debug("Save Example", this.key, this.options.takeExample);
+    if (this.options.takeExample) {
+      this.options.parent.api.$schemas.get(this.key).example({
+        name: this.options.agentTestName,
+        path: this.options.agentPath,
+        headers: this.options.agentHeader,
+        input: this.options.agentInput || {},
+        output: this.options.agentOutput,
+      });
+    }
+    debug(this.options.parent.api.$schemas.get(this.key).options.examples);
+  }
+
+  /**
+   * 输出结果
+   *
+   * @param {Function} callback
+   * @param {Boolean} raw 原始输出
+   * @return {Promise}
+   */
+  private output(callback?: ICallback<any>, raw = false): Promise<any> {
+    if (!this.options.agent) {
+      throw Error("Install `supertest` first");
+    }
+    const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
+    this.options.agent.end((err: Error, res: IKVObject) => {
+      this.options.agentPath = res.req.path;
+      this.options.agentOutput = res.body;
+      if (err) {
+        return cb(err);
+      }
+      const formatOutputReverse = this.options.parent.api.formatOutputReverse;
+      const [err2, ret] = formatOutputReverse(res.body);
+      cb(err2, ret);
+    });
+    return cb.promise as Promise<any>;
   }
 }
