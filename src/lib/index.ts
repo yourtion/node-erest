@@ -10,7 +10,7 @@ import { core as debug } from "./debug";
 import { defaultTypes } from "./default/types";
 import { extendDocs } from "./extend/docs";
 import { extendTest, ITest } from "./extend/test";
-import { IKVObject } from "./interfaces";
+import { IKVObject, ISupportMethds } from "./interfaces";
 import { TypeManager } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { IHandler, ISchemaOption, Schema } from "./schema";
@@ -24,20 +24,17 @@ export interface IApiFlag {
   saveApiInputOutput: boolean;
 }
 
-export interface IApiInfo<T, U> extends IKVObject {
+export type genSchema<T, U> = Readonly<ISupportMethds<(path: string) => Schema<T, U>>>;
+
+export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
   readonly $schemas: Map<string, Schema<T, U>>;
   beforeHooks: Set<IHandler<T, U>>;
   afterHooks: Set<IHandler<T, U>>;
   docs?: any;
   test?: any;
-  formatOutputReverse?: any;
-  docOutputForamt?: any;
+  formatOutputReverse?: (out: any) => any;
+  docOutputForamt?: (out: any) => any;
   $flag: IApiFlag;
-  readonly get: (path: string) => Schema<T, U>;
-  readonly post: (path: string) => Schema<T, U>;
-  readonly put: (path: string) => Schema<T, U>;
-  readonly delete: (path: string) => Schema<T, U>;
-  readonly patch: (path: string) => Schema<T, U>;
 }
 
 export interface IApiOption {
@@ -164,11 +161,11 @@ export default class API<T = any, U = any> {
     this.api.docs.saveOnExit(process.cwd() + path);
   }
 
-  public setFormatOutput(fn: any) {
+  public setFormatOutput(fn: (out: any) => any) {
     this.api.formatOutputReverse = fn;
   }
 
-  public setDocOutputForamt(fn: any) {
+  public setDocOutputForamt(fn: (out: any) => any) {
     this.api.docOutputForamt = fn;
   }
 

@@ -10,25 +10,19 @@ import * as assert from "assert";
 import { TestAgent } from "../agent";
 import { test as debug } from "../debug";
 import API from "../index";
-import { IKVObject } from "../interfaces";
+import { IKVObject, ISupportMethds } from "../interfaces";
 import { getCallerSourceLine, getSchemaKey } from "../utils";
 
 import * as supertest from "supertest";
 
-export interface IAgent {
-  get: (path: string) => TestAgent;
-  post: (path: string) => TestAgent;
-  put: (path: string) => TestAgent;
-  delete: (path: string) => TestAgent;
-  patch: (path: string) => TestAgent;
-}
+export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
 
 export interface ITest extends IAgent {
-  session: () => ITestSession;
+  readonly session: () => ITestSession;
 }
 
 export interface ITestSession extends IAgent {
-  $agent: supertest.SuperTest<any>;
+  readonly $agent: supertest.SuperTest<any>;
 }
 
 export function extendTest(apiService: API) {

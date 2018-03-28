@@ -7,7 +7,7 @@ const api = apiService.api;
 const deleteApi = apiDelete(api);
 
 test("Schema - init", () => {
-  const schema = api.$schemas.get("DELETE_/index/:name");
+  const schema = api.$schemas.get("DELETE_/index/:name")!;
   expect(schema.key).toBe("DELETE_/index/:name");
   expect(schema.options.method).toBe("delete");
   expect(schema.options.path).toBe("/index/:name");
@@ -16,7 +16,7 @@ test("Schema - init", () => {
   expect(schema.options.required.size).toBe(1);
   expect(schema.options.params.name).toEqual(nameParams);
   expect(schema.options._params.get("name")).toEqual(nameParams);
-  expect(schema.options.handler.name).toBe("del");
+  expect(schema.options.handler!.name).toBe("del");
 });
 
 test("Schema - modify", () => {
@@ -32,7 +32,7 @@ test("Schema - modify", () => {
   deleteApi.requiredOneOf(["name", "age"]);
   deleteApi.required(["name"]);
   deleteApi.required(["name"]);
-  const schema = api.$schemas.get("DELETE_/index/:name");
+  const schema = api.$schemas.get("DELETE_/index/:name")!;
   expect(schema.options.title).toBe("newTitle");
   expect(schema.options.description).toBe("Yourtion");
   expect(schema.options.examples.length).toBe(1);

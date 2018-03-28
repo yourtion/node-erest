@@ -19,6 +19,14 @@ export default (options = { info: INFO, groups: GROUPS }) => {
   const apiService = new API({
     info: INFO,
     groups: GROUPS,
+    docs: {
+      wiki: true,
+      index: true,
+      home: true,
+      swagger: true,
+      json: true,
+      all: true,
+    },
   });
   return apiService as api.default;
 };

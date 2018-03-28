@@ -14,3 +14,11 @@ export interface IKVObject<T = any> {
 }
 
 export type IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => void;
+
+export interface ISupportMethds<T> {
+  get: T;
+  post: T;
+  put: T;
+  delete: T;
+  patch: T;
+}
