@@ -58,11 +58,7 @@
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },
-    "testRegex": "/test/",
-    "testPathIgnorePatterns": [
-      "lib.ts",
-      "helper.ts"
-    ],
+    "testRegex": "./src/test/test",
     "moduleFileExtensions": [
       "ts",
       "js"

@@ -72,6 +72,7 @@ export default class API<T = any, U = any> {
   public groups: any;
   public test: ITest = {} as ITest;
   public docsOptions: IDocOptions;
+  public shareTestData?: any;
 
   /**
    * Creates an instance of API.

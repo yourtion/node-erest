@@ -65,7 +65,7 @@ export function extendTest(apiService: API) {
 
       assert(s, `尝试请求未注册的API：${ method } ${ path }`);
       if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
-      const a = new TestAgent(method, path, s.key, getCallerSourceLine(apiService.config.get("api.path")), apiService);
+      const a = new TestAgent(method, path, s.key, getCallerSourceLine(apiService.config.path), apiService);
 
       assert(apiService.app, "请先调用 setApp() 设置 exprss 实例");
       a.initAgent(apiService.app);
@@ -87,24 +87,24 @@ export function extendTest(apiService: API) {
     const regSession = (method: string) => {
       return (path: string) => {
 
-      const s = findSchema(method, path);
+        const s = findSchema(method, path);
 
-      assert(s, `尝试请求未注册的API：${ method } ${ path }`);
-      if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
-      const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, apiService);
+        assert(s, `尝试请求未注册的API：${ method } ${ path }`);
+        if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
+        const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, apiService);
 
-      a.setAgent((agent as IKVObject)[method](path));
-      return a.agent();
+        a.setAgent((agent as IKVObject)[method](path));
+        return a.agent();
 
+      };
     };
-  };
     const ss: ITestSession = {
       $agent: agent,
-      get: regTest("get"),
-      post: regTest("post"),
-      put: regTest("put"),
-      delete: regTest("delete"),
-      patch: regTest("patch"),
+      get: regSession("get"),
+      post: regSession("post"),
+      put: regSession("put"),
+      delete: regSession("delete"),
+      patch: regSession("patch"),
     };
 
     return ss;
