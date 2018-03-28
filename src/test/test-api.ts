@@ -3,7 +3,7 @@ import { GROUPS, INFO } from "./lib";
 
 const apiService = lib();
 
-test("API service Info", () => {
+test("API - service Info", () => {
   const apiInfo = apiService.info;
   expect(apiInfo.title).toBe(INFO.title);
   expect(apiInfo.description).toBe(INFO.description);
@@ -13,6 +13,6 @@ test("API service Info", () => {
   expect(apiService.groups).toEqual(GROUPS);
 });
 
-test("API service Init", () => {
+test("API - service Init", () => {
   expect(apiService.groups).toEqual(GROUPS);
 });
