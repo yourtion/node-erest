@@ -4,6 +4,14 @@ import { GROUPS, INFO } from "./lib";
 
 import * as express from "express";
 
+test("Router - bind empty", () => {
+  const apiService = lib();
+  const api = apiService.api;
+  const router = express.Router();
+  apiService.bindRouter(router);
+  expect(router.stack.length).toBe(0);
+});
+
 test("Router - bind", () => {
   const apiService = lib();
   const api = apiService.api;

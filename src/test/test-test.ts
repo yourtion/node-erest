@@ -1,34 +1,50 @@
-import { apiAll, apiGet, apiPost, hook } from "./helper";
+import { apiAll, apiJson } from "./helper";
 import lib from "./lib";
 import { GROUPS, INFO } from "./lib";
 
 import * as express from "express";
 
 const app = express();
-const apiService = lib();
-const api = apiService.api;
 const router = express.Router();
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
-app.use("/api", router);
 
+const apiService = lib();
+const api = apiService.api;
 apiAll(api);
+apiJson(api);
 apiService.bindRouter(router);
 
-router.use((err: any, req: any, res: any, next: any) => {
-  if (err) { return res.end(err.message ); }
-  next();
-});
-
 apiService.initTest(app);
+function format(data: any): [Error | null, any] {
+  if (typeof data === "object") {
+    if (data.success) {
+      return [null, data.result || "success"];
+    }
+    return [data.msg || "error", null];
+  }
+  return [null, data];
+}
+
+apiService.setFormatOutput(format);
+apiService.setDocOutputForamt((out: any) => out);
 const agent = apiService.test.session();
 const share = {
   name: "Yourtion",
   age: 22,
   ageStr: "abc",
 };
+router.use((err: any, req: any, res: any, next: any) => {
+  if (err) {
+    return res.end(err.message);
+  }
+  next();
+});
+app.use("/api", router);
+apiService.initTest(app);
 
 describe("TEST - Index", () => {
+
   it("TEST - Get no session", async () => {
     const ret = await apiService.test
       .get("/api/")
@@ -106,9 +122,31 @@ describe("TEST - Index", () => {
       .input({
         age: share.ageStr,
       })
-      .takeExample("Index-Put")
+      .takeExample("Index-Post")
       .raw();
     expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
+  });
+
+  it("TEST - JSON FormatOutput error", async () => {
+    const ret = await agent
+      .get("/api/json")
+      .input({
+        age: 10,
+      })
+      .takeExample("Index-JSON")
+      .error();
+    expect(ret).toBe("error");
+  });
+
+  it("TEST - JSON FormatOutput success", async () => {
+    const ret = await agent
+      .get("/api/json")
+      .input({
+        age: share.age,
+      })
+      .takeExample("Index-JSON")
+      .success();
+    expect(ret).toBe("success");
   });
 
   it("TEST - Gen docs", () => {
