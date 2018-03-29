@@ -47,7 +47,6 @@ const generateMarkdown: IDocGeneratePlugin = (data: any, dir: string, options: I
   const wikiPath = utils.getPath("wiki", options.wiki);
 
   for (const item in data.group) {
-    if (!data.group.hasOwnProperty(item)) { continue; }
     indexDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](./${ item.toLowerCase() }.md)`);
     allInOneDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关](#${ item.toLowerCase() })`);
     wikiDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](${ wikiPath }/${ item.toLowerCase() })`);
@@ -101,7 +100,6 @@ function typeDocs(data: any) {
   const defaultTypes: any[] = [];
   const customTypes: any[] = [];
   for (const name in data.types) {
-    if (!data.types.hasOwnProperty(name)) { continue; }
     const info = data.types[name];
     if (info.isDefault) {
       defaultTypes.push(info);
@@ -135,7 +133,6 @@ function errorDocs(data: any) {
 
   const errors: any[] = [];
   for (const name in data.errors) {
-    if (!data.errors.hasOwnProperty(name)) { continue; }
     errors.push(Object.assign({ name }, data.errors[name]));
   }
 
@@ -169,7 +166,6 @@ function schemaDocs(data: any) {
     paramsList.push(`------|----- |-----|-------|------|-----`);
     for (const place of [ "params", "query", "body" ]) {
       for (const name in item[place]) {
-        if (!item[place].hasOwnProperty(name)) { continue; }
         const info = item[place][name];
         let required = "否";
         if (item.required.has(name)) {
@@ -188,7 +184,8 @@ function schemaDocs(data: any) {
         `.trim());
       }
     }
-    if (item.requiredOneOf.size > 0) {
+
+    if (item.requiredOneOf.length > 0) {
       paramsList.push("\n选填参数：\n");
       for (const names of item.requiredOneOf) {
         paramsList.push(`- \`${ names.join("`, `") }\` 其中一个`);
@@ -204,7 +201,6 @@ function schemaDocs(data: any) {
     schemaList.push("参数名 | 类型 | 说明");
     schemaList.push("------|-----|-----");
     for (const name in item) {
-      if (!item[name].hasOwnProperty(name)) { continue; }
       const info = item[name];
       schemaList.push(`
 \`${ stringOrEmpty(name) }\` | ${ stringOrEmpty(info.type) } | ${ stringOrEmpty(info.comment) }
@@ -282,7 +278,6 @@ ${ examples(item.examples) }
 
   const list: Array<{name: string, content: string}> = [];
   for (const name in group) {
-    if (!group.hasOwnProperty(name)) { continue; }
     list.push({
       name,
       content: group[name].join("\n\n"),

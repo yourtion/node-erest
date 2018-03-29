@@ -69,16 +69,6 @@ export function extendDocs(apiService: API) {
   };
 
   /**
-   * 开始采集输入输出样例
-   *
-   * @return {Object}
-   */
-  apiService.api.docs.takeSample = () => {
-    apiService.api.$flag.saveApiInputOutput = true;
-    return apiService.api.docs;
-  };
-
-  /**
    * 生成文档
    *
    * @return {Object}

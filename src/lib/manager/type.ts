@@ -11,16 +11,17 @@ import { core as debug } from "../debug";
 import { Manager } from "./manager";
 
 export interface IType {
+  name: string;
   checker: () => boolean;
   formatter?: () => any;
   parser?: () => any;
-  paramsChecker?: () => boolean;
+  paramsChecker?: (params?: any) => boolean;
   description: string;
   isDefault: boolean;
   isParamsRequire: boolean;
 }
 
-export class TypeManager extends Manager {
+export class TypeManager extends Manager<IType> {
 
   /**
    * 注册参数类型

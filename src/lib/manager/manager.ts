@@ -5,16 +5,16 @@
  * 参考 hojs
  * @author Yourtion Guo <yourtion@gmail.com>
  */
-export class Manager {
+export class Manager<T = any> {
 
-  protected map: Map<string, object>;
-  private parent: object;
+  protected map: Map<string, T>;
+  private parent: T;
 
   /**
    * Creates an instance of Manager.
    * @param {Object} parent 上下文
    */
-  constructor(parent: object) {
+  constructor(parent: any) {
     this.parent = parent;
     this.map = new Map();
   }

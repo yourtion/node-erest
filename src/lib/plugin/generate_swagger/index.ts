@@ -61,7 +61,6 @@ const generateSwagger: IDocGeneratePlugin = (data: any, dir: string, options: ID
   };
 
   for (const k in data.group) {
-    if (!data.group.hasOwnProperty(k)) { continue; }
     result.tags.push({ name: k, description: data.group[k] });
   }
   result.tags = result.tags.sort((a, b) => a.name > b.name ? 1 : -1);
@@ -69,7 +68,6 @@ const generateSwagger: IDocGeneratePlugin = (data: any, dir: string, options: ID
   const paths = result.paths;
   const schemas = data.schemas;
   for (const key in schemas) {
-    if (!schemas.hasOwnProperty(key)) { continue; }
     const schema = schemas[key];
     const pathArray: string[] = [];
     for (const p of schema.path.split("/")) {
@@ -115,7 +113,6 @@ const generateSwagger: IDocGeneratePlugin = (data: any, dir: string, options: ID
     example = example || { input: {}, output: {}};
     for (const place of [ "params", "query", "body" ]) {
       for (const sKey in schema[place]) {
-        if (!schema[place].hasOwnProperty(sKey)) { continue; }
         const obj: ISwaggerResultParams = {
           name: sKey,
           in: place === "params" ? "path" : place,

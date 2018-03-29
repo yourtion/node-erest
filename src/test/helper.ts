@@ -132,9 +132,9 @@ export function apiPatch(api: any) {
     });
 }
 
-export function apiJson(api: any) {
+export function apiJson(api: any, path = "/json") {
   return api
-    .get("/json")
+    .get(path)
     .group("Index")
     .query({ age: ageParams })
     .title("JSON")
@@ -142,7 +142,7 @@ export function apiJson(api: any) {
       if (req.$params.age < 18) {
         return res.json({ success: false });
       }
-      return res.json({ success: true });
+      return res.json({ success: true, result: req.$params });
     });
 }
 

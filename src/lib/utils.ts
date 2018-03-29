@@ -5,7 +5,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 import { resolve as pathResolve } from "path";
-import { IPromiseCallback } from "./interfaces";
+import { IKVObject, IPromiseCallback } from "./interfaces";
 
 export interface ISourceResult {
   relative?: string;
@@ -80,9 +80,7 @@ export function jsonStringify(data: object, space: string | number) {
  * @param {Object} info
  * @return {Function}
  */
-export function customError(name: string, info: object) {
-  name = name || "CustomError";
-  info = info || {};
+export function customError(name = "CustomError", info: IKVObject = {}) {
   const code = `
 function ${name}(message, info2) {
   Error.captureStackTrace(this, ${name});
@@ -143,16 +141,4 @@ export function merge(...args: object[]) {
  */
 export function getPath(def: string, opt?: string | boolean): string {
   return typeof opt === "string" ? opt : def;
-}
-
-/**
- * 驼峰线转下划
- *
- * @param {String} str 输入字符串
- */
-export function camelCase2underscore(str: string): string {
-  return str
-    .replace(/^\S/, (s) => s.toLowerCase())
-    .replace(/([A-Z])/g, "_$1")
-    .toLowerCase();
 }

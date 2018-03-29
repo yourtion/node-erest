@@ -57,7 +57,6 @@ export function extendTest(apiService: API) {
 
       const s = findSchema(method, path);
 
-      assert(s, `尝试请求未注册的API：${ method } ${ path }`);
       if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
       const a = new TestAgent(method, path, s.key, getCallerSourceLine(apiService.config.path), apiService);
 
@@ -83,7 +82,6 @@ export function extendTest(apiService: API) {
 
         const s = findSchema(method, path);
 
-        assert(s, `尝试请求未注册的API：${ method } ${ path }`);
         if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
         const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, apiService);
 

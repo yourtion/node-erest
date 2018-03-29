@@ -332,13 +332,13 @@ export class Schema<T, U> {
     // 初始化时参数类型检查
     for (const [name, options] of this.options._params) {
       const typeName = options.type;
-      const type = parent.type.get(typeName);
+      const type = parent.type.get(typeName!);
       assert(type && type.checker, `please register type ${typeName}`);
-      if (type.isParamsRequire && options.params === undefined) {
+      if (type!.isParamsRequire && options.params === undefined) {
         throw new Error(`${typeName} is require a params`);
       }
       if (options.params) {
-        assert(type.paramsChecker(options.params), `test type params failed`);
+        assert(type!.paramsChecker!(options.params), `test type params failed`);
         try {
           options._paramsJSON = JSON.stringify(options.params);
         } catch (err) {

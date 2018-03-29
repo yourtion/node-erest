@@ -20,6 +20,8 @@ const AssertionError = utils.customError("AssertionError", {
   type: "api_output_error",
 });
 
+const defaultFormatOutput = (data: any) => [null, data];
+
 /**
  * 返回对象结构字符串
  *
@@ -32,8 +34,6 @@ function inspect(obj: any) {
     colors: true,
   });
 }
-
-const defaultFormatOutput = (data: any) => [null, data];
 
 export interface ITestAgentOption {
   parent: any;
@@ -154,12 +154,9 @@ export class TestAgent {
   }
 
   public query(data: IKVObject) {
-    if (!this.options.agent) {
-      throw Error("Install `supertest` first");
-    }
     this.debug("query: %j", data);
     Object.assign(this.options.agentInput, data);
-    this.options.agent.query(data);
+    this.options.agent!.query(data);
     return this;
   }
 
@@ -170,9 +167,6 @@ export class TestAgent {
    * @return {Object}
    */
   public input(data: IKVObject) {
-    if (!this.options.agent) {
-      throw Error("Install `supertest` first");
-    }
     this.debug("input: %j", data);
     Object.assign(this.options.agentInput, data);
     if (
@@ -180,16 +174,24 @@ export class TestAgent {
       this.options.method === "head" ||
       this.options.method === "delete"
     ) {
-      this.options.agent.query(data);
+      this.options.agent!.query(data);
     } else {
-      for (const i in data) {
-        // TODO: use fs.ReadStream
-        if (data[i] instanceof stream.Readable) {
-          this.options.agent.attach(i, data[i]);
-          delete data[i];
-        }
+      this.options.agent!.send(data);
+    }
+    return this;
+  }
+
+  public attach(data: IKVObject) {
+    this.debug("input: %j", data);
+    Object.assign(this.options.agentInput, data);
+    for (const i in data) {
+      // TODO: use fs.ReadStream
+      if (data[i] instanceof stream.Readable) {
+        this.options.agent!.attach(i, data[i]);
+        delete data[i];
+      } else {
+        this.options.agent!.field(i, data[i]);
       }
-      this.options.agent.send(data);
     }
     return this;
   }
@@ -282,11 +284,8 @@ export class TestAgent {
    * @return {Promise}
    */
   private output(callback?: ICallback<any>, raw = false): Promise<any> {
-    if (!this.options.agent) {
-      throw Error("Install `supertest` first");
-    }
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
-    this.options.agent.end((err: Error, res: IKVObject) => {
+    this.options.agent!.end((err: Error, res: IKVObject) => {
       this.options.agentPath = res.req.path;
       this.options.agentOutput = res.body;
       if (err) {

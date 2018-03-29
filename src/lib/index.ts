@@ -11,18 +11,14 @@ import { defaultTypes } from "./default/types";
 import { extendDocs } from "./extend/docs";
 import { extendTest, ITest } from "./extend/test";
 import { IKVObject, ISupportMethds } from "./interfaces";
-import { TypeManager } from "./manager/type";
+import { IType, TypeManager } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { IHandler, ISchemaOption, Schema } from "./schema";
-import { camelCase2underscore, getCallerSourceLine } from "./utils";
+import { getCallerSourceLine } from "./utils";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
 const internalError = (msg: string) => new Error(`internal error ${msg}`);
-
-export interface IApiFlag {
-  saveApiInputOutput: boolean;
-}
 
 export type genSchema<T, U> = Readonly<ISupportMethds<(path: string) => Schema<T, U>>>;
 
@@ -34,7 +30,6 @@ export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
   test?: any;
   formatOutputReverse?: (out: any) => [Error | null, any];
   docOutputForamt?: (out: any) => any;
-  $flag: IApiFlag;
 }
 
 export interface IApiOption {
@@ -103,9 +98,6 @@ export default class API<T = any, U = any> {
       $schemas: new Map(),
       beforeHooks: new Set(),
       afterHooks: new Set(),
-      $flag: {
-        saveApiInputOutput: false,
-      },
       get: (path: string) => {
         return register("get", path);
       },
@@ -198,7 +190,9 @@ export default class API<T = any, U = any> {
   public bindRouter(router: any) {
     for (const [key, schema] of this.api.$schemas.entries()) {
       debug("bind router" + key);
-      if (!schema) { continue; }
+      if (!schema) {
+        continue;
+      }
 
       schema.init(this);
       router[schema.options.method].bind(router)(
@@ -214,46 +208,9 @@ export default class API<T = any, U = any> {
     }
   }
 
-  /**
-   * 绑定路由到Express
-   *
-   * @param {Object} app Express App 实例
-   * @param {Object} express Express 对象
-   * @param {string} prefix 路由前缀
-   */
-  public bindRouterToApp(app: any, express: any, prefix: string) {
-    const routes = new Map();
-    for (const key of Object.keys(this.api.$schemas)) {
-      const schema = this.api.$schemas.get(key);
-      if (!schema) { continue; }
-
-      schema.init(this);
-      const group = camelCase2underscore(schema.options.group || "");
-      debug("bindRouterToApp" + key + group);
-      if (!routes.get(group)) {
-        routes.set(group, new express.Router());
-      }
-      routes.get(group)[schema.options.method].bind(routes.get(group))(
-        schema.options.path,
-        ...this.api.beforeHooks,
-        ...schema.options.beforeHooks,
-        apiCheckParams(this, schema),
-        ...schema.options.middlewares,
-        schema.options.handler,
-        ...schema.options.afterHooks,
-        ...this.api.afterHooks,
-      );
-    }
-    Object.keys(routes).forEach((value, key) => {
-      debug("bindRouterToApp - " + key);
-      app.use(prefix ? `/${prefix}/${key}` : "/" + key, value);
-    });
-  }
-
-  public genDocs(path: string, onExit = true) {
+  public genDocs(savePath = process.cwd() + "/docs/", onExit = true) {
     extendDocs(this);
     this.api.docs.genDocs();
-    const savePath = path || process.cwd() + "/docs/";
     if (onExit) {
       this.api.docs.saveOnExit(savePath);
     } else {

@@ -47,9 +47,6 @@ export function schemaChecker<T, U>(
 ) {
   const result: IKVObject = {};
   for (const name in schema) {
-    if (!schema.hasOwnProperty(name)) {
-      continue;
-    }
     let value = data[name];
     const options = schema[name];
     debug(`param check ${name} : ${value} with ${options}`);
@@ -96,9 +93,6 @@ export function apiCheckParams<T, U>(ctx: any, schema: Schema<T, U>) {
     for (const place of ["query", "params", "body"]) {
       const pOptions = schema.options[place];
       for (const name in pOptions) {
-        if (!pOptions.hasOwnProperty(name)) {
-          continue;
-        }
         let value = req[place][name];
         const options = pOptions[name];
         debug(`param check ${name} : ${value} with ${options}`);
