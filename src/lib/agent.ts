@@ -33,6 +33,8 @@ function inspect(obj: any) {
   });
 }
 
+const defaultFormatOutput = (data: any) => [null, data];
+
 export interface ITestAgentOption {
   parent: any;
   sourceFile: utils.ISourceResult;
@@ -46,7 +48,7 @@ export interface ITestAgentOption {
   output?: IKVObject;
   agentPath?: IKVObject;
   agentHeader?: IKVObject;
-  agentInput?: IKVObject;
+  agentInput: IKVObject;
   agentOutput?: IKVObject;
 }
 
@@ -88,6 +90,7 @@ export class TestAgent {
       method: method.toLowerCase(),
       path,
       takeExample: false,
+      agentInput: {} as IKVObject,
     };
     this.key = key;
     this.debug = createDebug(`agent:${this.key}`);
@@ -150,6 +153,16 @@ export class TestAgent {
     return this;
   }
 
+  public query(data: IKVObject) {
+    if (!this.options.agent) {
+      throw Error("Install `supertest` first");
+    }
+    this.debug("query: %j", data);
+    Object.assign(this.options.agentInput, data);
+    this.options.agent.query(data);
+    return this;
+  }
+
   /**
    * 输入参数
    *
@@ -161,7 +174,7 @@ export class TestAgent {
       throw Error("Install `supertest` first");
     }
     this.debug("input: %j", data);
-    this.options.agentInput = data;
+    Object.assign(this.options.agentInput, data);
     if (
       this.options.method === "get" ||
       this.options.method === "head" ||
@@ -279,8 +292,9 @@ export class TestAgent {
       if (err) {
         return cb(err);
       }
-      const formatOutputReverse = this.options.parent.api.formatOutputReverse;
-      const [err2, ret] = formatOutputReverse(res.body);
+      const formatOutputReverse =
+        this.options.parent.api.formatOutputReverse || defaultFormatOutput;
+      const [err2, ret] = formatOutputReverse(raw ? res.text : res.body);
       cb(err2, ret);
     });
     return cb.promise as Promise<any>;

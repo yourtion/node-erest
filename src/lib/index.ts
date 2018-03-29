@@ -32,7 +32,7 @@ export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
   afterHooks: Set<IHandler<T, U>>;
   docs?: any;
   test?: any;
-  formatOutputReverse?: (out: any) => any;
+  formatOutputReverse?: (out: any) => [Error | null, any];
   docOutputForamt?: (out: any) => any;
   $flag: IApiFlag;
 }
@@ -161,7 +161,7 @@ export default class API<T = any, U = any> {
     this.api.docs.saveOnExit(process.cwd() + path);
   }
 
-  public setFormatOutput(fn: (out: any) => any) {
+  public setFormatOutput(fn: (out: any) => [Error | null, any]) {
     this.api.formatOutputReverse = fn;
   }
 
