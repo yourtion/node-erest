@@ -1,4 +1,4 @@
-import { apiAll, apiGet, apiPost, hook } from "./helper";
+import { apiAll, apiGet, apiPost, build, hook, TYPES } from "./helper";
 import lib from "./lib";
 import { GROUPS, INFO } from "./lib";
 
@@ -19,6 +19,10 @@ test("Router - api after init error", () => {
   const router = express.Router();
   const getApi = apiGet(api);
   getApi.title("aaa");
+  getApi.query({
+    num: build(TYPES.Number, "Number", true, 10, { max: 10, min: 0 }),
+    type: build(TYPES.ENUM, "类型", true, undefined, ["a", "b"]),
+  });
 
   apiService.bindRouter(router);
   const fn = () => getApi.title("bbb");

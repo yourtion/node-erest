@@ -23,7 +23,7 @@ export const TYPES = Object.freeze({
   Date: "Date",
   String: "String",
   TrimString: "TrimString",
-  Nufember: "Nufember",
+  Number: "Number",
   Integer: "Integer",
   Float: "Float",
   Object: "Object",
@@ -129,6 +129,20 @@ export function apiPatch(api: any) {
     .title("Patch")
     .register(function patch(req: any, res: any) {
       res.end(`Patch`);
+    });
+}
+
+export function apiJson(api: any) {
+  return api
+    .get("/json")
+    .group("Index")
+    .query({ age: ageParams })
+    .title("JSON")
+    .register(function json(req: any, res: any) {
+      if (req.$params.age < 18) {
+        return res.json({ success: false });
+      }
+      return res.json({ success: true });
     });
 }
 

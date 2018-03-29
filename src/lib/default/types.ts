@@ -36,7 +36,7 @@ export function defaultTypes(type: any) {
     description: "自动去首尾空格的字符串",
   });
 
-  type.register("Nufember", {
+  type.register("Number", {
     parser: (v: any) => Number(v),
     checker: (v: any, p: any) => {
       const ok = !isNaN(v);

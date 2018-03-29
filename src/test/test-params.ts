@@ -12,7 +12,7 @@ const stringP1 = build(TYPES.String, "StringSchema", true);
 const stringP2 = build(TYPES.String, "StringSchema", true, "Hello");
 const stringP3 = build(TYPES.TrimString, "StringSchema");
 
-const numP = build(TYPES.Nufember, "Number", true);
+const numP = build(TYPES.Number, "Number", true);
 const intP = build(TYPES.Integer, "Int");
 const enumP = build(TYPES.ENUM, "Int", true, undefined, ["A", "B", 1]);
 const jsonP = build(TYPES.JSON, "Json");

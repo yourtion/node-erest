@@ -1,10 +1,11 @@
-import { apiAll, apiDelete, apiPost, hook, nameParams } from "./helper";
+import { apiAll, apiDelete, apiPost, build, hook, nameParams, TYPES } from "./helper";
 import lib from "./lib";
 import { GROUPS, INFO } from "./lib";
 
 const apiService = lib();
 const api = apiService.api;
 const deleteApi = apiDelete(api);
+apiService.genDocs("/tmp/");
 
 test("Schema - init", () => {
   const schema = api.$schemas.get("DELETE_/index/:name")!;
@@ -29,6 +30,9 @@ test("Schema - modify", () => {
   const outSchema = { name: nameParams };
   deleteApi.example(example);
   deleteApi.schema(outSchema);
+  deleteApi.query({
+    numP2: build(TYPES.Number, "Number", true, 10, { max: 10, min: 0 }),
+  });
   deleteApi.requiredOneOf(["name", "age"]);
   deleteApi.required(["name"]);
   deleteApi.required(["name"]);
@@ -39,5 +43,5 @@ test("Schema - modify", () => {
   expect(schema.options.examples[0]).toEqual(example);
   expect(schema.options.schema).toEqual(outSchema);
   expect(schema.options.requiredOneOf.length).toBe(1);
-  expect(schema.options.required.size).toBe(1);
+  expect(schema.options.required.size).toBe(2);
 });

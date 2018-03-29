@@ -64,7 +64,7 @@ export default class API<T = any, U = any> {
   public info: any;
   public config: any;
   public error: any;
-  public type: any;
+  public type: TypeManager;
   public errors: any;
   public groups: any;
   public test: ITest = {} as ITest;
@@ -198,9 +198,8 @@ export default class API<T = any, U = any> {
   public bindRouter(router: any) {
     for (const [key, schema] of this.api.$schemas.entries()) {
       debug("bind router" + key);
-      if (!schema) {
-        continue;
-      }
+      if (!schema) { continue; }
+
       schema.init(this);
       router[schema.options.method].bind(router)(
         schema.options.path,
@@ -226,9 +225,8 @@ export default class API<T = any, U = any> {
     const routes = new Map();
     for (const key of Object.keys(this.api.$schemas)) {
       const schema = this.api.$schemas.get(key);
-      if (!schema) {
-        continue;
-      }
+      if (!schema) { continue; }
+
       schema.init(this);
       const group = camelCase2underscore(schema.options.group || "");
       debug("bindRouterToApp" + key + group);
