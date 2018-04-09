@@ -14,7 +14,7 @@ import { IKVObject, ISupportMethds } from "./interfaces";
 import { IType, TypeManager } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { IHandler, ISchemaOption, Schema } from "./schema";
-import { getCallerSourceLine } from "./utils";
+import { camelCase2underscore, getCallerSourceLine } from "./utils";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
@@ -39,7 +39,8 @@ export interface IApiOption {
   invalidParameterError?: any;
   internalError?: any;
   errors?: any;
-  groups?: any;
+  groups?: IKVObject<string>;
+  forceGroup: boolean;
   docs?: IDocOptions;
 }
 
@@ -61,10 +62,12 @@ export default class API<T = any, U = any> {
   public error: any;
   public type: TypeManager;
   public errors: any;
-  public groups: any;
   public test: ITest = {} as ITest;
   public docsOptions: IDocOptions;
   public shareTestData?: any;
+  public groups: IKVObject<string>;
+  private forceGroup: boolean;
+  private register: (method: string, path: string, group?: string | undefined) => Schema<T, U>;
 
   /**
    * Creates an instance of API.
@@ -81,8 +84,24 @@ export default class API<T = any, U = any> {
   constructor(options: IApiOption) {
     this.utils = require("./utils");
     this.info = options.info || {};
-    const register = (method: string, path: string) => {
-      const s = new Schema<T, U>(method, path, getCallerSourceLine(this.config.path));
+    this.forceGroup = options.forceGroup || false;
+    this.error = {
+      missingParameter: options.missingParameterError || missingParameter,
+      invalidParameter: options.invalidParameterError || invalidParameter,
+      internalError: options.internalError || internalError,
+    };
+    this.config = {
+      path: options.path || process.cwd(),
+    };
+    this.groups = options.groups || {};
+    this.register = (method: string, path: string, group?: string) => {
+      if (this.forceGroup) {
+        assert(group, "使用 forceGroup 但是没有通过 group 注册");
+        assert(group! in this.groups, `请先配置 ${group} 类型`);
+      } else {
+        assert(!group, "请开启 forceGroup 再使用 group 功能");
+      }
+      const s = new Schema<T, U>(method, path, getCallerSourceLine(this.config.path), group);
       const s2 = this.api.$schemas.get(s.key);
       assert(
         !s2,
@@ -92,37 +111,19 @@ export default class API<T = any, U = any> {
       );
 
       this.api.$schemas.set(s.key, s);
+      debug("register: (%s)[%s] - %s ", group, method, path);
       return s;
     };
     this.api = {
       $schemas: new Map(),
       beforeHooks: new Set(),
       afterHooks: new Set(),
-      get: (path: string) => {
-        return register("get", path);
-      },
-      post: (path: string) => {
-        return register("post", path);
-      },
-      put: (path: string) => {
-        return register("put", path);
-      },
-      delete: (path: string) => {
-        return register("delete", path);
-      },
-      patch: (path: string) => {
-        return register("patch", path);
-      },
+      get: (path: string) => this.register("get", path),
+      post: (path: string) => this.register("post", path),
+      put: (path: string) => this.register("put", path),
+      delete: (path: string) => this.register("delete", path),
+      patch: (path: string) => this.register("patch", path),
     };
-    this.config = {
-      path: options.path || process.cwd(),
-    };
-    this.error = {
-      missingParameter: options.missingParameterError || missingParameter,
-      invalidParameter: options.invalidParameterError || invalidParameter,
-      internalError: options.internalError || internalError,
-    };
-
     const getDocOpt = (key: string, def: boolean): string | boolean => {
       return options.docs && options.docs[key] !== undefined ? options.docs[key] : def;
     };
@@ -138,7 +139,6 @@ export default class API<T = any, U = any> {
     this.type = new TypeManager(this);
     this.errors = options.errors;
     defaultTypes.call(this, this.type);
-    this.groups = options.groups || {};
   }
 
   public initTest(app: any, path: string = "/docs/") {
@@ -181,6 +181,18 @@ export default class API<T = any, U = any> {
       schemaChecker(this, data, schema, requiredOneOf);
   }
 
+  public group(name: string): ISupportMethds<(path: string) => Schema<T, U>> {
+    debug("using group: %s", name);
+    const group = {
+      get: (path: string) => this.register("get", path, name),
+      post: (path: string) => this.register("post", path, name),
+      put: (path: string) => this.register("put", path, name),
+      delete: (path: string) => this.register("delete", path, name),
+      patch: (path: string) => this.register("patch", path, name),
+    };
+    return group;
+  }
+
   /**
    * 绑定路由
    * （加载顺序：beforeHooks -> apiCheckParams -> middlewares -> handler -> afterHooks ）
@@ -188,12 +200,14 @@ export default class API<T = any, U = any> {
    * @param {Object} router 路由
    */
   public bindRouter(router: any) {
+    if (this.forceGroup) {
+      throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
+    }
     for (const [key, schema] of this.api.$schemas.entries()) {
       debug("bind router" + key);
       if (!schema) {
         continue;
       }
-
       schema.init(this);
       router[schema.options.method].bind(router)(
         schema.options.path,
@@ -205,6 +219,45 @@ export default class API<T = any, U = any> {
         ...schema.options.afterHooks,
         ...this.api.afterHooks,
       );
+    }
+  }
+
+  /**
+   * 绑定路由到Express
+   *
+   * @param {Object} app Express App 实例
+   * @param {Object} express Express 对象
+   * @param {string} prefix 路由前缀
+   */
+  public bindGroupToApp(app: any, express: any, prefix?: string) {
+    if (!this.forceGroup) {
+      throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
+    }
+    const routes = new Map();
+    for (const [key, schema] of this.api.$schemas.entries()) {
+      if (!schema) {
+        continue;
+      }
+      schema.init(this);
+      const group = camelCase2underscore(schema.options.group || "");
+      debug("bindGroupToApp: %s - %s", key, group);
+      if (!routes.get(group)) {
+        routes.set(group, new express.Router());
+      }
+      routes.get(group)[schema.options.method].bind(routes.get(group))(
+        schema.options.path,
+        ...this.api.beforeHooks,
+        ...schema.options.beforeHooks,
+        apiCheckParams(this, schema),
+        ...schema.options.middlewares,
+        schema.options.handler,
+        ...schema.options.afterHooks,
+        ...this.api.afterHooks,
+      );
+    }
+    for (const [key, value] of routes.entries()) {
+      debug("bindGroupToApp - " + key);
+      app.use(prefix ? `/${prefix}/${key}` : "/" + key, value);
     }
   }
 

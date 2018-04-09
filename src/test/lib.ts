@@ -18,22 +18,27 @@ export const GROUPS = {
   Index2: "首页2",
 };
 
-export default (options = { info: INFO, groups: GROUPS }) => {
+export default (options = {}) => {
   const packPath = process.env.ISCOV ? "../lib" : "../../dist/lib";
   const pack = require(packPath);
   const API = pack.default;
-  const apiService = new API({
-    info: INFO,
-    errors: ERROR_INFO,
-    groups: GROUPS,
-    docs: {
-      wiki: true,
-      index: true,
-      home: true,
-      swagger: true,
-      json: true,
-      all: true,
-    },
-  });
+  const apiService = new API(
+    Object.assign(
+      {
+        info: INFO,
+        errors: ERROR_INFO,
+        groups: GROUPS,
+        docs: {
+          wiki: true,
+          index: true,
+          home: true,
+          swagger: true,
+          json: true,
+          all: true,
+        },
+      },
+      options,
+    ),
+  );
   return apiService as api.default;
 };

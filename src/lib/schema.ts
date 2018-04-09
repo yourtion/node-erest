@@ -64,7 +64,7 @@ export class Schema<T, U> {
    * @param {String} path 请求路径
    * @param {Object} sourceFile 源文件路径描述对象
    */
-  constructor(method: string, path: any, sourceFile: ISourceResult) {
+  constructor(method: string, path: any, sourceFile: ISourceResult, group?: string) {
     assert(method && typeof method === "string", "`method`必须是字符串类型");
     assert(
       Schema.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
@@ -87,9 +87,11 @@ export class Schema<T, U> {
       body: {},
       params: {},
       _params: new Map(),
+      group,
     };
 
-    this.key = getSchemaKey(method, path);
+    this.key = getSchemaKey(method, path, group);
+    this.options.group = group;
     this.pathTestRegExp = pathToRegExp(path);
     this.inited = false;
 
