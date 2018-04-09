@@ -19,7 +19,7 @@ export const GROUPS = {
 };
 
 export default (options = {}) => {
-  const packPath = process.env.ISCOV ? "../lib" : "../../dist/lib";
+  const packPath = process.env.ISLIB ? "../lib" : "../../dist/lib";
   const pack = require(packPath);
   const API = pack.default;
   const apiService = new API(
