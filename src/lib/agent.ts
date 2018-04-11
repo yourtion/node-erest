@@ -119,7 +119,9 @@ export class TestAgent {
     } catch (err) {
       debug(err);
     }
-    if (!request) { return; }
+    if (!request) {
+      return;
+    }
     assert(app, `express app instance could not be empty`);
     this.debug("create supertest agent");
     this.setAgent(request(app)[this.options.method](this.options.path) as Test);
