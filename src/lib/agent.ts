@@ -115,12 +115,12 @@ export class TestAgent {
     let request;
     try {
       request = require("supertest");
-      // const ad = supertest(app).post("/aa");
+      assert(request, "Install `supertest` first");
     } catch (err) {
       debug(err);
     }
+    if (!request) { return; }
     assert(app, `express app instance could not be empty`);
-    assert(request, "Install `supertest` first");
     this.debug("create supertest agent");
     this.setAgent(request(app)[this.options.method](this.options.path) as Test);
   }

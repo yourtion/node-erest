@@ -60,12 +60,8 @@ export function jsonStringify(data: object, space: string | number) {
   return JSON.stringify(
     data,
     (key, val) => {
-      if (!val || typeof val !== "object") {
-        return val;
-      }
-      if (seen.indexOf(val) !== -1) {
-        return "[Circular]";
-      }
+      if (!val || typeof val !== "object") { return val; }
+      if (seen.indexOf(val) !== -1) { return "[Circular]"; }
       seen.push(val);
       return val;
     },
