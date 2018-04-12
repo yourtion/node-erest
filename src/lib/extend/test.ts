@@ -13,7 +13,7 @@ import API from "../index";
 import { IKVObject, ISupportMethds } from "../interfaces";
 import { getCallerSourceLine, getSchemaKey } from "../utils";
 
-import * as supertest from "supertest";
+import { SuperTest } from "supertest";
 
 export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
 
@@ -22,10 +22,17 @@ export interface ITest extends IAgent {
 }
 
 export interface ITestSession extends IAgent {
-  readonly $agent: supertest.SuperTest<any>;
+  readonly $agent: SuperTest<any>;
 }
 
 export function extendTest(apiService: API) {
+
+  let supertest: any;
+  try {
+    supertest = require("supertest");
+  } catch (err) {
+    debug(err);
+  }
 
   /**
    * 根据请求方法和请求路径查找对应的schema
