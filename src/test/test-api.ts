@@ -21,7 +21,6 @@ describe("API - base", () => {
 
 describe("API - addon", () => {
   test("API - utils", () => {
-    apiService.utils.customError();
     expect(apiService.utils.getCallerSourceLine("/qq")).toEqual({
       relative: undefined,
       absolute: undefined,

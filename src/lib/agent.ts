@@ -15,11 +15,6 @@ import { ICallback, IKVObject, IPromiseCallback } from "./interfaces";
 import { Schema } from "./schema";
 import * as utils from "./utils";
 
-/* 输出结果断言错误 */
-const AssertionError = utils.customError("AssertionError", {
-  type: "api_output_error",
-});
-
 const defaultFormatOutput = (data: any) => [null, data];
 
 /**
@@ -208,9 +203,7 @@ export class TestAgent {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
       if (err) {
-        const err2 = new AssertionError(
-          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
-        );
+        const err2 = new Error(`${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`);
         cb(err2);
       } else {
         this.saveExample();
@@ -233,9 +226,7 @@ export class TestAgent {
         this.saveExample();
         cb(null, err);
       } else {
-        const err2 = new AssertionError(
-          `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`,
-        );
+        const err2 = new Error( `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`);
         cb(err2);
       }
     });
@@ -252,9 +243,7 @@ export class TestAgent {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
       if (err) {
-        const err2 = new AssertionError(
-          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
-        );
+        const err2 = new Error(`${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`);
         cb(err2);
       } else {
         this.saveExample();

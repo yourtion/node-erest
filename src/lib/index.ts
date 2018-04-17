@@ -163,7 +163,7 @@ export default class API<T = any, U = any> {
       all: getDocOpt("all", false),
     };
     // 参数类型管理
-    this.typeManage = new TypeManager(this);
+    this.typeManage = new TypeManager();
     this.errors = options.errors;
     defaultTypes.call(this, this.typeManage);
   }

@@ -6,14 +6,12 @@
 export class Manager<T = any> {
 
   protected map: Map<string, T>;
-  private parent: T;
 
   /**
    * Creates an instance of Manager.
    * @param {Object} parent 上下文
    */
-  constructor(parent: any) {
-    this.parent = parent;
+  constructor() {
     this.map = new Map();
   }
 
