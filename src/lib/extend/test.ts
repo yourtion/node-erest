@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @file API Test
  * 参考 hojs

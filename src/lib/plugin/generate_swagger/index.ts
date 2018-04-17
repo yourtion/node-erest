@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @file API plugin generate-swagger
  * @author Yourtion Guo <yourtion@gmail.com>

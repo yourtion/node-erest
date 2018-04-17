@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @file API Debug
  * @author Yourtion Guo <yourtion@gmail.com>

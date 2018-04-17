@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @file API 参数检测
  * 参考 hojs

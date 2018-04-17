@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @file API plugin generate-markdown
  * @author Yourtion Guo <yourtion@gmail.com>

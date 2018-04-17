@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @file API 基本类型
  * 参考 hojs
