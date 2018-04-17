@@ -5,17 +5,17 @@ const apiService = lib();
 
 describe("API - base", () => {
   test("API - service Info", () => {
-    const apiInfo = apiService.info;
+    const apiInfo = apiService.privateInfo.info;
     expect(apiInfo.title).toBe(INFO.title);
     expect(apiInfo.description).toBe(INFO.description);
     expect(apiInfo.version).toBe(INFO.version);
     expect(apiInfo.host).toBe(INFO.host);
 
-    expect(apiService.groups).toEqual(GROUPS);
+    expect(apiService.privateInfo.groups).toEqual(GROUPS);
   });
 
   test("API - service Init", () => {
-    expect(apiService.groups).toEqual(GROUPS);
+    expect(apiService.privateInfo.groups).toEqual(GROUPS);
   });
 });
 
@@ -33,6 +33,6 @@ describe("API - addon", () => {
 
   test("API - service Init", () => {
     apiService.setDocOutputForamt((out: any) => out);
-    expect(apiService.groups).toEqual(GROUPS);
+    expect(apiService.privateInfo.groups).toEqual(GROUPS);
   });
 });

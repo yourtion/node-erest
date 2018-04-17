@@ -27,6 +27,8 @@ export interface ITestSession extends IAgent {
 
 export function extendTest(apiService: API) {
 
+  const { app, config, info } = apiService.privateInfo;
+
   let supertest: any;
   try {
     supertest = require("supertest");
@@ -41,10 +43,10 @@ export function extendTest(apiService: API) {
    * @param {String} path
    * @return {Object}
    */
-  const findSchema = (method: string, path: string) => {
+  function findSchema(method: string, path: string) {
 
     // 如果定义了 API 的 basePath，需要在测试时替换掉
-    const routerPath = apiService.info.basePath ? path.replace(apiService.info.basePath, "") : path;
+    const routerPath = info.basePath ? path.replace(info.basePath, "") : path;
 
     const key = getSchemaKey(method, routerPath);
     debug(method, path, key);
@@ -56,22 +58,22 @@ export function extendTest(apiService: API) {
       if (s.pathTest(method, routerPath)) { return s; }
     }
     return;
-  };
+  }
 
   // test.get, apiService.post, ...
-  const regTest = (method: string) => {
+  function regTest(method: string) {
    return (path: string) => {
 
       const s = findSchema(method, path);
 
       if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
-      const a = new TestAgent(method, path, s.key, getCallerSourceLine(apiService.config.path), apiService);
+      const a = new TestAgent(method, path, s.key, getCallerSourceLine(config.path), apiService);
 
-      assert(apiService.app, "请先调用 setApp() 设置 exprss 实例");
-      a.initAgent(apiService.app);
+      assert(app, "请先调用 setApp() 设置 exprss 实例");
+      a.initAgent(app);
       return a.agent();
     };
-  };
+  }
 
   /**
    * 创建测试会话
@@ -80,11 +82,11 @@ export function extendTest(apiService: API) {
    */
   const session = () => {
 
-    assert(apiService.app, "请先调用 setApp() 设置 exprss 实例");
+    assert(app, "请先调用 setApp() 设置 exprss 实例");
     assert(supertest, "请先安装 supertest");
-    const agent = supertest.agent(apiService.app);
+    const agent = supertest.agent(app);
 
-    const regSession = (method: string) => {
+    function regSession(method: string) {
       return (path: string) => {
 
         const s = findSchema(method, path);
@@ -96,7 +98,7 @@ export function extendTest(apiService: API) {
         return a.agent();
 
       };
-    };
+    }
     const ss: ITestSession = {
       $agent: agent,
       get: regSession("get"),
@@ -109,7 +111,7 @@ export function extendTest(apiService: API) {
     return ss;
   };
 
-  apiService.test = {
+  return {
     session,
     get: regTest("get"),
     post: regTest("post"),

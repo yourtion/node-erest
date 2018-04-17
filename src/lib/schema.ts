@@ -327,7 +327,7 @@ export class Schema<T, U> {
 
     assert(this.options.group, `请为 API ${this.key} 选择一个分组`);
     assert(
-      this.options.group && this.options.group in parent.groups,
+      this.options.group && this.options.group in parent.privateInfo.groups,
       `请先配置 ${this.options.group} 类型`,
     );
 

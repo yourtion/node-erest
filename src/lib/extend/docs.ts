@@ -21,6 +21,7 @@ const DOC = [ "method", "path", "examples", "middlewares", "required", "required
 export function extendDocs(apiService: API) {
 
   apiService.api.docs = {};
+  const { info, errors, groups, docsOptions } = apiService.privateInfo;
   const plugins: IDocGeneratePlugin[] = [];
 
   const docOutputForamt = (out: any) => out;
@@ -33,17 +34,17 @@ export function extendDocs(apiService: API) {
   apiService.api.docs.data = () => {
 
     const data = {
-      info: apiService.info,
+      info,
+      errors,
+      group: groups,
       types: {} as IKVObject,
-      errors: apiService.errors,
       schemas: {} as IKVObject,
-      group: apiService.groups,
     };
     const formatOutput = apiService.api.docOutputForamt || docOutputForamt;
 
     // types
     apiService.type.forEach((item: any) => {
-      const t = apiService.utils.merge(item);
+      const t = apiService.utils.merge(item) as any;
       t.parser = t.parser && t.parser.toString();
       t.checker = t.checker && t.checker.toString();
       t.formatter = t.formatter && t.formatter.toString();
@@ -75,10 +76,10 @@ export function extendDocs(apiService: API) {
    */
   apiService.api.docs.genDocs = () => {
     apiService.api.docs.markdown();
-    if (apiService.docsOptions.swagger) {
+    if (docsOptions.swagger) {
       apiService.api.docs.swagger();
     }
-    if (apiService.docsOptions.json) {
+    if (docsOptions.json) {
       apiService.api.docs.json();
     }
     return apiService.api.docs;
@@ -150,7 +151,7 @@ export function extendDocs(apiService: API) {
 
     // 根据插件生成文档
     for (const fn of plugins) {
-      fn(data, dir, apiService.docsOptions);
+      fn(data, dir, docsOptions);
     }
 
     return apiService.api.docs;

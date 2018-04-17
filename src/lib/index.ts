@@ -14,7 +14,8 @@ import { IKVObject, ISupportMethds } from "./interfaces";
 import { IType, TypeManager } from "./manager/type";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { IHandler, ISchemaOption, Schema } from "./schema";
-import { camelCase2underscore, getCallerSourceLine } from "./utils";
+import * as utils from "./utils";
+const { camelCase2underscore, getCallerSourceLine } = utils;
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
@@ -54,20 +55,47 @@ export interface IDocOptions extends IKVObject {
 }
 
 export default class API<T = any, U = any> {
-  public app: any;
-  public api: IApiInfo<T, U>;
-  public utils: any;
-  public info: any;
-  public config: any;
-  public error: any;
-  public type: TypeManager;
-  public errors: any;
-  public test: ITest = {} as ITest;
-  public docsOptions: IDocOptions;
-  public shareTestData?: any;
-  public groups: IKVObject<string>;
+  private apiInfo: IApiInfo<T, U>;
+  private testAgent: ITest = {} as ITest;
+  private app: any;
+  private info: any;
+  private config: any;
+  private error: any;
+  private typeManage: TypeManager;
+  private errors: any;
+  private schemas: any;
+  private docsOptions: IDocOptions;
+  private shareTestData?: any;
+  private groups: IKVObject<string>;
   private forceGroup: boolean;
-  private register: (method: string, path: string, group?: string | undefined) => Schema<T, U>;
+  private registAPI: (method: string, path: string, group?: string | undefined) => Schema<T, U>;
+
+  get privateInfo() {
+    return {
+      app: this.app,
+      config: this.config,
+      info: this.info,
+      errors: this.errors,
+      groups: this.groups,
+      docsOptions: this.docsOptions,
+    };
+  }
+
+  get api() {
+    return this.apiInfo;
+  }
+
+  get test() {
+    return this.testAgent;
+  }
+
+  get type() {
+    return this.typeManage;
+  }
+
+  get utils() {
+    return utils;
+  }
 
   /**
    * Creates an instance of API.
@@ -82,7 +110,6 @@ export default class API<T = any, U = any> {
    *   - {Function} invalidParameterError 内部错误生成方法
    */
   constructor(options: IApiOption) {
-    this.utils = require("./utils");
     this.info = options.info || {};
     this.forceGroup = options.forceGroup || false;
     this.error = {
@@ -94,7 +121,7 @@ export default class API<T = any, U = any> {
       path: options.path || process.cwd(),
     };
     this.groups = options.groups || {};
-    this.register = (method: string, path: string, group?: string) => {
+    this.registAPI = (method: string, path: string, group?: string) => {
       if (this.forceGroup) {
         assert(group, "使用 forceGroup 但是没有通过 group 注册");
         assert(group! in this.groups, `请先配置 ${group} 类型`);
@@ -102,7 +129,7 @@ export default class API<T = any, U = any> {
         assert(!group, "请开启 forceGroup 再使用 group 功能");
       }
       const s = new Schema<T, U>(method, path, getCallerSourceLine(this.config.path), group);
-      const s2 = this.api.$schemas.get(s.key);
+      const s2 = this.apiInfo.$schemas.get(s.key);
       assert(
         !s2,
         `尝试注册API：${s.key}（所在文件：${
@@ -110,19 +137,19 @@ export default class API<T = any, U = any> {
         }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`,
       );
 
-      this.api.$schemas.set(s.key, s);
+      this.apiInfo.$schemas.set(s.key, s);
       debug("register: (%s)[%s] - %s ", group, method, path);
       return s;
     };
-    this.api = {
+    this.apiInfo = {
       $schemas: new Map(),
       beforeHooks: new Set(),
       afterHooks: new Set(),
-      get: (path: string) => this.register("get", path),
-      post: (path: string) => this.register("post", path),
-      put: (path: string) => this.register("put", path),
-      delete: (path: string) => this.register("delete", path),
-      patch: (path: string) => this.register("patch", path),
+      get: (path: string) => this.registAPI("get", path),
+      post: (path: string) => this.registAPI("post", path),
+      put: (path: string) => this.registAPI("put", path),
+      delete: (path: string) => this.registAPI("delete", path),
+      patch: (path: string) => this.registAPI("patch", path),
     };
     const getDocOpt = (key: string, def: boolean): string | boolean => {
       return options.docs && options.docs[key] !== undefined ? options.docs[key] : def;
@@ -136,39 +163,39 @@ export default class API<T = any, U = any> {
       all: getDocOpt("all", false),
     };
     // 参数类型管理
-    this.type = new TypeManager(this);
+    this.typeManage = new TypeManager(this);
     this.errors = options.errors;
-    defaultTypes.call(this, this.type);
+    defaultTypes.call(this, this.typeManage);
   }
 
   public initTest(app: any, path: string = "/docs/") {
-    if (this.app && this.test) {
+    if (this.app && this.testAgent) {
       return;
     }
     debug("initTest");
     this.app = app;
-    extendTest(this);
+    this.testAgent = extendTest(this);
     extendDocs(this);
-    this.api.docs.markdown();
-    this.api.docs.saveOnExit(process.cwd() + path);
+    this.apiInfo.docs.markdown();
+    this.apiInfo.docs.saveOnExit(process.cwd() + path);
   }
 
   public setFormatOutput(fn: (out: any) => [Error | null, any]) {
-    this.api.formatOutputReverse = fn;
+    this.apiInfo.formatOutputReverse = fn;
   }
 
   public setDocOutputForamt(fn: (out: any) => any) {
-    this.api.docOutputForamt = fn;
+    this.apiInfo.docOutputForamt = fn;
   }
 
   public beforeHooks(fn: IHandler<T, U>) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
-    this.api.beforeHooks.add(fn);
+    this.apiInfo.beforeHooks.add(fn);
   }
 
   public afterHooks(fn: IHandler<T, U>) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
-    this.api.afterHooks.add(fn);
+    this.apiInfo.afterHooks.add(fn);
   }
 
   public paramsChecker() {
@@ -184,11 +211,11 @@ export default class API<T = any, U = any> {
   public group(name: string): ISupportMethds<(path: string) => Schema<T, U>> {
     debug("using group: %s", name);
     const group = {
-      get: (path: string) => this.register("get", path, name),
-      post: (path: string) => this.register("post", path, name),
-      put: (path: string) => this.register("put", path, name),
-      delete: (path: string) => this.register("delete", path, name),
-      patch: (path: string) => this.register("patch", path, name),
+      get: (path: string) => this.registAPI("get", path, name),
+      post: (path: string) => this.registAPI("post", path, name),
+      put: (path: string) => this.registAPI("put", path, name),
+      delete: (path: string) => this.registAPI("delete", path, name),
+      patch: (path: string) => this.registAPI("patch", path, name),
     };
     return group;
   }
@@ -203,7 +230,7 @@ export default class API<T = any, U = any> {
     if (this.forceGroup) {
       throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
     }
-    for (const [key, schema] of this.api.$schemas.entries()) {
+    for (const [key, schema] of this.apiInfo.$schemas.entries()) {
       debug("bind router" + key);
       if (!schema) {
         continue;
@@ -211,13 +238,13 @@ export default class API<T = any, U = any> {
       schema.init(this);
       router[schema.options.method].bind(router)(
         schema.options.path,
-        ...this.api.beforeHooks,
+        ...this.apiInfo.beforeHooks,
         ...schema.options.beforeHooks,
         apiCheckParams(this, schema),
         ...schema.options.middlewares,
         schema.options.handler,
         ...schema.options.afterHooks,
-        ...this.api.afterHooks,
+        ...this.apiInfo.afterHooks,
       );
     }
   }
@@ -234,7 +261,7 @@ export default class API<T = any, U = any> {
       throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
     }
     const routes = new Map();
-    for (const [key, schema] of this.api.$schemas.entries()) {
+    for (const [key, schema] of this.apiInfo.$schemas.entries()) {
       if (!schema) {
         continue;
       }
@@ -246,13 +273,13 @@ export default class API<T = any, U = any> {
       }
       routes.get(group)[schema.options.method].bind(routes.get(group))(
         schema.options.path,
-        ...this.api.beforeHooks,
+        ...this.apiInfo.beforeHooks,
         ...schema.options.beforeHooks,
         apiCheckParams(this, schema),
         ...schema.options.middlewares,
         schema.options.handler,
         ...schema.options.afterHooks,
-        ...this.api.afterHooks,
+        ...this.apiInfo.afterHooks,
       );
     }
     for (const [key, value] of routes.entries()) {
@@ -263,11 +290,11 @@ export default class API<T = any, U = any> {
 
   public genDocs(savePath = process.cwd() + "/docs/", onExit = true) {
     extendDocs(this);
-    this.api.docs.genDocs();
+    this.apiInfo.docs.genDocs();
     if (onExit) {
-      this.api.docs.saveOnExit(savePath);
+      this.apiInfo.docs.saveOnExit(savePath);
     } else {
-      this.api.docs.save(savePath);
+      this.apiInfo.docs.save(savePath);
     }
   }
 }
