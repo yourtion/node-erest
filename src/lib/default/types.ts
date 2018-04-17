@@ -8,8 +8,9 @@
 
 import * as assert from "assert";
 import * as validator from "validator";
+import { TypeManager } from "../manager/type";
 
-export function defaultTypes(type: any) {
+export function defaultTypes(type: TypeManager) {
 
   type.register("Boolean", {
     checker: (v: any) => typeof v === "boolean" || (typeof v === "string" && validator.isBoolean(v)),
@@ -116,14 +117,12 @@ export function defaultTypes(type: any) {
 
   type.register("Email", {
     checker: (v: any) => typeof v === "string" && validator.isEmail(v),
-    formatter: (v: string) => v.trim(),
     description: "邮箱地址",
     isDefault: true,
   });
 
   type.register("Domain", {
     checker: (v: any) => typeof v === "string" && validator.isFQDN(v),
-    formatter: (v: string) => v.trim(),
     description: "域名（比如：domain.com）",
     isDefault: true,
   });
@@ -148,14 +147,12 @@ export function defaultTypes(type: any) {
 
   type.register("Base64", {
     checker: (v: any) => typeof v === "string" && validator.isBase64(v),
-    formatter: (v: string) => v.trim(),
     description: "base64字符串",
     isDefault: true,
   });
 
   type.register("URL", {
     checker: (v: any) => typeof v === "string" && validator.isURL(v),
-    formatter: (v: string) => v.trim(),
     description: "URL字符串",
     isDefault: true,
   });

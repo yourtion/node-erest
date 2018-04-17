@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @file API 类型管理器
  * 参考 hojs
@@ -12,12 +10,13 @@ import { Manager } from "./manager";
 
 export interface IType {
   name: string;
-  checker: () => boolean;
-  formatter?: () => any;
-  parser?: () => any;
+  checker: (v: any, p?: any) => boolean;
+  formatter?: (v: any) => any;
+  parser?: (v: any) => any;
   paramsChecker?: (params?: any) => boolean;
   description: string;
   isDefault: boolean;
+  isDefaultFormat?: boolean;
   isParamsRequire: boolean;
 }
 
@@ -45,12 +44,14 @@ export class TypeManager extends Manager<IType> {
    *   - {Boolean} isParamsRequire 是否强制需要paramsChecker
    * @return {Object}
    */
-  public register(name: string, options: IType) {
+  public register(name: string, options: Partial<IType>) {
 
-    let { isDefault, isParamsRequire } = options;
-    const { formatter, parser, paramsChecker, checker, description = "" } = options;
-    isDefault = !!isDefault;
-    isParamsRequire = !!isParamsRequire;
+    const { formatter, parser, paramsChecker, checker,
+      description = "",
+      isDefault = false,
+      isParamsRequire = false,
+      isDefaultFormat = false,
+    } = options;
 
     assert(name && typeof name === "string", "参数名称必须是字符串类型");
     assert(/^[A-Z]/.test(name[0]), `参数名称必须以大写字母开头：${ name }`);
@@ -72,7 +73,7 @@ export class TypeManager extends Manager<IType> {
       assert(typeof paramsChecker === "function", "paramsChecker必须是函数类型");
     }
 
-    this.map.set(name, { name, checker, formatter, parser, paramsChecker, description, isDefault, isParamsRequire });
+    this.map.set(name, { name, checker: checker!, formatter, parser, paramsChecker, description, isDefault, isParamsRequire, isDefaultFormat });
 
     if (!isDefault) {
       debug("register type: name=%s, checker=%s, formatter=%s, paramsChecker=%s description=%s",
