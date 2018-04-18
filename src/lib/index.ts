@@ -39,7 +39,7 @@ export interface IApiOption {
   internalError?: any;
   errors?: any;
   groups?: IKVObject<string>;
-  forceGroup: boolean;
+  forceGroup?: boolean;
   docs?: IDocOptions;
 }
 
@@ -53,6 +53,7 @@ export interface IDocOptions extends IKVObject {
 }
 
 export default class API<T = any, U = any> {
+  public shareTestData?: any;
   private apiInfo: IApiInfo<T, U>;
   private testAgent: ITest = {} as ITest;
   private app: any;
@@ -63,7 +64,6 @@ export default class API<T = any, U = any> {
   private errorManage: ErrorManager;
   private schemas: any;
   private docsOptions: IDocOptions;
-  private shareTestData?: any;
   private groups: IKVObject<string>;
   private forceGroup: boolean;
   private registAPI: (method: string, path: string, group?: string | undefined) => Schema<T, U>;

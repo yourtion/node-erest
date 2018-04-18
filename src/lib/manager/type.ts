@@ -46,8 +46,7 @@ export class TypeManager extends Manager<IType> {
    */
   public register(name: string, options: Partial<IType>) {
 
-    const { formatter, parser, paramsChecker, checker,
-      description = "",
+    const { formatter, parser, paramsChecker, checker, description,
       isDefault = false,
       isParamsRequire = false,
       isDefaultFormat = false,
@@ -73,7 +72,7 @@ export class TypeManager extends Manager<IType> {
       assert(typeof paramsChecker === "function", "paramsChecker必须是函数类型");
     }
 
-    this.map.set(name, { name, checker: checker!, formatter, parser, paramsChecker, description, isDefault, isParamsRequire, isDefaultFormat });
+    this.map.set(name, { name, checker: checker!, formatter, parser, paramsChecker, description: description!, isDefault, isParamsRequire, isDefaultFormat });
 
     if (!isDefault) {
       debug("register type: name=%s, checker=%s, formatter=%s, paramsChecker=%s description=%s",

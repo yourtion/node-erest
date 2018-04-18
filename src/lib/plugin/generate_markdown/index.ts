@@ -143,7 +143,7 @@ function errorDocs(data: any) {
   errorList.push(`错误 | 错误码 | 描述 | 显示 | 日志`);
   errorList.push(`------|----- |-----`);
   for (const item of errors) {
-    errorList.push(`\`${ stringOrEmpty(item.name) }\` | ${ item.code } | ${ stringOrEmpty(item.desc) }| ${ itemTF(item.isShow) }| ${ itemTF(item.isLog) }`.trim());
+    errorList.push(`\`${ stringOrEmpty(item.name) }\` | ${ item.code } | ${ stringOrEmpty(item.description) }| ${ itemTF(item.isShow) }| ${ itemTF(item.isLog) }`.trim());
   }
   return errorList.join("\n");
 }

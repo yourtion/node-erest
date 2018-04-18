@@ -12,7 +12,7 @@ export interface IError {
   name: string;
   status: number;
   code: number;
-  message: string;
+  description: string;
   isDefault: boolean;
   isShow: boolean;
   isLog: boolean;
@@ -29,7 +29,7 @@ export class ErrorManager extends Manager<IError> {
    * @param {String} name 名称（一般为英文字母）
    * @param {Object} data 数据
    *   - {String|Number} status 错误代码
-   *   - {String} message 错误描述
+   *   - {String} description 错误描述
    * @return {Object}
    */
   public register(name: string, data: Partial<IError>) {
@@ -39,7 +39,7 @@ export class ErrorManager extends Manager<IError> {
 
     const {
       code = -1,
-      message = "",
+      description = "",
       status = 200,
       isDefault = false,
       isShow = false,
@@ -50,7 +50,7 @@ export class ErrorManager extends Manager<IError> {
 
     debug("register: %s %j", name, data);
     this.codes.add(code);
-    this.map.set(name, { name, code, message, status, isDefault, isShow, isLog });
+    this.map.set(name, { name, code, description, status, isDefault, isShow, isLog });
 
     return this;
   }

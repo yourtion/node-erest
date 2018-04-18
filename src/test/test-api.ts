@@ -34,4 +34,8 @@ describe("API - addon", () => {
     apiService.setDocOutputForamt((out: any) => out);
     expect(apiService.privateInfo.groups).toEqual(GROUPS);
   });
+
+  test("API - register error empty", () => {
+    apiService.errors.register("TEST", {});
+  });
 });
