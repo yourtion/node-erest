@@ -9,8 +9,8 @@ describe("Types - default", () => {
   it("TYPES - Boolean", () => {
     expect(paramsChecker("Boolean", true, { type: "Boolean" })).toBe(true);
     expect(paramsChecker("Boolean", false, { type: "Boolean" })).toBe(false);
-    expect(paramsChecker("Boolean", "true", { type: "Boolean" })).toBe("true");
-    expect(paramsChecker("Boolean", "false", { type: "Boolean", format: true })).toBe(false);
+    expect(paramsChecker("Boolean", "false", { type: "Boolean" })).toBe(false);
+    expect(paramsChecker("Boolean", "true", { type: "Boolean", format: false })).toBe("true");
   });
 
   it("TYPES - Date", () => {
@@ -24,8 +24,8 @@ describe("Types - default", () => {
   });
 
   it("TYPES - TrimString", () => {
-    expect(paramsChecker("TrimString", " 1 ", { type: "TrimString" })).toBe(" 1 ");
-    expect(paramsChecker("TrimString", " 1 ", { type: "TrimString", format: true })).toBe("1");
+    expect(paramsChecker("TrimString", " 1 ", { type: "TrimString", format: false })).toBe(" 1 ");
+    expect(paramsChecker("TrimString", " 1 ", { type: "TrimString" })).toBe("1");
   });
 
   it("TYPES - Number", () => {
@@ -40,17 +40,17 @@ describe("Types - default", () => {
   });
 
   it("TYPES - Integer", () => {
-    expect(paramsChecker("Integer", "-1", { type: "Integer", format: true })).toBe(-1);
-    expect(paramsChecker("Integer", "1", { type: "Integer" })).toBe("1");
+    expect(paramsChecker("Integer", "-1", { type: "Integer" })).toBe(-1);
+    expect(paramsChecker("Integer", "1", { type: "Integer", format: false })).toBe("1");
     expect(paramsChecker("Integer", 1, { type: "Integer" })).toBe(1);
     const float = () => paramsChecker("Integer", "-1.0", { type: "Integer" });
     expect(float).toThrow();
   });
 
   it("TYPES - Float", () => {
-    expect(paramsChecker("Float", "1.1", { type: "Float", format: true })).toBe(1.1);
+    expect(paramsChecker("Float", "1.1", { type: "Float" })).toBe(1.1);
     expect(paramsChecker("Float", "-1", { type: "Float", format: true })).toBe(-1);
-    expect(paramsChecker("Float", "100.12233", { type: "Float" })).toBe("100.12233");
+    expect(paramsChecker("Float", "100.12233", { type: "Float", format: false })).toBe("100.12233");
   });
 
   it("TYPES - Object", () => {
@@ -65,15 +65,17 @@ describe("Types - default", () => {
   });
 
   it("TYPES - JSON", () => {
-    expect(paramsChecker("JSON", `{"a": "b"}`, { type: "JSON" })).toBe(`{"a": "b"}`);
-    expect(paramsChecker("JSON", `{"a": "b"}`, { type: "JSON", format: true })).toEqual({ a: "b" });
+    expect(paramsChecker("JSON", `{"a": "b"}`, { type: "JSON", format: false })).toBe(`{"a": "b"}`);
+    expect(paramsChecker("JSON", `{"a": "b"}`, { type: "JSON" })).toEqual({ a: "b" });
   });
 
   it("TYPES - JSONString", () => {
-    expect(paramsChecker("JSONString", `{"a": "b"}`, { type: "JSONString" })).toBe(`{"a": "b"}`);
-    expect(
-      paramsChecker("JSONString", ` {"a": "b"} `, { type: "JSONString", format: true }),
-    ).toEqual(`{"a": "b"}`);
+    expect(paramsChecker("JSONString", `{"a": "b"}`, { type: "JSONString", format: false })).toBe(
+      `{"a": "b"}`,
+    );
+    expect(paramsChecker("JSONString", ` {"a": "b"} `, { type: "JSONString" })).toEqual(
+      `{"a": "b"}`,
+    );
   });
 
   it("TYPES - Any", () => {
@@ -90,15 +92,13 @@ describe("Types - default", () => {
   });
 
   it("TYPES - Email", () => {
-    expect(paramsChecker("Email", "yourtion@gmail.com", { type: "Email", format: true })).toBe(
+    expect(paramsChecker("Email", "yourtion@gmail.com", { type: "Email" })).toBe(
       "yourtion@gmail.com",
     );
   });
 
   it("TYPES - Domain", () => {
-    expect(paramsChecker("Domain", "yourtion.com", { type: "Domain", format: true })).toBe(
-      "yourtion.com",
-    );
+    expect(paramsChecker("Domain", "yourtion.com", { type: "Domain" })).toBe("yourtion.com");
   });
 
   it("TYPES - Alpha", () => {
@@ -119,16 +119,10 @@ describe("Types - default", () => {
 
   it("TYPES - Base64", () => {
     expect(paramsChecker("Base64", "WW91cnRpb24=", { type: "Base64" })).toBe("WW91cnRpb24=");
-    expect(paramsChecker("Base64", "WW91cnRpb24=", { type: "Base64", format: true })).toBe(
-      "WW91cnRpb24=",
-    );
   });
 
   it("TYPES - URL", () => {
     expect(paramsChecker("URL", "http://github.com/yourtion", { type: "URL" })).toBe(
-      "http://github.com/yourtion",
-    );
-    expect(paramsChecker("URL", "http://github.com/yourtion", { type: "URL", format: true })).toBe(
       "http://github.com/yourtion",
     );
   });

@@ -15,6 +15,7 @@ export function defaultTypes(type: TypeManager) {
     formatter: (v: any) => String(v).toLowerCase() === "true",
     description: "布尔值",
     isDefault: true,
+    isDefaultFormat: true,
   });
 
   type.register("Date", {
@@ -33,6 +34,7 @@ export function defaultTypes(type: TypeManager) {
     checker: (v: any) => typeof v === "string",
     formatter: (v: string) => v.trim(),
     description: "自动去首尾空格的字符串",
+    isDefaultFormat: true,
   });
 
   type.register("Number", {
@@ -66,6 +68,7 @@ export function defaultTypes(type: TypeManager) {
     formatter: (v: any) => Number(v),
     description: "整数",
     isDefault: true,
+    isDefaultFormat: true,
   });
 
   type.register("Float", {
@@ -73,6 +76,7 @@ export function defaultTypes(type: TypeManager) {
     formatter: (v: any) => Number(v),
     description: "浮点数",
     isDefault: true,
+    isDefaultFormat: true,
   });
 
   type.register("Object", {
@@ -92,6 +96,7 @@ export function defaultTypes(type: TypeManager) {
     formatter: (v: string) => JSON.parse(v),
     description: "来源于JSON字符串的对象",
     isDefault: true,
+    isDefaultFormat: true,
   });
 
   type.register("JSONString", {
@@ -99,6 +104,7 @@ export function defaultTypes(type: TypeManager) {
     formatter: (v: string) => v.trim(),
     description: "JSON字符串",
     isDefault: true,
+    isDefaultFormat: true,
   });
 
   type.register("Any", {

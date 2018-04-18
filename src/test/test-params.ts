@@ -26,9 +26,9 @@ describe("Params - params checker", () => {
     expect(paramsChecker("st2", " 1 ", stringP3)).toBe("1");
     expect(paramsChecker("nu1", "1", numP)).toBe(1);
     expect(paramsChecker("en1", "A", enumP)).toBe("A");
-    expect(paramsChecker("json", '{ "a": 1 }', jsonP)).toEqual('{ "a": 1 }');
-    jsonP.format = true;
     expect(paramsChecker("json", '{ "a": 1 }', jsonP)).toEqual({ a: 1 });
+    jsonP.format = false;
+    expect(paramsChecker("json", '{ "a": 1 }', jsonP)).toEqual('{ "a": 1 }');
   });
 
   it("ParamsChecker - ENUM", () => {

@@ -28,7 +28,10 @@ export function paramsChecker<T, U>(ctx: any, name: string, value: any, typeInfo
   }
 
   // 如果类型有 formatter 且开启了 format=true 则格式化参数
-  if (typeInfo.format && type.formatter) {
+  if (
+    type.formatter &&
+    (typeInfo.format || (type.isDefaultFormat && typeInfo.format === undefined))
+  ) {
     debug(`param ${name} run format`);
     debug(`befor format : ${result}`);
     result = type.formatter(result, typeInfo.params);
