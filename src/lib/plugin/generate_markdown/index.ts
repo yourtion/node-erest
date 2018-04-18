@@ -130,9 +130,9 @@ function typeDocs(data: any) {
 function errorDocs(data: any) {
 
   const errors: any[] = [];
-  for (const name in data.errors) {
-    errors.push(Object.assign({ name }, data.errors[name]));
-  }
+  data.errors.forEach((value: any) => {
+    errors.push(value);
+  });
 
   errors.sort((a, b) => {
     return a.code - b.code;
@@ -140,10 +140,10 @@ function errorDocs(data: any) {
 
   const errorList: string[] = [];
   errorList.push("# 错误类型");
-  errorList.push(`错误 | 错误码 | 描述 `);
+  errorList.push(`错误 | 错误码 | 描述 | 显示 | 日志`);
   errorList.push(`------|----- |-----`);
   for (const item of errors) {
-    errorList.push(`\`${ stringOrEmpty(item.name) }\` | ${ item.code } | ${ stringOrEmpty(item.desc) }`.trim());
+    errorList.push(`\`${ stringOrEmpty(item.name) }\` | ${ item.code } | ${ stringOrEmpty(item.desc) }| ${ itemTF(item.isShow) }| ${ itemTF(item.isLog) }`.trim());
   }
   return errorList.join("\n");
 }

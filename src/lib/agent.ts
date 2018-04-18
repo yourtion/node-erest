@@ -203,7 +203,9 @@ export class TestAgent {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
       if (err) {
-        const err2 = new Error(`${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`);
+        const err2 = new Error(
+          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
+        );
         cb(err2);
       } else {
         this.saveExample();
@@ -226,7 +228,9 @@ export class TestAgent {
         this.saveExample();
         cb(null, err);
       } else {
-        const err2 = new Error( `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`);
+        const err2 = new Error(
+          `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`,
+        );
         cb(err2);
       }
     });
@@ -243,7 +247,9 @@ export class TestAgent {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
       if (err) {
-        const err2 = new Error(`${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`);
+        const err2 = new Error(
+          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
+        );
         cb(err2);
       } else {
         this.saveExample();

@@ -19,7 +19,7 @@ const DOC = [ "method", "path", "examples", "middlewares", "required", "required
 export function extendDocs(apiService: API) {
 
   apiService.api.docs = {};
-  const { info, errors, groups, docsOptions } = apiService.privateInfo;
+  const { info, groups, docsOptions } = apiService.privateInfo;
   const plugins: IDocGeneratePlugin[] = [];
 
   const docOutputForamt = (out: any) => out;
@@ -33,7 +33,7 @@ export function extendDocs(apiService: API) {
 
     const data = {
       info,
-      errors,
+      errors: apiService.errors,
       group: groups,
       types: {} as IKVObject,
       schemas: {} as IKVObject,

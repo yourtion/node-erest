@@ -5,11 +5,11 @@
 
 import * as assert from "assert";
 import { core as debug } from "./debug";
-import { defaultTypes } from "./default/types";
+import { defaultErrors, defaultTypes } from "./default";
 import { extendDocs } from "./extend/docs";
 import { extendTest, ITest } from "./extend/test";
 import { IKVObject, ISupportMethds } from "./interfaces";
-import { IType, TypeManager } from "./manager/type";
+import { ErrorManager, IError, IType, TypeManager } from "./manager";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
 import { IHandler, ISchemaOption, Schema } from "./schema";
 import * as utils from "./utils";
@@ -60,7 +60,7 @@ export default class API<T = any, U = any> {
   private config: any;
   private error: any;
   private typeManage: TypeManager;
-  private errors: any;
+  private errorManage: ErrorManager;
   private schemas: any;
   private docsOptions: IDocOptions;
   private shareTestData?: any;
@@ -73,7 +73,6 @@ export default class API<T = any, U = any> {
       app: this.app,
       config: this.config,
       info: this.info,
-      errors: this.errors,
       groups: this.groups,
       docsOptions: this.docsOptions,
     };
@@ -85,6 +84,10 @@ export default class API<T = any, U = any> {
 
   get test() {
     return this.testAgent;
+  }
+
+  get errors() {
+    return this.errorManage;
   }
 
   get type() {
@@ -162,8 +165,9 @@ export default class API<T = any, U = any> {
     };
     // 参数类型管理
     this.typeManage = new TypeManager();
-    this.errors = options.errors;
+    this.errorManage = new ErrorManager();
     defaultTypes.call(this, this.typeManage);
+    defaultErrors.call(this, this.errorManage);
   }
 
   public initTest(app: any, path: string = "/docs/") {
