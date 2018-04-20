@@ -23,7 +23,7 @@ function filePath(dir: string, name: string) {
   return p;
 }
 
-const generateMarkdown: IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions) => {
+export default function generateMarkdown(data: IDocData, dir: string, options: IDocOptions) {
 
   function getGroupName(name: string) {
     return data.group[name] ? `${ data.group[name] } ( ${ name } )` : name;
@@ -81,6 +81,4 @@ const generateMarkdown: IDocGeneratePlugin = (data: IDocData, dir: string, optio
     allInOneDoc.push(errorDoc);
     fs.writeFileSync(filePath(dir, "API文档-" + data.info.title), trimSpaces(allInOneDoc.join("\n")));
   }
-};
-
-export default generateMarkdown;
+}

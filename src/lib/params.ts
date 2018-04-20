@@ -8,7 +8,7 @@ import { params as debug } from "./debug";
 import { IKVObject } from "./interfaces";
 import { ISchemaOption, Schema } from "./schema";
 
-export function paramsChecker<T, U>(ctx: any, name: string, value: any, typeInfo: IKVObject) {
+export function paramsChecker(ctx: any, name: string, value: any, typeInfo: IKVObject) {
   const type = ctx.type.get(typeInfo.type);
   let result = value;
   // 如果类型有 parser 则先执行
@@ -28,10 +28,8 @@ export function paramsChecker<T, U>(ctx: any, name: string, value: any, typeInfo
   }
 
   // 如果类型有 formatter 且开启了 format=true 则格式化参数
-  if (
-    type.formatter &&
-    (typeInfo.format || (type.isDefaultFormat && typeInfo.format === undefined))
-  ) {
+  const needFormat = typeInfo.format || (type.isDefaultFormat && typeInfo.format === undefined);
+  if (type.formatter && needFormat) {
     debug(`param ${name} run format`);
     debug(`befor format : ${result}`);
     result = type.formatter(result, typeInfo.params);
@@ -40,7 +38,7 @@ export function paramsChecker<T, U>(ctx: any, name: string, value: any, typeInfo
   return result;
 }
 
-export function schemaChecker<T, U>(
+export function schemaChecker(
   ctx: any,
   data: IKVObject,
   schema: IKVObject<IKVObject>,
@@ -53,7 +51,7 @@ export function schemaChecker<T, U>(
     debug(`param check ${name} : ${value} with ${options}`);
 
     if (typeof value === "undefined") {
-      if (options.default) {
+      if (options.default !== undefined) {
         // 为未赋值参数添加默认值默认值
         value = options.default;
       } else {
@@ -71,9 +69,7 @@ export function schemaChecker<T, U>(
   let ok = requiredOneOf.length < 1;
   for (const name of requiredOneOf) {
     ok = typeof result[name] !== "undefined";
-    if (ok) {
-      break;
-    }
+    if (ok) { break; }
   }
   if (!ok) {
     throw ctx.error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
@@ -127,9 +123,7 @@ export function apiCheckParams<T, U>(ctx: any, schema: Schema<T, U>) {
         let ok = false;
         for (const name of names) {
           ok = typeof newParams[name] !== "undefined";
-          if (ok) {
-            break;
-          }
+          if (ok) { break; }
         }
         if (!ok) {
           throw ctx.error.missingParameter(`one of ${names.join(", ")} is required`);

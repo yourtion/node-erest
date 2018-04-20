@@ -5,21 +5,10 @@
  */
 export class Manager<T = any> {
 
-  protected map: Map<string, T>;
-
-  /**
-   * Creates an instance of Manager.
-   * @param {Object} parent 上下文
-   */
-  constructor() {
-    this.map = new Map();
-  }
+  protected map: Map<string, T> = new Map();
 
   /**
    * 获取
-   *
-   * @param {String} name
-   * @return {Object}
    */
   public get(name: string) {
     return this.map.get(name);
@@ -27,11 +16,8 @@ export class Manager<T = any> {
 
   /**
    * 遍历
-   *
-   * @param {Function} iter
-   * @return {Object}
    */
-  public forEach(iter: any) {
+  public forEach(iter: (value: T, key: string, map: Map<string, T>) => void) {
     return this.map.forEach(iter);
   }
 

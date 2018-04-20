@@ -34,7 +34,7 @@ interface ISwaggerResultParams {
   format?: string;
 }
 
-const generateSwagger: IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions) => {
+export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions) {
 
   const result: ISwaggerResult = {
     swagger: "2.0",
@@ -42,14 +42,6 @@ const generateSwagger: IDocGeneratePlugin = (data: IDocData, dir: string, option
       title: data.info.title,
       description: data.info.description,
       version: data.info.version || "1.0.0",
-      // termsOfService: 'http://swagger.io/terms/',
-      // contact: {
-      //   email: 'yourtion@gmail.com',
-      // },
-      // license: {
-      //   name: 'Apache 2.0',
-      //   url: 'http://www.apache.org/licenses/LICENSE-2.0.html',
-      // },
     },
     host: data.info.host.replace("http://", "").replace("https://", ""),
     basePath: data.info.basePath,
@@ -166,6 +158,4 @@ const generateSwagger: IDocGeneratePlugin = (data: IDocData, dir: string, option
   const filename = utils.getPath("swagger.json", options.swagger);
 
   fs.writeFileSync(path.resolve(dir, filename), JSON.stringify(result, null, "  "));
-};
-
-export default generateSwagger;
+}
