@@ -290,7 +290,9 @@ export class TestAgent {
       }
       const formatOutputReverse =
         this.options.parent.api.formatOutputReverse || defaultFormatOutput;
-      if (raw) { return cb(null, res); }
+      if (raw) {
+        return cb(null, res);
+      }
       const [err2, ret] = formatOutputReverse(res.body);
       cb(err2, ret);
     });

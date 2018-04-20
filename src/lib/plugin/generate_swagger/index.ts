@@ -5,6 +5,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { IDocData } from "../../extend/docs";
 import { IDocOptions } from "../../index";
 import { IDocGeneratePlugin, IKVObject } from "../../interfaces";
 import { ISchemaOption } from "../../schema";
@@ -33,7 +34,7 @@ interface ISwaggerResultParams {
   format?: string;
 }
 
-const generateSwagger: IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => {
+const generateSwagger: IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions) => {
 
   const result: ISwaggerResult = {
     swagger: "2.0",

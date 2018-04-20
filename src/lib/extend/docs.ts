@@ -11,10 +11,19 @@ import { docs as debug} from "../debug";
 import API from "../index";
 import { IDocOptions } from "../index";
 import { IDocGeneratePlugin, IKVObject } from "../interfaces";
+import { ErrorManager, TypeManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
 
 const DOC = [ "method", "path", "examples", "middlewares", "required", "requiredOneOf", "query", "body", "params", "group", "title", "description", "schema" ];
+
+export interface IDocData {
+  info: any;
+  errors: ErrorManager;
+  group: IKVObject<string>;
+  types: IKVObject;
+  schemas: IKVObject;
+}
 
 export function extendDocs(apiService: API) {
 
@@ -31,7 +40,7 @@ export function extendDocs(apiService: API) {
    */
   apiService.api.docs.data = () => {
 
-    const data = {
+    const data: IDocData = {
       info,
       errors: apiService.errors,
       group: groups,

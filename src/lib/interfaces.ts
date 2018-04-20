@@ -1,3 +1,4 @@
+import { IDocData } from "./extend/docs";
 import { IDocOptions } from "./index";
 import { Schema } from "./schema";
 
@@ -13,7 +14,7 @@ export interface IKVObject<T = any> {
   [key: string]: T;
 }
 
-export type IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => void;
+export type IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions) => void;
 
 export interface ISupportMethds<T> {
   get: T;
