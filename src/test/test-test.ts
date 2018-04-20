@@ -59,7 +59,7 @@ apiService.initTest(app);
 
 describe("TEST - Index", () => {
   it("TEST - Get no session", async () => {
-    const ret = await apiService.test
+    const { text: ret } = await apiService.test
       .get("/api/")
       .headers({
         a: "b",
@@ -70,7 +70,7 @@ describe("TEST - Index", () => {
   });
 
   it("TEST - Get2 success", async () => {
-    const ret = await agent
+    const { text: ret } = await agent
       .get("/api/index")
       .input({
         name: share.name,
@@ -81,7 +81,7 @@ describe("TEST - Index", () => {
   });
 
   it("TEST - Post success", async () => {
-    const ret = await agent
+    const { text: ret } = await agent
       .post("/api/index")
       .query({
         name: share.name,
@@ -95,7 +95,7 @@ describe("TEST - Index", () => {
   });
 
   it("TEST - Put success", async () => {
-    const ret = await agent
+    const { text: ret } = await agent
       .put("/api/index")
       .input({
         age: share.age,
@@ -106,7 +106,7 @@ describe("TEST - Index", () => {
   });
 
   it("TEST - Delete success", async () => {
-    const ret = await agent
+    const { text: ret } = await agent
       .delete("/api/index/" + share.name)
       .takeExample("Index-Delete")
       .raw();
@@ -114,7 +114,7 @@ describe("TEST - Index", () => {
   });
 
   it("TEST - Patch success", async () => {
-    const ret = await agent
+    const { text: ret } = await agent
       .patch("/api/index")
       .takeExample("Index-Patch")
       .raw();
@@ -122,7 +122,7 @@ describe("TEST - Index", () => {
   });
 
   it("TEST - Post missing params", async () => {
-    const ret = await agent
+    const { text: ret } = await agent
       .post("/api/index")
       .query({
         test: "a",
@@ -137,7 +137,7 @@ describe("TEST - Index", () => {
   });
 
   it("TEST - Post missing params", async () => {
-    const ret = await agent
+    const { text: ret } = await agent
       .put("/api/index")
       .input({
         age: share.ageStr,
