@@ -69,7 +69,9 @@ export function schemaChecker(
   let ok = requiredOneOf.length < 1;
   for (const name of requiredOneOf) {
     ok = typeof result[name] !== "undefined";
-    if (ok) { break; }
+    if (ok) {
+      break;
+    }
   }
   if (!ok) {
     throw ctx.error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
@@ -123,7 +125,9 @@ export function apiCheckParams<T, U>(ctx: any, schema: Schema<T, U>) {
         let ok = false;
         for (const name of names) {
           ok = typeof newParams[name] !== "undefined";
-          if (ok) { break; }
+          if (ok) {
+            break;
+          }
         }
         if (!ok) {
           throw ctx.error.missingParameter(`one of ${names.join(", ")} is required`);

@@ -6,7 +6,7 @@
 import * as assert from "assert";
 import { core as debug } from "./debug";
 import { defaultErrors, defaultTypes } from "./default";
-import { extendDocs } from "./extend/docs";
+import { IAPIDoc, IDocData } from "./extend/docs";
 import { extendTest, ITest } from "./extend/test";
 import { IKVObject, ISupportMethds } from "./interfaces";
 import { ErrorManager, IError, IType, TypeManager } from "./manager";
@@ -25,7 +25,7 @@ export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
   readonly $schemas: Map<string, Schema<T, U>>;
   beforeHooks: Set<IHandler<T, U>>;
   afterHooks: Set<IHandler<T, U>>;
-  docs?: any;
+  docs?: IAPIDoc;
   test?: any;
   formatOutputReverse?: (out: any) => [Error | null, any];
   docOutputForamt?: (out: any) => any;
@@ -177,9 +177,11 @@ export default class API<T = any, U = any> {
     debug("initTest");
     this.app = app;
     this.testAgent = extendTest(this);
-    extendDocs(this);
-    this.apiInfo.docs.markdown();
-    this.apiInfo.docs.saveOnExit(process.cwd() + path);
+    if (!this.api.docs) {
+      this.api.docs = new IAPIDoc(this);
+    }
+    this.apiInfo.docs!.markdown();
+    this.apiInfo.docs!.saveOnExit(process.cwd() + path);
   }
 
   public setFormatOutput(fn: (out: any) => [Error | null, any]) {
@@ -291,12 +293,15 @@ export default class API<T = any, U = any> {
   }
 
   public genDocs(savePath = process.cwd() + "/docs/", onExit = true) {
-    extendDocs(this);
-    this.apiInfo.docs.genDocs();
+    if (!this.api.docs) {
+      this.api.docs = new IAPIDoc(this);
+    }
+    const docs = this.api.docs;
+    docs.genDocs();
     if (onExit) {
-      this.apiInfo.docs.saveOnExit(savePath);
+      docs.saveOnExit(savePath);
     } else {
-      this.apiInfo.docs.save(savePath);
+      docs.save(savePath);
     }
   }
 }

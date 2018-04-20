@@ -7,7 +7,7 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
-import { docs as debug} from "../debug";
+import { docs as debug } from "../debug";
 import API from "../index";
 import { IDocOptions } from "../index";
 import { IDocGeneratePlugin, IKVObject } from "../interfaces";
@@ -15,7 +15,22 @@ import { ErrorManager, TypeManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
 
-const DOC = [ "method", "path", "examples", "middlewares", "required", "requiredOneOf", "query", "body", "params", "group", "title", "description", "schema", "tested" ];
+const DOC = [
+  "method",
+  "path",
+  "examples",
+  "middlewares",
+  "required",
+  "requiredOneOf",
+  "query",
+  "body",
+  "params",
+  "group",
+  "title",
+  "description",
+  "schema",
+  "tested",
+];
 
 export interface IDocData {
   info: any;
@@ -23,42 +38,58 @@ export interface IDocData {
   group: IKVObject<string>;
   types: IKVObject;
   schemas: IKVObject;
+  apiInfo: {
+    count: number;
+    tested: number;
+    untest: string[];
+  };
 }
 
-export function extendDocs(apiService: API) {
+const docOutputForamt = (out: any) => out;
 
-  apiService.api.docs = {};
-  const { info, groups, docsOptions } = apiService.privateInfo;
-  const plugins: IDocGeneratePlugin[] = [];
+export class IAPIDoc {
+  private parent: API;
+  private info: any;
+  private groups: any;
+  private docsOptions: any;
+  private plugins: IDocGeneratePlugin[] = [];
 
-  const docOutputForamt = (out: any) => out;
+  constructor(apiService: API) {
+    this.parent = apiService;
+    const { info, groups, docsOptions } = this.parent.privateInfo;
+    this.info = info;
+    this.groups = groups;
+    this.docsOptions = docsOptions;
+  }
 
   /**
    * 获取文档数据
-   *
-   * @return {Object}
    */
-  apiService.api.docs.data = () => {
-
+  public data() {
     const data: IDocData = {
-      info,
-      errors: apiService.errors,
-      group: groups,
+      info: this.info,
+      errors: this.parent.errors,
+      group: this.groups,
       types: {} as IKVObject,
       schemas: {} as IKVObject,
+      apiInfo: {
+        count: 0,
+        tested: 0,
+        untest: [],
+      },
     };
-    const formatOutput = apiService.api.docOutputForamt || docOutputForamt;
+    const formatOutput = this.parent.api.docOutputForamt || docOutputForamt;
 
     // types
-    apiService.type.forEach((item: any) => {
-      const t = apiService.utils.merge(item) as any;
+    this.parent.type.forEach((item: any) => {
+      const t = this.parent.utils.merge(item) as any;
       t.parser = t.parser && t.parser.toString();
       t.checker = t.checker && t.checker.toString();
       t.formatter = t.formatter && t.formatter.toString();
       data.types[t.name] = t;
     });
 
-    for (const [k, schema] of apiService.api.$schemas.entries()) {
+    for (const [k, schema] of this.parent.api.$schemas.entries()) {
       const o = schema.options;
       data.schemas[k] = {};
       for (const key of DOC) {
@@ -74,76 +105,60 @@ export function extendDocs(apiService: API) {
     }
 
     return data;
-  };
+  }
 
   /**
    * 生成文档
-   *
-   * @return {Object}
    */
-  apiService.api.docs.genDocs = () => {
-    apiService.api.docs.markdown();
-    if (docsOptions.swagger) {
-      apiService.api.docs.swagger();
+  public genDocs() {
+    this.markdown();
+    if (this.docsOptions.swagger) {
+      this.swagger();
     }
-    if (docsOptions.json) {
-      apiService.api.docs.json();
+    if (this.docsOptions.json) {
+      this.json();
     }
-    return apiService.api.docs;
-  };
+    return this;
+  }
 
   /**
    * 生成 Markdown 文档
-   *
-   * @return {Object}
    */
-  apiService.api.docs.markdown = () => {
-    plugins.push(generateMarkdown);
-    return apiService.api.docs;
-  };
+  public markdown() {
+    this.plugins.push(generateMarkdown);
+    return this;
+  }
 
   /**
    * 生成 Swagger 文档
-   *
-   * @return {Object}
    */
-  apiService.api.docs.swagger = () => {
-    plugins.push(generateSwagger);
-    return apiService.api.docs;
-  };
-
-  const generateJson: IDocGeneratePlugin = (data: any, dir: string, options: IDocOptions) => {
-    const filename = apiService.utils.getPath("doc.json", options.json);
-    fs.writeFileSync(path.resolve(dir, filename), apiService.utils.jsonStringify(data, 2));
-  };
-
+  public swagger() {
+    this.plugins.push(generateSwagger);
+    return this;
+  }
   /**
    * 生成 JSON 文档
-   *
-   * @return {Object}
    */
-  apiService.api.docs.json = () => {
-    plugins.push(generateJson);
-    return apiService.api.docs;
-  };
+  public json() {
+    const generateJson = (data: any, dir: string, options: IDocOptions) => {
+      const filename = this.parent.utils.getPath("doc.json", options.json);
+      fs.writeFileSync(path.resolve(dir, filename), this.parent.utils.jsonStringify(data, 2));
+    };
+    this.plugins.push(generateJson);
+    return this;
+  }
 
   /**
    * 存储文档
-   *
-   * @param {String} dir 存储目录
-   * @return {Object}
    */
-  apiService.api.docs.save = (dir: string) => {
-
-    assert(typeof dir === "string" && dir.length > 0, `文档存储目录"${ dir }"格式不正确：必须是字符串类型`);
+  public save(dir: string) {
+    assert(
+      typeof dir === "string" && dir.length > 0,
+      `文档存储目录"${dir}"格式不正确：必须是字符串类型`,
+    );
 
     // 保存 all.json
-    const data = apiService.api.docs.data();
-    data.apiInfo = {
-      count: 0,
-      tested: 0,
-      untest: [],
-    };
+    const data = this.data();
 
     for (const key of Object.keys(data.schemas)) {
       data.apiInfo.count += 1;
@@ -157,24 +172,20 @@ export function extendDocs(apiService: API) {
     debug(dir);
 
     // 根据插件生成文档
-    for (const fn of plugins) {
-      fn(data, dir, docsOptions);
+    for (const fn of this.plugins) {
+      fn(data, dir, this.docsOptions);
     }
 
-    return apiService.api.docs;
-  };
+    return this;
+  }
 
   /**
    * 当进程退出时存储文档
-   *
-   * @param {String} dir 存储目录
-   * @return {Object}
    */
-  apiService.api.docs.saveOnExit = (dir: string) => {
+  public saveOnExit(dir: string) {
     process.on("exit", () => {
-      apiService.api.docs.save(dir);
+      this.save(dir);
     });
-    return apiService.api.docs;
-  };
-
+    return this;
+  }
 }
