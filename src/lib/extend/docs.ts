@@ -15,7 +15,7 @@ import { ErrorManager, TypeManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
 
-const DOC = [ "method", "path", "examples", "middlewares", "required", "requiredOneOf", "query", "body", "params", "group", "title", "description", "schema" ];
+const DOC = [ "method", "path", "examples", "middlewares", "required", "requiredOneOf", "query", "body", "params", "group", "title", "description", "schema", "tested" ];
 
 export interface IDocData {
   info: any;

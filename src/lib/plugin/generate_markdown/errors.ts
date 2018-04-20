@@ -17,7 +17,7 @@ export default function errorDocs(data: any) {
   });
 
   errors.sort((a, b) => {
-    return a.code - b.code;
+    return b.code - a.code;
   });
 
   const errorList: string[] = [];

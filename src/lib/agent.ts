@@ -281,6 +281,7 @@ export class TestAgent {
    * @return {Promise}
    */
   private output(callback?: ICallback<any>, raw = false): Promise<any> {
+    this.options.parent.api.$schemas.get(this.key).options.tested = true;
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.options.agent!.end((err: Error, res: IKVObject) => {
       this.options.agentPath = res.req.path;

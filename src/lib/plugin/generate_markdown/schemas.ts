@@ -1,7 +1,7 @@
 import { IDocData } from "../../extend/docs";
 import { IKVObject } from "../../interfaces";
 import { jsonStringify } from "../../utils";
-import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
+import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 
 function paramsTable(item: IKVObject) {
   const paramsList: string[] = [];
@@ -99,14 +99,18 @@ export default function schemaDocs(data: IDocData) {
   for (const key of Object.keys(data.schemas)) {
     const item = data.schemas[key];
 
-    const line = [`## ${key.replace("_", " ")} ${stringOrEmpty(item.title)}`];
+    const line = [
+      `## ${key.replace("_", " ")} ${stringOrEmpty(item.title)} ${itemTFEmoji(item.tested)}`,
+    ];
     line.push(`\n请求地址：**${item.method.toUpperCase()}** \`${item.path}\``);
 
     if (item.description) {
-      line.push(item.description
-        .split("\n")
-        .map((it: string) => it.trim())
-        .join("\n"));
+      line.push(
+        item.description
+          .split("\n")
+          .map((it: string) => it.trim())
+          .join("\n"),
+      );
     }
 
     const paramsDoc = paramsTable(item);

@@ -18,6 +18,10 @@ export function itemTF(obj: any) {
   return obj ? "是" : "否";
 }
 
+export function itemTFEmoji(obj: any) {
+  return obj ? "✅" : "❌";
+}
+
 export function tableHeader(titles: string[]) {
   return `${titles.join(" | ")} \n${"---|".repeat(titles.length)}`.slice(0, -1);
 }

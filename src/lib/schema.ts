@@ -47,6 +47,7 @@ export interface ISchemaOption<T, U> extends IKVObject {
   params: IKVObject;
   _params: Map<string, IParamsOption>;
   schema?: object;
+  tested: boolean;
 }
 
 export class Schema<T, U> {
@@ -86,6 +87,7 @@ export class Schema<T, U> {
       params: {},
       _params: new Map(),
       group,
+      tested: false,
     };
 
     this.key = getSchemaKey(method, path, group);
