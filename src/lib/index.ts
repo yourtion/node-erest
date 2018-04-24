@@ -26,18 +26,28 @@ export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
   beforeHooks: Set<IHandler<T, U>>;
   afterHooks: Set<IHandler<T, U>>;
   docs?: IAPIDoc;
-  test?: any;
   formatOutputReverse?: (out: any) => [Error | null, any];
   docOutputForamt?: (out: any) => any;
 }
 
+export interface IApiOptionInfo {
+  title?: string;
+  description?: string;
+  version?: Date;
+  host?: string;
+  basePath?: string;
+}
+
+export interface IAPIConfig {
+  path: string;
+}
+
 export interface IApiOption {
-  info?: any;
-  path?: any;
-  missingParameterError?: any;
-  invalidParameterError?: any;
-  internalError?: any;
-  errors?: any;
+  info?: IApiOptionInfo;
+  path?: string;
+  missingParameterError?: (msg: string) => Error;
+  invalidParameterError?: (msg: string) => Error;
+  internalError?: (msg: string) => Error;
   groups?: IKVObject<string>;
   forceGroup?: boolean;
   docs?: IDocOptions;
@@ -57,9 +67,13 @@ export default class API<T = any, U = any> {
   private apiInfo: IApiInfo<T, U>;
   private testAgent: IAPITest = {} as IAPITest;
   private app: any;
-  private info: any;
-  private config: any;
-  private error: any;
+  private info: IApiOptionInfo;
+  private config: IAPIConfig;
+  private error: {
+    missingParameter: (msg: string) => Error;
+    invalidParameter: (msg: string) => Error;
+    internalError: (msg: string) => Error;
+  };
   private typeManage: TypeManager;
   private errorManage: ErrorManager;
   private schemas: any;

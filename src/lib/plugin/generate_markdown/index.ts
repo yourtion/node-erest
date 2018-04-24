@@ -42,7 +42,7 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
   indexDoc.push(`# ${ data.info.title }\n`);
   indexDoc.push(data.info.description + "\n");
   indexDoc.push(`测试服务器： ${ data.info.host }${ data.info.basePath }\n`);
-  indexDoc.push(`生成时间： ${ data.info.version.toLocaleDateString() } ${ data.info.version.toLocaleTimeString() }\n`);
+  indexDoc.push(`生成时间： ${ data.info.version!.toLocaleDateString() } ${ data.info.version!.toLocaleTimeString() }\n`);
   indexDoc.push("文档列表：\n");
   const allInOneDoc = indexDoc.slice(0, indexDoc.length);
   const wikiDoc = indexDoc.slice(0, indexDoc.length);

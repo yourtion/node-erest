@@ -7,7 +7,7 @@
 import * as assert from "assert";
 import { TestAgent } from "../agent";
 import { test as debug } from "../debug";
-import API from "../index";
+import API, { IAPIConfig, IApiOptionInfo } from "../index";
 import { IKVObject, ISupportMethds } from "../interfaces";
 import { getCallerSourceLine, getSchemaKey } from "../utils";
 
@@ -21,10 +21,10 @@ export interface ITestSession extends IAgent {
 
 export default class IAPITest {
   private parent: API;
-  private info: any;
+  private info: IApiOptionInfo;
   private app: any;
-  private supertest: any;
-  private config: any;
+  private supertest?: any;
+  private config: IAPIConfig;
 
   constructor(apiService: API) {
     this.parent = apiService;

@@ -5,11 +5,11 @@ export function trimSpaces(text: string) {
     .replace(/\n\s+\n/g, "\n\n");
 }
 
-export function toString(str: string, defaultStr = "") {
+export function toString(str: string | undefined, defaultStr = "") {
   return typeof str !== "undefined" ? String(str) : defaultStr;
 }
 
-export function stringOrEmpty(str: string, comm = false) {
+export function stringOrEmpty(str: string | undefined, comm = false) {
   const res = toString(str, "（无）");
   return comm ? "`" + res + "`" : res;
 }

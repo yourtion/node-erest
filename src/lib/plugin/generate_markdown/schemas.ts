@@ -1,5 +1,6 @@
 import { IDocData } from "../../extend/docs";
 import { IKVObject } from "../../interfaces";
+import { ISchemaOption } from "../../schema";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 
@@ -45,7 +46,7 @@ function paramsTable(item: IKVObject) {
   return paramsList.join("\n");
 }
 
-function schemaTable(item: IKVObject) {
+function schemaTable(item: IKVObject<ISchemaOption<any, any>>) {
   const schemaList: string[] = [];
   schemaList.push(tableHeader(["参数名", "类型", "说明"]));
   for (const name in item) {
@@ -120,7 +121,7 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n参数：无参数");
     }
 
-    const schemaDoc = schemaTable(item.schema);
+    const schemaDoc = schemaTable(item.schemas);
     if (schemaDoc) {
       line.push("\n### 输出结果说明：\n" + schemaDoc);
     }
@@ -132,7 +133,7 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n```");
     }
 
-    add(item.group, line.join("\n"));
+    add(item.group!, line.join("\n"));
   }
 
   const list: Array<{ name: string; content: string }> = [];

@@ -8,12 +8,13 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import { docs as debug } from "../debug";
-import API from "../index";
+import API, { IApiInfo, IApiOptionInfo } from "../index";
 import { IDocOptions } from "../index";
 import { IDocGeneratePlugin, IKVObject } from "../interfaces";
-import { ErrorManager, TypeManager } from "../manager";
+import { ErrorManager, IType, TypeManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
+import { ISchemaOption } from "../schema";
 
 const DOC = [
   "method",
@@ -33,11 +34,11 @@ const DOC = [
 ];
 
 export interface IDocData {
-  info: any;
+  info: IApiOptionInfo;
   errors: ErrorManager;
   group: IKVObject<string>;
-  types: IKVObject;
-  schemas: IKVObject;
+  types: IKVObject<IDocTypes>;
+  schemas: IKVObject<ISchemaOption<any, any>>;
   apiInfo: {
     count: number;
     tested: number;
@@ -45,13 +46,25 @@ export interface IDocData {
   };
 }
 
+export interface IDocTypes {
+  name: string;
+  checker: string;
+  formatter?: string;
+  parser?: string;
+  paramsChecker?: string;
+  description: string;
+  isDefault: boolean;
+  isDefaultFormat?: boolean;
+  isParamsRequire: boolean;
+}
+
 const docOutputForamt = (out: any) => out;
 
 export default class IAPIDoc {
   private parent: API;
-  private info: any;
-  private groups: any;
-  private docsOptions: any;
+  private info: IApiOptionInfo;
+  private groups: IKVObject<string>;
+  private docsOptions: IDocOptions;
   private plugins: IDocGeneratePlugin[] = [];
 
   constructor(apiService: API) {
@@ -81,25 +94,24 @@ export default class IAPIDoc {
     const formatOutput = this.parent.api.docOutputForamt || docOutputForamt;
 
     // types
-    this.parent.type.forEach((item: any) => {
+    this.parent.type.forEach((item: IType) => {
       const t = this.parent.utils.merge(item) as any;
       t.parser = t.parser && t.parser.toString();
       t.checker = t.checker && t.checker.toString();
       t.formatter = t.formatter && t.formatter.toString();
-      data.types[t.name] = t;
+      data.types[t.name] = t as IDocTypes;
     });
 
     for (const [k, schema] of this.parent.api.$schemas.entries()) {
       const o = schema.options;
-      data.schemas[k] = {};
+      data.schemas[k] = {} as ISchemaOption<any, any>;
       for (const key of DOC) {
         data.schemas[k][key] = o[key];
       }
       const examples = data.schemas[k].examples;
       if (examples) {
         examples.forEach((item: any) => {
-          const v = item;
-          v.output = formatOutput(v.output);
+          item.output = formatOutput(item.output);
         });
       }
     }
@@ -136,6 +148,7 @@ export default class IAPIDoc {
     this.plugins.push(generateSwagger);
     return this;
   }
+
   /**
    * 生成 JSON 文档
    */

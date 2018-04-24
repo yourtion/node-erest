@@ -11,8 +11,8 @@ import { IKVObject } from "./interfaces";
 import { getSchemaKey, ISourceResult } from "./utils";
 
 export interface IExample {
-  input: object;
-  output: object;
+  input: IKVObject;
+  output: IKVObject;
 }
 
 export interface IParamsOption {
@@ -28,7 +28,7 @@ export type IHandler<T, U> = (req: T, res: U, next?: any) => any;
 
 export interface ISchemaOption<T, U> extends IKVObject {
   description?: string;
-  group?: string;
+  group: string;
   format?: boolean;
   title?: string;
   env?: boolean;
@@ -86,12 +86,11 @@ export class Schema<T, U> {
       body: {},
       params: {},
       _params: new Map(),
-      group,
+      group: group || "",
       tested: false,
     };
 
     this.key = getSchemaKey(method, path, group);
-    this.options.group = group;
     this.pathTestRegExp = pathToRegExp(path);
     this.inited = false;
 
