@@ -6,8 +6,8 @@
 import * as assert from "assert";
 import { core as debug } from "./debug";
 import { defaultErrors, defaultTypes } from "./default";
-import { IAPIDoc, IDocData } from "./extend/docs";
-import { extendTest, ITest } from "./extend/test";
+import IAPIDoc, { IDocData } from "./extend/docs";
+import IAPITest from "./extend/test";
 import { IKVObject, ISupportMethds } from "./interfaces";
 import { ErrorManager, IError, IType, TypeManager } from "./manager";
 import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
@@ -55,7 +55,7 @@ export interface IDocOptions extends IKVObject {
 export default class API<T = any, U = any> {
   public shareTestData?: any;
   private apiInfo: IApiInfo<T, U>;
-  private testAgent: ITest = {} as ITest;
+  private testAgent: IAPITest = {} as IAPITest;
   private app: any;
   private info: any;
   private config: any;
@@ -98,18 +98,6 @@ export default class API<T = any, U = any> {
     return utils;
   }
 
-  /**
-   * Creates an instance of API.
-   * @param {IApiOption} [options={}]
-   *   - {Object} info 信息
-   *   - {Object} groups 分组
-   *   - {String} path 路由文件所在路径
-   *   - {Object} router 路由
-   *   - {Object} errors 错误信息
-   *   - {Function} missingParameterError 缺少参数错误生成方法
-   *   - {Function} invalidParameterError 参数错误生成方法
-   *   - {Function} invalidParameterError 内部错误生成方法
-   */
   constructor(options: IApiOption) {
     this.info = options.info || {};
     this.forceGroup = options.forceGroup || false;
@@ -176,7 +164,7 @@ export default class API<T = any, U = any> {
     }
     debug("initTest");
     this.app = app;
-    this.testAgent = extendTest(this);
+    this.testAgent = new IAPITest(this);
     if (!this.api.docs) {
       this.api.docs = new IAPIDoc(this);
     }

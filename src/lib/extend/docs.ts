@@ -47,7 +47,7 @@ export interface IDocData {
 
 const docOutputForamt = (out: any) => out;
 
-export class IAPIDoc {
+export default class IAPIDoc {
   private parent: API;
   private info: any;
   private groups: any;

@@ -15,88 +15,71 @@ import { SuperTest } from "supertest";
 
 export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
 
-export interface ITest extends IAgent {
-  readonly session: () => ITestSession;
-}
-
 export interface ITestSession extends IAgent {
   readonly $agent: SuperTest<any>;
 }
 
-export function extendTest(apiService: API) {
+export default class IAPITest {
+  private parent: API;
+  private info: any;
+  private app: any;
+  private supertest: any;
+  private config: any;
 
-  const { app, config, info } = apiService.privateInfo;
-
-  let supertest: any;
-  try {
-    supertest = require("supertest");
-  } catch (err) {
-    debug(err);
-  }
-
-  /**
-   * 根据请求方法和请求路径查找对应的schema
-   *
-   * @param {String} method
-   * @param {String} path
-   * @return {Object}
-   */
-  function findSchema(method: string, path: string) {
-
-    // 如果定义了 API 的 basePath，需要在测试时替换掉
-    const routerPath = info.basePath ? path.replace(info.basePath, "") : path;
-
-    const key = getSchemaKey(method, routerPath);
-    debug(method, path, key);
-
-    // 检查path无变量情况
-    if (apiService.api.$schemas.get(key)) { return apiService.api.$schemas.get(key); }
-    // 检查path有变量情况
-    for (const s of apiService.api.$schemas.values()) {
-      if (s.pathTest(method, routerPath)) { return s; }
+  constructor(apiService: API) {
+    this.parent = apiService;
+    const { info, app, config } = this.parent.privateInfo;
+    this.info = info;
+    this.app = app;
+    this.config = config;
+    try {
+      this.supertest = require("supertest");
+    } catch (err) {
+      debug(err);
     }
-    return;
   }
 
-  // test.get, apiService.post, ...
-  function regTest(method: string) {
-   return (path: string) => {
+  get get() {
+    return this.regTest("get");
+  }
 
-      const s = findSchema(method, path);
+  get post() {
+    return this.regTest("post");
+  }
 
-      if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
-      const a = new TestAgent(method, path, s.key, getCallerSourceLine(config.path), apiService);
+  get put() {
+    return this.regTest("put");
+  }
 
-      assert(app, "请先调用 setApp() 设置 exprss 实例");
-      a.initAgent(app);
-      return a.agent();
-    };
+  get delet() {
+    return this.regTest("delete");
+  }
+
+  get patch() {
+    return this.regTest("patch");
   }
 
   /**
    * 创建测试会话
-   *
-   * @return {Object}
    */
-  const session = () => {
+  public session() {
+    assert(this.app, "请先调用 setApp() 设置 exprss 实例");
+    assert(this.supertest, "请先安装 supertest");
+    const agent = this.supertest.agent(this.app);
 
-    assert(app, "请先调用 setApp() 设置 exprss 实例");
-    assert(supertest, "请先安装 supertest");
-    const agent = supertest.agent(app);
-
-    function regSession(method: string) {
+    const regSession = (method: string) => {
       return (path: string) => {
+        const s = this.findSchema(method, path);
 
-        const s = findSchema(method, path);
-
-        if (!s || !s.key) { throw new Error(`尝试请求未注册的API：${ method } ${ path }`); }
-        const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, apiService);
+        if (!s || !s.key) {
+          throw new Error(`尝试请求未注册的API：${method} ${path}`);
+        }
+        const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, this.parent);
 
         a.setAgent((agent as IKVObject)[method](path));
         return a.agent();
-
       };
-    }
+    };
     const ss: ITestSession = {
       $agent: agent,
       get: regSession("get"),
@@ -107,15 +90,43 @@ export function extendTest(apiService: API) {
     };
 
     return ss;
-  };
+  }
 
-  return {
-    session,
-    get: regTest("get"),
-    post: regTest("post"),
-    put: regTest("put"),
-    delete: regTest("delete"),
-    patch: regTest("patch"),
-  };
+  /**
+   * 根据请求方法和请求路径查找对应的schema
+   */
+  private findSchema(method: string, path: string) {
+    // 如果定义了 API 的 basePath，需要在测试时替换掉
+    const routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
 
+    const key = getSchemaKey(method, routerPath);
+    debug(method, path, key);
+
+    // 检查path无变量情况
+    if (this.parent.api.$schemas.get(key)) {
+      return this.parent.api.$schemas.get(key);
+    }
+    // 检查path有变量情况
+    for (const s of this.parent.api.$schemas.values()) {
+      if (s.pathTest(method, routerPath)) {
+        return s;
+      }
+    }
+    return;
+  }
+
+  private regTest(method: string) {
+    return (path: string) => {
+      const s = this.findSchema(method, path);
+
+      if (!s || !s.key) {
+        throw new Error(`尝试请求未注册的API：${method} ${path}`);
+      }
+      const a = new TestAgent(method, path, s.key, getCallerSourceLine(this.config.path), this.parent);
+
+      assert(this.app, "请先调用 setApp() 设置 exprss 实例");
+      a.initAgent(this.app);
+      return a.agent();
+    };
+  }
 }
