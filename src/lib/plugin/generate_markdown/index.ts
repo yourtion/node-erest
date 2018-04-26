@@ -52,7 +52,7 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
   for (const item in data.group) {
     indexDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](./${ item.toLowerCase() }.md)`);
     allInOneDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关](#${ item.toLowerCase() })`);
-    wikiDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](${ wikiPath }/${ item.toLowerCase() })`);
+    wikiDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](${ wikiPath }${ item.toLowerCase() })`);
   }
 
   if (options.index) {

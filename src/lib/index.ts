@@ -154,11 +154,11 @@ export default class API<T = any, U = any> {
       delete: (path: string) => this.registAPI("delete", path),
       patch: (path: string) => this.registAPI("patch", path),
     };
-    const getDocOpt = (key: string, def: boolean): string | boolean => {
+    const getDocOpt = (key: string, def: string | boolean): string | boolean => {
       return options.docs && options.docs[key] !== undefined ? options.docs[key] : def;
     };
     this.docsOptions = {
-      wiki: getDocOpt("wiki", true),
+      wiki: getDocOpt("wiki", "./"),
       index: getDocOpt("index", false),
       home: getDocOpt("home", true),
       swagger: getDocOpt("swagger", false),
