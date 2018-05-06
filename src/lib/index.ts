@@ -89,6 +89,7 @@ export default class API<T = any, U = any> {
       info: this.info,
       groups: this.groups,
       docsOptions: this.docsOptions,
+      error: this.error,
     };
   }
 
@@ -137,7 +138,7 @@ export default class API<T = any, U = any> {
         !s2,
         `尝试注册API：${s.key}（所在文件：${
           s.options.sourceFile.absolute
-        }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`,
+        }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`
       );
 
       this.apiInfo.$schemas.set(s.key, s);
@@ -250,7 +251,7 @@ export default class API<T = any, U = any> {
         ...schema.options.middlewares,
         schema.options.handler,
         ...schema.options.afterHooks,
-        ...this.apiInfo.afterHooks,
+        ...this.apiInfo.afterHooks
       );
     }
   }
@@ -285,7 +286,7 @@ export default class API<T = any, U = any> {
         ...schema.options.middlewares,
         schema.options.handler,
         ...schema.options.afterHooks,
-        ...this.apiInfo.afterHooks,
+        ...this.apiInfo.afterHooks
       );
     }
     for (const [key, value] of routes.entries()) {

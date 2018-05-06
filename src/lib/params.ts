@@ -4,12 +4,14 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
+import API from ".";
 import { params as debug } from "./debug";
 import { IKVObject } from "./interfaces";
 import { ISchemaOption, Schema } from "./schema";
 
-export function paramsChecker(ctx: any, name: string, value: any, typeInfo: IKVObject) {
-  const type = ctx.type.get(typeInfo.type);
+export function paramsChecker(ctx: API, name: string, value: any, typeInfo: IKVObject) {
+  const type = ctx.type.get(typeInfo.type)!;
+  const { error } = ctx.privateInfo;
   let result = value;
   // 如果类型有 parser 则先执行
   if (type.parser) {
@@ -24,7 +26,7 @@ export function paramsChecker(ctx: any, name: string, value: any, typeInfo: IKVO
     if (typeInfo.params) {
       msg = `${msg} with additional restrictions: ${typeInfo._paramsJSON || typeInfo.params}`;
     }
-    throw ctx.error.invalidParameter(msg);
+    throw error.invalidParameter(msg);
   }
 
   // 如果类型有 formatter 且开启了 format=true 则格式化参数
@@ -32,19 +34,20 @@ export function paramsChecker(ctx: any, name: string, value: any, typeInfo: IKVO
   if (type.formatter && needFormat) {
     debug(`param ${name} run format`);
     debug(`befor format : ${result}`);
-    result = type.formatter(result, typeInfo.params);
+    result = type.formatter(result);
     debug(`after format : ${result}`);
   }
   return result;
 }
 
 export function schemaChecker(
-  ctx: any,
+  ctx: API,
   data: IKVObject,
   schema: IKVObject<IKVObject>,
-  requiredOneOf: string[] = [],
+  requiredOneOf: string[] = []
 ) {
   const result: IKVObject = {};
+  const { error } = ctx.privateInfo;
   for (const name in schema) {
     let value = data[name];
     const options = schema[name];
@@ -56,7 +59,7 @@ export function schemaChecker(
         value = options.default;
       } else {
         if (options.required) {
-          throw ctx.error.missingParameter(`'${name}' is required!`);
+          throw error.missingParameter(`'${name}' is required!`);
         }
         // 其他情况忽略
         continue;
@@ -74,7 +77,7 @@ export function schemaChecker(
     }
   }
   if (!ok) {
-    throw ctx.error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
+    throw error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
   }
   return result;
 }
@@ -86,7 +89,8 @@ export function schemaChecker(
  * @param {Schema} schema 定义
  * @returns {Function} 中间件
  */
-export function apiCheckParams<T, U>(ctx: any, schema: Schema<T, U>) {
+export function apiCheckParams<T, U>(ctx: API, schema: Schema<T, U>) {
+  const { error } = ctx.privateInfo;
   return function apiParamsChecker(req: any, res: any, next: any) {
     const newParams: IKVObject = {};
     for (const place of ["query", "params", "body"]) {
@@ -114,7 +118,7 @@ export function apiCheckParams<T, U>(ctx: any, schema: Schema<T, U>) {
     if (schema.options.required.size > 0) {
       for (const name of schema.options.required) {
         if (!(name in newParams)) {
-          throw ctx.error.missingParameter(`'${name}' is required!`);
+          throw error.missingParameter(`'${name}' is required!`);
         }
       }
     }
@@ -130,7 +134,7 @@ export function apiCheckParams<T, U>(ctx: any, schema: Schema<T, U>) {
           }
         }
         if (!ok) {
-          throw ctx.error.missingParameter(`one of ${names.join(", ")} is required`);
+          throw error.missingParameter(`one of ${names.join(", ")} is required`);
         }
       }
     }
