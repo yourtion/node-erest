@@ -71,10 +71,10 @@ describe("Types - default", () => {
 
   it("TYPES - JSONString", () => {
     expect(paramsChecker("JSONString", `{"a": "b"}`, { type: "JSONString", format: false })).toBe(
-      `{"a": "b"}`,
+      `{"a": "b"}`
     );
     expect(paramsChecker("JSONString", ` {"a": "b"} `, { type: "JSONString" })).toEqual(
-      `{"a": "b"}`,
+      `{"a": "b"}`
     );
   });
 
@@ -87,13 +87,13 @@ describe("Types - default", () => {
 
   it("TYPES - MongoIdString", () => {
     expect(
-      paramsChecker("MongoIdString", "507f1f77bcf86cd799439011", { type: "MongoIdString" }),
+      paramsChecker("MongoIdString", "507f1f77bcf86cd799439011", { type: "MongoIdString" })
     ).toBe("507f1f77bcf86cd799439011");
   });
 
   it("TYPES - Email", () => {
     expect(paramsChecker("Email", "yourtion@gmail.com", { type: "Email" })).toBe(
-      "yourtion@gmail.com",
+      "yourtion@gmail.com"
     );
   });
 
@@ -107,13 +107,13 @@ describe("Types - default", () => {
 
   it("TYPES - AlphaNumeric", () => {
     expect(paramsChecker("AlphaNumeric", "Yourtion012", { type: "AlphaNumeric" })).toBe(
-      "Yourtion012",
+      "Yourtion012"
     );
   });
 
   it("TYPES - Ascii", () => {
     expect(paramsChecker("Ascii", "Yourtion.com/hello", { type: "Ascii" })).toBe(
-      "Yourtion.com/hello",
+      "Yourtion.com/hello"
     );
   });
 
@@ -123,13 +123,13 @@ describe("Types - default", () => {
 
   it("TYPES - URL", () => {
     expect(paramsChecker("URL", "http://github.com/yourtion", { type: "URL" })).toBe(
-      "http://github.com/yourtion",
+      "http://github.com/yourtion"
     );
   });
 
   it("TYPES - ENUM", () => {
     expect(paramsChecker("ENUM", "Hello", { type: "ENUM", params: ["Hello", "World"] })).toBe(
-      "Hello",
+      "Hello"
     );
     const tenum = () =>
       paramsChecker("Integer", "Yourtion", { type: "ENUM", params: ["Hello", "World"] });
@@ -149,7 +149,7 @@ describe("Types - default", () => {
   it("TYPES - NullableInteger", () => {
     expect(paramsChecker("NullableInteger", "1", { type: "NullableInteger" })).toBe("1");
     expect(paramsChecker("NullableInteger", "1", { type: "NullableInteger", format: true })).toBe(
-      1,
+      1
     );
     expect(paramsChecker("NullableInteger", 1, { type: "NullableInteger" })).toBe(1);
     expect(paramsChecker("NullableInteger", null, { type: "NullableInteger" })).toBeNull();

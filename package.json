@@ -1,12 +1,10 @@
 {
   "name": "erest",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Easy to build api server depend on express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
-  "files": [
-    "dist/lib"
-  ],
+  "files": ["dist/lib"],
   "scripts": {
     "test": "npm run compile && jest",
     "test:lib": "export ISLIB=1 && jest",
@@ -21,12 +19,7 @@
     "type": "git",
     "url": "git+https://github.com/yourtion/node-erest.git"
   },
-  "keywords": [
-    "rest",
-    "api",
-    "express",
-    "api-doc"
-  ],
+  "keywords": ["rest", "api", "express", "api-doc"],
   "author": "Yourtion Guo <yourtion@gmail.com>",
   "license": "MIT",
   "bugs": {
@@ -60,9 +53,7 @@
       "^.+\\.tsx?$": "ts-jest"
     },
     "testRegex": "./src/test/test",
-    "collectCoverageFrom": [
-      "src/lib/**/*.ts"
-    ],
+    "collectCoverageFrom": ["src/lib/**/*.ts"],
     "coverageThreshold": {
       "global": {
         "branches": 80,
@@ -71,9 +62,6 @@
         "statements": 80
       }
     },
-    "moduleFileExtensions": [
-      "ts",
-      "js"
-    ]
+    "moduleFileExtensions": ["ts", "js"]
   }
 }

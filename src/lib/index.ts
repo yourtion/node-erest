@@ -10,7 +10,7 @@ import IAPIDoc, { IDocData } from "./extend/docs";
 import IAPITest from "./extend/test";
 import { IKVObject, ISupportMethds } from "./interfaces";
 import { ErrorManager, IError, IType, TypeManager } from "./manager";
-import { apiCheckParams, paramsChecker, schemaChecker, ISchemaType } from "./params";
+import { apiCheckParams, ISchemaType, paramsChecker, schemaChecker } from "./params";
 import { IHandler, ISchemaOption, Schema } from "./schema";
 import * as utils from "./utils";
 const { camelCase2underscore, getCallerSourceLine } = utils;

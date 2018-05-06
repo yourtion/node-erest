@@ -67,7 +67,7 @@ export function jsonStringify(data: object, space: string | number) {
       seen.push(val);
       return val;
     },
-    space,
+    space
   );
 }
 
@@ -124,7 +124,7 @@ export function getPath(def: string, opt?: string | boolean): string {
  */
 export function camelCase2underscore(str: string): string {
   return str
-    .replace(/^\S/, (s) => s.toLowerCase())
+    .replace(/^\S/, s => s.toLowerCase())
     .replace(/([A-Z])/g, "_$1")
     .toLowerCase();
 }

@@ -70,12 +70,12 @@ export class TestAgent {
     path: string,
     key: string,
     sourceFile: utils.ISourceResult,
-    parent: any,
+    parent: any
   ) {
     assert(method && typeof method === "string", "`method` must be string");
     assert(
       TestAgent.SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
-      "`method` must be one of " + TestAgent.SUPPORT_METHOD,
+      "`method` must be one of " + TestAgent.SUPPORT_METHOD
     );
     assert(path && typeof path === "string", "`path` must be string");
     assert(path[0] === "/", '`path` must be start with "/"');
@@ -146,7 +146,7 @@ export class TestAgent {
 
   public headers(data: IKVObject) {
     this.options.agentHeader = data;
-    Object.keys(data).forEach((k) => this.options.agent && this.options.agent.set(k, data[k]));
+    Object.keys(data).forEach(k => this.options.agent && this.options.agent.set(k, data[k]));
     return this;
   }
 
@@ -204,7 +204,7 @@ export class TestAgent {
     this.output((err, ret) => {
       if (err) {
         const err2 = new Error(
-          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
+          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`
         );
         cb(err2);
       } else {
@@ -229,7 +229,7 @@ export class TestAgent {
         cb(null, err);
       } else {
         const err2 = new Error(
-          `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`,
+          `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`
         );
         cb(err2);
       }
@@ -248,7 +248,7 @@ export class TestAgent {
     this.output((err, ret) => {
       if (err) {
         const err2 = new Error(
-          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`,
+          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`
         );
         cb(err2);
       } else {

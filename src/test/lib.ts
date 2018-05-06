@@ -37,8 +37,8 @@ export default (options = {}) => {
           all: true,
         },
       },
-      options,
-    ),
+      options
+    )
   );
   return apiService as api.default;
 };
