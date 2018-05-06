@@ -4,6 +4,7 @@ import { GROUPS, INFO } from "./lib";
 const apiService = lib();
 
 import { IKVObject } from "../lib/interfaces";
+import { ISchemaType } from "../lib/params";
 import { build, TYPES } from "./helper";
 const paramsChecker = apiService.paramsChecker();
 const schemaChecker = apiService.schemaChecker();
@@ -17,7 +18,7 @@ const intP = build(TYPES.Integer, "Int");
 const enumP = build(TYPES.ENUM, "Int", true, undefined, ["A", "B", 1]);
 const jsonP = build(TYPES.JSON, "Json");
 
-const schema1: IKVObject<IKVObject> = { stringP2, stringP3, numP, intP };
+const schema1: IKVObject<ISchemaType> = { stringP2, stringP3, numP, intP };
 
 describe("Params - params checker", () => {
   it("ParamsChecker - simple checker success", () => {
@@ -35,7 +36,7 @@ describe("Params - params checker", () => {
     expect(paramsChecker("en1", 1, enumP)).toBe(1);
     const fn = () => paramsChecker("en2", "C", enumP);
     expect(fn).toThrow(
-      "incorrect parameter 'en2' should be valid ENUM with additional restrictions: A,B,1",
+      "incorrect parameter 'en2' should be valid ENUM with additional restrictions: A,B,1"
     );
   });
 });

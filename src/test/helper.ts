@@ -1,17 +1,18 @@
 import { IApiInfo } from "../lib";
 import { IKVObject } from "../lib/interfaces";
+import { ISchemaType } from "../lib/params";
 
 /**
  * 删除对象中的 undefined
  */
 function removeUndefined(object: IKVObject) {
-  Object.keys(object).forEach((key) => object[key] === undefined && delete object[key]);
+  Object.keys(object).forEach(key => object[key] === undefined && delete object[key]);
   return object;
 }
 
 function renameFunction(name: string, fn: any) {
   return new Function(
-    `return function (call) { return function ${name}() { return call(this, arguments) }; };`,
+    `return function (call) { return function ${name}() { return call(this, arguments) }; };`
   )()(Function.apply.bind(fn));
 }
 
@@ -59,9 +60,9 @@ export function build(
   comment: string,
   required?: boolean,
   defaultValue?: any,
-  params?: any,
+  params?: any
 ) {
-  return removeUndefined({ type, comment, required, default: defaultValue, params });
+  return removeUndefined({ type, comment, required, default: defaultValue, params }) as ISchemaType;
 }
 
 export const nameParams = build(TYPES.String, "Your name", true);

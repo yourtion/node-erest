@@ -9,7 +9,17 @@ import { params as debug } from "./debug";
 import { IKVObject } from "./interfaces";
 import { ISchemaOption, Schema } from "./schema";
 
-export function paramsChecker(ctx: API, name: string, value: any, typeInfo: IKVObject) {
+export interface ISchemaType {
+  type: string;
+  comment?: string;
+  format?: boolean;
+  default?: any;
+  required?: boolean;
+  params?: any;
+  _paramsJSON?: string;
+}
+
+export function paramsChecker(ctx: API, name: string, value: any, typeInfo: ISchemaType) {
   const type = ctx.type.get(typeInfo.type)!;
   const { error } = ctx.privateInfo;
   let result = value;
@@ -43,7 +53,7 @@ export function paramsChecker(ctx: API, name: string, value: any, typeInfo: IKVO
 export function schemaChecker(
   ctx: API,
   data: IKVObject,
-  schema: IKVObject<IKVObject>,
+  schema: IKVObject<ISchemaType>,
   requiredOneOf: string[] = []
 ) {
   const result: IKVObject = {};

@@ -10,7 +10,7 @@ import IAPIDoc, { IDocData } from "./extend/docs";
 import IAPITest from "./extend/test";
 import { IKVObject, ISupportMethds } from "./interfaces";
 import { ErrorManager, IError, IType, TypeManager } from "./manager";
-import { apiCheckParams, paramsChecker, schemaChecker } from "./params";
+import { apiCheckParams, paramsChecker, schemaChecker, ISchemaType } from "./params";
 import { IHandler, ISchemaOption, Schema } from "./schema";
 import * as utils from "./utils";
 const { camelCase2underscore, getCallerSourceLine } = utils;
@@ -206,12 +206,12 @@ export default class API<T = any, U = any> {
   }
 
   public paramsChecker() {
-    return (name: string, value: any, schema: IKVObject) =>
+    return (name: string, value: any, schema: ISchemaType) =>
       paramsChecker(this, name, value, schema);
   }
 
   public schemaChecker() {
-    return (data: IKVObject, schema: IKVObject<IKVObject>, requiredOneOf: string[] = []) =>
+    return (data: IKVObject, schema: IKVObject<ISchemaType>, requiredOneOf: string[] = []) =>
       schemaChecker(this, data, schema, requiredOneOf);
   }
 
