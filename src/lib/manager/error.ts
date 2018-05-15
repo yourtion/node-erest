@@ -55,4 +55,10 @@ export class ErrorManager extends Manager<IError> {
     return this;
   }
 
+  public import(errors: Array<Partial<IError>>) {
+    for (const err of errors) {
+      this.register(err.name!, err);
+    }
+  }
+
 }
