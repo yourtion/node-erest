@@ -51,7 +51,7 @@ export default class IAPITest {
     return this.regTest("put");
   }
 
-  get delet() {
+  get delete() {
     return this.regTest("delete");
   }
 

@@ -42,7 +42,6 @@ function format(data: any): [Error | null, any] {
 }
 
 apiService.setFormatOutput(format);
-const agent = apiService.test.session();
 const share = {
   name: "Yourtion",
   age: 22,
@@ -57,139 +56,131 @@ router.use((err: any, req: any, res: any, next: any) => {
 app.use("/api", router);
 apiService.initTest(app);
 
-describe("TEST - Index", () => {
-  it("TEST - Get no session", async () => {
-    const { text: ret } = await apiService.test
-      .get("/api/")
-      .headers({
-        a: "b",
-      })
-      .takeExample("Index-Get")
-      .raw();
-    expect(ret).toBe("Hello, API Framework Index");
-  });
+for (const agent of [apiService.test.session(), apiService.test]) {
+  const info = agent === apiService.test ? "No session" : "Session";
 
-  it("TEST - Get2 success", async () => {
-    const { text: ret } = await agent
-      .get("/api/index")
-      .input({
-        name: share.name,
-      })
-      .takeExample("Index-Get2")
-      .raw();
-    expect(ret).toBe(`Get ${share.name}`);
-  });
+  describe("TEST - " + info, () => {
 
-  it("TEST - Post success", async () => {
-    const { text: ret } = await agent
-      .post("/api/index")
-      .query({
-        name: share.name,
-      })
-      .input({
-        age: share.age,
-      })
-      .takeExample("Index-Post")
-      .raw();
-    expect(ret).toBe(`Post ${share.name}:${share.age}`);
-  });
+    it("TEST - Get success", async () => {
+      const { text: ret } = await agent
+        .get("/api/index")
+        .input({
+          name: share.name,
+        })
+        .takeExample("Index-Get")
+        .raw();
+      expect(ret).toBe(`Get ${share.name}`);
+    });
 
-  it("TEST - Put success", async () => {
-    const { text: ret } = await agent
-      .put("/api/index")
-      .input({
-        age: share.age,
-      })
-      .takeExample("Index-Put")
-      .raw();
-    expect(ret).toBe(`Put ${share.age}`);
-  });
+    it("TEST - Post success", async () => {
+      const { text: ret } = await agent
+        .post("/api/index")
+        .query({
+          name: share.name,
+        })
+        .input({
+          age: share.age,
+        })
+        .takeExample("Index-Post")
+        .raw();
+      expect(ret).toBe(`Post ${share.name}:${share.age}`);
+    });
 
-  it("TEST - Delete success", async () => {
-    const { text: ret } = await agent
-      .delete("/api/index/" + share.name)
-      .takeExample("Index-Delete")
-      .raw();
-    expect(ret).toBe(`Delete ${share.name}`);
-  });
+    it("TEST - Put success", async () => {
+      const { text: ret } = await agent
+        .put("/api/index")
+        .input({
+          age: share.age,
+        })
+        .takeExample("Index-Put")
+        .raw();
+      expect(ret).toBe(`Put ${share.age}`);
+    });
 
-  it("TEST - Patch success", async () => {
-    const { text: ret } = await agent
-      .patch("/api/index")
-      .takeExample("Index-Patch")
-      .raw();
-    expect(ret).toBe(`Patch`);
-  });
+    it("TEST - Delete success", async () => {
+      const { text: ret } = await agent
+        .delete("/api/index/" + share.name)
+        .takeExample("Index-Delete")
+        .raw();
+      expect(ret).toBe(`Delete ${share.name}`);
+    });
 
-  it("TEST - Post missing params", async () => {
-    const { text: ret } = await agent
-      .post("/api/index")
-      .query({
-        test: "a",
-      })
-      .attach({
-        age: share.age,
-        file: createReadStream(resolve(__dirname, "./lib.ts")),
-      })
-      .takeExample("Index-Post")
-      .raw();
-    expect(ret).toBe("missing required parameter 'name' is required!");
-  });
+    it("TEST - Patch success", async () => {
+      const { text: ret } = await agent
+        .patch("/api/index")
+        .takeExample("Index-Patch")
+        .raw();
+      expect(ret).toBe(`Patch`);
+    });
 
-  it("TEST - Post missing params", async () => {
-    const { text: ret } = await agent
-      .put("/api/index")
-      .input({
-        age: share.ageStr,
-      })
-      .takeExample("Index-Post")
-      .raw();
-    expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
-  });
+    it("TEST - Post missing params", async () => {
+      const { text: ret } = await agent
+        .post("/api/index")
+        .query({
+          test: "a",
+        })
+        .attach({
+          age: share.age,
+          file: createReadStream(resolve(__dirname, "./lib.ts")),
+        })
+        .takeExample("Index-Post")
+        .raw();
+      expect(ret).toBe("missing required parameter 'name' is required!");
+    });
 
-  it("TEST - JSON FormatOutput error", async () => {
-    const ret = await agent
-      .get("/api/json")
-      .input({
-        age: 10,
-      })
-      .takeExample("Index-JSON")
-      .error();
-    expect(ret).toBe("error");
-  });
+    it("TEST - Post missing params", async () => {
+      const { text: ret } = await agent
+        .put("/api/index")
+        .input({
+          age: share.ageStr,
+        })
+        .takeExample("Index-Post")
+        .raw();
+      expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
+    });
 
-  it("TEST - JSON FormatOutput success", async () => {
-    const ret = await agent
-      .get("/api/json")
-      .input({
-        age: share.age,
-      })
-      .takeExample("Index-JSON")
-      .success();
-    expect(ret).toEqual({ age: share.age });
-  });
+    it("TEST - JSON FormatOutput error", async () => {
+      const ret = await agent
+        .get("/api/json")
+        .input({
+          age: 10,
+        })
+        .takeExample("Index-JSON")
+        .error();
+      expect(ret).toBe("error");
+    });
 
-  it("TEST - API requiredOneOf error", async () => {
-    const ret = await agent
-      .get("/api/json2")
-      .takeExample("Index-JSON")
-      .error();
-    expect(ret).toBe("error");
-  });
+    it("TEST - JSON FormatOutput success", async () => {
+      const ret = await agent
+        .get("/api/json")
+        .input({
+          age: share.age,
+        })
+        .takeExample("Index-JSON")
+        .success();
+      expect(ret).toEqual({ age: share.age });
+    });
 
-  it("TEST - API default value", async () => {
-    const ret = await agent
-      .get("/api/json2")
-      .input({
-        age: share.age,
-        $a: "a",
-      })
-      .takeExample("Index-JSON")
-      .success();
-    expect(ret).toEqual({ age: 22, num: 10 });
-  });
+    it("TEST - API requiredOneOf error", async () => {
+      const ret = await agent
+        .get("/api/json2")
+        .takeExample("Index-JSON")
+        .error();
+      expect(ret).toBe("error");
+    });
 
-  describe("TEST - with error", () => {
+    it("TEST - API default value", async () => {
+      const ret = await agent
+        .get("/api/json2")
+        .input({
+          age: share.age,
+          $a: "a",
+        })
+        .takeExample("Index-JSON")
+        .success();
+      expect(ret).toEqual({ age: 22, num: 10 });
+    });
+
     it("success when error", async () => {
       try {
         const ret = await agent.get("/api/json2").success();
@@ -228,9 +219,9 @@ describe("TEST - Index", () => {
         expect(err.message).toContain("尝试请求未注册的API");
       }
     });
-  });
 
-  it("TEST - Gen docs", () => {
-    apiService.genDocs("/tmp/", false);
+    it("TEST - Gen docs", () => {
+      apiService.genDocs("/tmp/", false);
+    });
   });
-});
+}
