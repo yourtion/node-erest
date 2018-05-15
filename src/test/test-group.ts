@@ -30,8 +30,8 @@ test("Group - bindGroupToApp error when not forceGroup", () => {
   expect(fn).toThrow("internal error 没有开启 forceGroup，请使用bindRouter");
 });
 
-test("Group - bindGroupToApp", () => {
-  const apiService = lib({ forceGroup: true });
+describe("Group - bindGroupToApp", () => {
+  const apiService = lib({ forceGroup: true, info: {basePath: ""} });
   const api = apiService.group("Index");
   const app = express();
   apiService.beforeHooks(globalBefore);
@@ -63,9 +63,19 @@ test("Group - bindGroupToApp", () => {
   expect(routerStack.length).toBe(7);
   const hooksName = routerStack.map((r: any) => r.name);
   expect(hooksName).toEqual(order);
+
+  it("TEST - Get success", async () => {
+    apiService.initTest(app);
+
+    const { text: ret } = await apiService.test
+      .get("/index")
+      .takeExample("Index-Get")
+      .raw();
+    expect(ret).toBe("Hello, API Framework Index");
+  });
 });
 
-test("Group - define and use route bindGroupToApp", () => {
+describe("Group - define and use route bindGroupToApp", () => {
   const apiService = lib({ forceGroup: true });
   const api = apiService.group("Index");
   const app = express();
@@ -90,20 +100,32 @@ test("Group - define and use route bindGroupToApp", () => {
     handler: reqFn,
   });
   apiService.bindGroupToApp(router, express);
-  const appRoute = app._router.stack[2].handle;
-  const apiRoute = appRoute.stack[0].handle;
-  const routerStack = apiRoute.stack[0].route.stack;
 
-  const order = [
-    "globalBefore",
-    "beforHook",
-    "apiParamsChecker",
-    "middleware",
-    "reqFn",
-    "afterHook",
-    "globalAfter",
-  ];
-  expect(routerStack.length).toBe(7);
-  const hooksName = routerStack.map((r: any) => r.name);
-  expect(hooksName).toEqual(order);
+  it("TEST - routerStack order", () => {
+    const appRoute = app._router.stack[2].handle;
+    const apiRoute = appRoute.stack[0].handle;
+    const routerStack = apiRoute.stack[0].route.stack;
+    const order = [
+      "globalBefore",
+      "beforHook",
+      "apiParamsChecker",
+      "middleware",
+      "reqFn",
+      "afterHook",
+      "globalAfter",
+    ];
+    expect(routerStack.length).toBe(7);
+    const hooksName = routerStack.map((r: any) => r.name);
+    expect(hooksName).toEqual(order);
+  });
+
+  it("TEST - Get success", async () => {
+    apiService.initTest(app);
+
+    const { text: ret } = await apiService.test
+      .patch("/api/index")
+      .takeExample("Index-Get")
+      .raw();
+    expect(ret).toBe("Hello, API Framework Index");
+  });
 });

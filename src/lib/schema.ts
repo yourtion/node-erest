@@ -104,13 +104,13 @@ export class Schema<T, U> {
     if (options.requiredOneOf) {
       schema.requiredOneOf(options.requiredOneOf);
     }
-    if (options.middlewares) {
+    if (options.middlewares && options.middlewares.length > 0) {
       schema.middlewares(...options.middlewares);
     }
-    if (options.before) {
+    if (options.before && options.before.length > 0) {
       schema.before(...options.before);
     }
-    if (options.after) {
+    if (options.after && options.after.length > 0) {
       schema.after(...options.after);
     }
     schema.register(options.handler);
@@ -317,10 +317,12 @@ export class Schema<T, U> {
    */
   public requiredOneOf(list: string[]) {
     this._checkInited();
-    for (const item of list) {
-      assert(typeof item === "string", "`name`必须是字符串类型");
+    if (list.length > 0) {
+      for (const item of list) {
+        assert(typeof item === "string", "`name`必须是字符串类型");
+      }
+      this.options.requiredOneOf.push(list);
     }
-    this.options.requiredOneOf.push(list);
     return this;
   }
 

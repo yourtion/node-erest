@@ -118,7 +118,6 @@ export default class IAPITest {
   private regTest(method: string) {
     return (path: string) => {
       const s = this.findSchema(method, path);
-
       if (!s || !s.key) {
         throw new Error(`尝试请求未注册的API：${method} ${path}`);
       }
