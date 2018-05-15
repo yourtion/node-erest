@@ -26,7 +26,7 @@ function filePath(dir: string, name: string) {
 export default function generateMarkdown(data: IDocData, dir: string, options: IDocOptions) {
 
   function getGroupName(name: string) {
-    return data.group[name] ? `${ data.group[name] } ( ${ name } )` : name;
+    return `${ data.group[name] } ( ${ name } )`;
   }
 
   const typeDoc = trimSpaces(typeDocs(data));

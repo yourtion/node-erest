@@ -46,7 +46,7 @@ export interface ISchemaOption<T, U> extends IKVObject {
   body: object;
   params: IKVObject;
   _params: Map<string, IParamsOption>;
-  schema?: object;
+  schema?: IKVObject<ISchemaOption<T, U>>;
   tested: boolean;
 }
 
@@ -169,7 +169,7 @@ export class Schema<T, U> {
    * @param {Object} schema 输出结果对象
    * @return {Object}
    */
-  public schema(schema: object) {
+  public schema(schema: IKVObject<ISchemaOption<T, U>>) {
     assert(typeof schema === "object", "`schema`必须是一个对象");
     this.options.schema = schema;
     return this;

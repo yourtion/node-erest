@@ -4,6 +4,10 @@ import { GROUPS, INFO } from "./lib";
 
 import * as express from "express";
 
+function reqFn(req: any, res: any) {
+  res.end("Hello, API Framework Index");
+}
+
 test("Group - bindRouter error when forceGroup", () => {
   const apiService = lib({ forceGroup: true });
   const api = apiService.api;
@@ -38,9 +42,10 @@ test("Group - bindGroupToApp", () => {
     .before(beforHook)
     .after(afterHook)
     .middlewares(middleware)
-    .register(function fn(req, res) {
-      res.end("Hello, API Framework Index");
-    });
+    .register(reqFn);
+  api.post("/").register(reqFn);
+  api.delete("/").register(reqFn);
+  api.patch("/").register(reqFn);
   apiService.bindGroupToApp(app, express);
   const appRoute = app._router.stack[2].handle;
   const routerStack = appRoute.stack[0].route.stack;
@@ -50,7 +55,7 @@ test("Group - bindGroupToApp", () => {
     "beforHook",
     "apiParamsChecker",
     "middleware",
-    "fn",
+    "reqFn",
     "afterHook",
     "globalAfter",
   ];

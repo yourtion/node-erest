@@ -121,7 +121,7 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n参数：无参数");
     }
 
-    const schemaDoc = schemaTable(item.schemas);
+    const schemaDoc = schemaTable(item.schema!);
     if (schemaDoc) {
       line.push("\n### 输出结果说明：\n" + schemaDoc);
     }
