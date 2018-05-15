@@ -134,16 +134,19 @@ export function apiPatch(api: any) {
 }
 
 export function apiJson(api: any, path = "/json") {
-  return api
-    .get(path)
-    .group("Index")
-    .query({ age: ageParams })
-    .title("JSON")
-    .register(function json(req: any, res: any) {
-      if (req.$params.age < 18) {
-        return res.json({ success: false });
-      }
-      return res.json({ success: true, result: req.$params });
+  function json(req: any, res: any) {
+    if (req.$params.age < 18) {
+      return res.json({ success: false });
+    }
+    return res.json({ success: true, result: req.$params });
+  }
+  return api.define({
+      method: "get",
+      path,
+      group: "Index",
+      title: "JSON",
+      query: { age: ageParams },
+      handler: json,
     });
 }
 

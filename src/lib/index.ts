@@ -11,7 +11,7 @@ import IAPITest from "./extend/test";
 import { IKVObject, ISupportMethds } from "./interfaces";
 import { ErrorManager, IError, IType, TypeManager } from "./manager";
 import { apiCheckParams, ISchemaType, paramsChecker, schemaChecker } from "./params";
-import { IHandler, ISchemaOption, Schema } from "./schema";
+import { IHandler, ISchemaDefine, ISchemaOption, Schema } from "./schema";
 import * as utils from "./utils";
 const { camelCase2underscore, getCallerSourceLine } = utils;
 
@@ -21,8 +21,13 @@ const internalError = (msg: string) => new Error(`internal error ${msg}`);
 
 export type genSchema<T, U> = Readonly<ISupportMethds<(path: string) => Schema<T, U>>>;
 
+export interface IGruop<T, U> extends IKVObject, genSchema<T, U> {
+  define: (opt: ISchemaDefine<T, U>) => Schema<T, U>;
+}
+
 export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
   readonly $schemas: Map<string, Schema<T, U>>;
+  define: (opt: ISchemaDefine<T, U>) => Schema<T, U>;
   beforeHooks: Set<IHandler<T, U>>;
   afterHooks: Set<IHandler<T, U>>;
   docs?: IAPIDoc;
@@ -81,6 +86,7 @@ export default class API<T = any, U = any> {
   private groups: IKVObject<string>;
   private forceGroup: boolean;
   private registAPI: (method: string, path: string, group?: string | undefined) => Schema<T, U>;
+  private defineAPI: (options: ISchemaDefine<T, U>, group?: string | undefined) => Schema<T, U>;
 
   get privateInfo() {
     return {
@@ -145,10 +151,25 @@ export default class API<T = any, U = any> {
       debug("register: (%s)[%s] - %s ", group, method, path);
       return s;
     };
+    this.defineAPI = (opt: ISchemaDefine<T, U>, group?: string) => {
+      const s =  Schema.define(opt, getCallerSourceLine(this.config.path), group);
+      const s2 = this.apiInfo.$schemas.get(s.key);
+      assert(
+        !s2,
+        `尝试注册API：${s.key}（所在文件：${
+          s.options.sourceFile.absolute
+        }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`
+      );
+
+      this.apiInfo.$schemas.set(s.key, s);
+      debug("define: (%s)[%s] - %s ", group, opt.method, opt.path);
+      return s;
+    };
     this.apiInfo = {
       $schemas: new Map(),
       beforeHooks: new Set(),
       afterHooks: new Set(),
+      define: (opt: ISchemaDefine<T, U>) => this.defineAPI(opt),
       get: (path: string) => this.registAPI("get", path),
       post: (path: string) => this.registAPI("post", path),
       put: (path: string) => this.registAPI("put", path),
@@ -215,7 +236,7 @@ export default class API<T = any, U = any> {
       schemaChecker(this, data, schema, requiredOneOf);
   }
 
-  public group(name: string): ISupportMethds<(path: string) => Schema<T, U>> {
+  public group(name: string): IGruop<T, U> {
     debug("using group: %s", name);
     const group = {
       get: (path: string) => this.registAPI("get", path, name),
@@ -223,6 +244,7 @@ export default class API<T = any, U = any> {
       put: (path: string) => this.registAPI("put", path, name),
       delete: (path: string) => this.registAPI("delete", path, name),
       patch: (path: string) => this.registAPI("patch", path, name),
+      define: (opt: ISchemaDefine<T, U>) => this.defineAPI(opt, name),
     };
     return group;
   }
@@ -239,9 +261,6 @@ export default class API<T = any, U = any> {
     }
     for (const [key, schema] of this.apiInfo.$schemas.entries()) {
       debug("bind router" + key);
-      if (!schema) {
-        continue;
-      }
       schema.init(this);
       router[schema.options.method].bind(router)(
         schema.options.path,
@@ -269,9 +288,6 @@ export default class API<T = any, U = any> {
     }
     const routes = new Map();
     for (const [key, schema] of this.apiInfo.$schemas.entries()) {
-      if (!schema) {
-        continue;
-      }
       schema.init(this);
       const group = camelCase2underscore(schema.options.group || "");
       debug("bindGroupToApp: %s - %s", key, group);

@@ -60,7 +60,6 @@ for (const agent of [apiService.test.session(), apiService.test]) {
   const info = agent === apiService.test ? "No session" : "Session";
 
   describe("TEST - " + info, () => {
-
     it("TEST - Get success", async () => {
       const { text: ret } = await agent
         .get("/api/index")

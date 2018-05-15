@@ -24,9 +24,30 @@ export interface IParamsOption {
   enum?: string[];
 }
 
+export type SUPPORT_METHODS = "get" | "post" | "put" | "delete" | "patch";
+
+export interface ISchemaDefine<T, U> {
+  method: SUPPORT_METHODS;
+  path: string;
+  title: string;
+  handler: IHandler<T, U>;
+  group?: string;
+  sourceFile?: ISourceResult;
+  description?: string;
+  schema?: IKVObject<ISchemaOption<T, U>>;
+  body?: IKVObject;
+  query?: IKVObject;
+  param?: IKVObject;
+  required?: string[];
+  requiredOneOf?: string[];
+  middlewares?: Array<IHandler<T, U>>;
+  before?: Array<IHandler<T, U>>;
+  after?: Array<IHandler<T, U>>;
+}
+
 export type IHandler<T, U> = (req: T, res: U, next?: any) => any;
 
-export interface ISchemaOption<T, U> extends IKVObject {
+export interface ISchemaOption<T = any, U = any> extends IKVObject {
   description?: string;
   group: string;
   format?: boolean;
@@ -52,6 +73,50 @@ export interface ISchemaOption<T, U> extends IKVObject {
 
 export class Schema<T, U> {
   public static SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"];
+  public static define<T, U>(
+    options: ISchemaDefine<T, U>,
+    sourceFile: ISourceResult,
+    group?: string
+  ) {
+    const schema = new Schema<T, U>(options.method, options.path, sourceFile, group);
+    schema.title(options.title);
+    if (options.group) {
+      schema.group(options.group);
+    }
+    if (options.description) {
+      schema.description(options.description);
+    }
+    if (options.schema) {
+      schema.schema(options.schema);
+    }
+    if (options.body) {
+      schema.body(options.body);
+    }
+    if (options.query) {
+      schema.query(options.query);
+    }
+    if (options.param) {
+      schema.param(options.param);
+    }
+    if (options.required) {
+      schema.required(options.required);
+    }
+    if (options.requiredOneOf) {
+      schema.requiredOneOf(options.requiredOneOf);
+    }
+    if (options.middlewares) {
+      schema.middlewares(...options.middlewares);
+    }
+    if (options.before) {
+      schema.before(...options.before);
+    }
+    if (options.after) {
+      schema.after(...options.after);
+    }
+    schema.register(options.handler);
+    return schema;
+  }
+
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
