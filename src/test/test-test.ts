@@ -160,6 +160,21 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toEqual({ age: share.age });
     });
 
+    it("TEST - Header success", async () => {
+      const { body } = await agent
+        .get("/api/json")
+        .headers({
+          test: true,
+        })
+        .input({
+          age: share.age,
+        })
+        .takeExample("Index-Header")
+        .raw();
+      expect(body.result).toEqual({ age: share.age });
+      expect(body.headers.test).toEqual("true");
+    });
+
     it("TEST - API requiredOneOf error", async () => {
       const ret = await agent
         .get("/api/json2")

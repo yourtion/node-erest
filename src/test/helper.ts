@@ -138,7 +138,7 @@ export function apiJson(api: any, path = "/json") {
     if (req.$params.age < 18) {
       return res.json({ success: false });
     }
-    return res.json({ success: true, result: req.$params });
+    return res.json({ success: true, result: req.$params, headers: req.headers });
   }
   return api.define({
     method: "get",

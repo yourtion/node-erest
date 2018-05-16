@@ -5,7 +5,7 @@ import { GROUPS, INFO } from "./lib";
 import * as express from "express";
 
 function reqFn(req: any, res: any) {
-  res.end("Hello, API Framework Index");
+  res.json("Hello, API Framework Index");
 }
 
 const globalBefore = hook("globalBefore");
@@ -13,6 +13,16 @@ const globalAfter = hook("globalAfter");
 const beforHook = hook("beforHook");
 const afterHook = hook("afterHook");
 const middleware = hook("middleware");
+
+const order = [
+  "globalBefore",
+  "beforHook",
+  "apiParamsChecker",
+  "middleware",
+  "reqFn",
+  "afterHook",
+  "globalAfter",
+];
 
 test("Group - bindRouter error when forceGroup", () => {
   const apiService = lib({ forceGroup: true });
@@ -48,30 +58,23 @@ describe("Group - bindGroupToApp", () => {
   api.delete("/").register(reqFn);
   api.patch("/").register(reqFn);
   apiService.bindGroupToApp(app, express);
-  const appRoute = app._router.stack[2].handle;
-  const routerStack = appRoute.stack[0].route.stack;
 
-  const order = [
-    "globalBefore",
-    "beforHook",
-    "apiParamsChecker",
-    "middleware",
-    "reqFn",
-    "afterHook",
-    "globalAfter",
-  ];
-  expect(routerStack.length).toBe(7);
-  const hooksName = routerStack.map((r: any) => r.name);
-  expect(hooksName).toEqual(order);
+  it("TEST - routerStack order", () => {
+    const appRoute = app._router.stack[2].handle;
+    const routerStack = appRoute.stack[0].route.stack;
+
+    expect(routerStack.length).toBe(7);
+    const hooksName = routerStack.map((r: any) => r.name);
+    expect(hooksName).toEqual(order);
+  });
 
   it("TEST - Get success", async () => {
     apiService.initTest(app);
 
     const { text: ret } = await apiService.test
       .get("/index")
-      .takeExample("Index-Get")
       .raw();
-    expect(ret).toBe("Hello, API Framework Index");
+    expect(ret).toBe(`"Hello, API Framework Index"`);
   });
 });
 
@@ -105,15 +108,7 @@ describe("Group - define and use route bindGroupToApp", () => {
     const appRoute = app._router.stack[2].handle;
     const apiRoute = appRoute.stack[0].handle;
     const routerStack = apiRoute.stack[0].route.stack;
-    const order = [
-      "globalBefore",
-      "beforHook",
-      "apiParamsChecker",
-      "middleware",
-      "reqFn",
-      "afterHook",
-      "globalAfter",
-    ];
+
     expect(routerStack.length).toBe(7);
     const hooksName = routerStack.map((r: any) => r.name);
     expect(hooksName).toEqual(order);
@@ -122,10 +117,9 @@ describe("Group - define and use route bindGroupToApp", () => {
   it("TEST - Get success", async () => {
     apiService.initTest(app);
 
-    const { text: ret } = await apiService.test
+    const ret = await apiService.test
       .patch("/api/index")
-      .takeExample("Index-Get")
-      .raw();
+      .success();
     expect(ret).toBe("Hello, API Framework Index");
   });
 });

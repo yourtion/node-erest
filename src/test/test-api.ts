@@ -1,10 +1,10 @@
 import lib from "./lib";
 import { GROUPS, INFO } from "./lib";
 
-const apiService = lib();
-
 describe("API - base", () => {
-  test("API - service Info", () => {
+  const apiService = lib();
+
+  it("API - service Info", () => {
     const apiInfo = apiService.privateInfo.info;
     expect(apiInfo.title).toBe(INFO.title);
     expect(apiInfo.description).toBe(INFO.description);
@@ -14,13 +14,11 @@ describe("API - base", () => {
     expect(apiService.privateInfo.groups).toEqual(GROUPS);
   });
 
-  test("API - service Init", () => {
+  it("API - service Init", () => {
     expect(apiService.privateInfo.groups).toEqual(GROUPS);
   });
-});
 
-describe("API - addon", () => {
-  test("API - utils", () => {
+  it("API - utils", () => {
     expect(apiService.utils.getCallerSourceLine("/qq")).toEqual({
       relative: undefined,
       absolute: undefined,
@@ -30,12 +28,12 @@ describe("API - addon", () => {
     cb(new Error());
   });
 
-  test("API - service Init", () => {
+  it("API - service Init", () => {
     apiService.setDocOutputForamt((out: any) => out);
     expect(apiService.privateInfo.groups).toEqual(GROUPS);
   });
 
-  test("API - register error empty", () => {
+  it("API - register error empty", () => {
     apiService.errors.register("TEST", {});
   });
 });

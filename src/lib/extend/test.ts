@@ -32,11 +32,7 @@ export default class IAPITest {
     this.info = info;
     this.app = app;
     this.config = config;
-    try {
-      this.supertest = require("supertest");
-    } catch (err) {
-      debug(err);
-    }
+    this.supertest = require("supertest");
   }
 
   get get() {

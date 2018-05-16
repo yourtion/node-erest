@@ -108,16 +108,8 @@ export class TestAgent {
    * @param {Object} app Express实例
    */
   public initAgent(app: object) {
-    let request;
-    try {
-      request = require("supertest");
-      assert(request, "Install `supertest` first");
-    } catch (err) {
-      debug(err);
-    }
-    if (!request) {
-      return;
-    }
+    const request = require("supertest");
+    assert(request, "Install `supertest` first");
     assert(app, `express app instance could not be empty`);
     debug("create supertest agent");
     this.setAgent(request(app)[this.options.method](this.options.path) as Test);
@@ -207,10 +199,7 @@ export class TestAgent {
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
       if (err) {
-        const err2 = new Error(
-          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`
-        );
-        cb(err2);
+        cb(new Error(`${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`));
       } else {
         this.saveExample();
         cb(null, ret);
@@ -233,10 +222,7 @@ export class TestAgent {
         this.saveExample();
         cb(null, err);
       } else {
-        const err2 = new Error(
-          `${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`
-        );
-        cb(err2);
+        cb(new Error(`${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`));
       }
     });
     return cb.promise;
@@ -252,15 +238,8 @@ export class TestAgent {
     this.debug("raw");
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
-      if (err) {
-        const err2 = new Error(
-          `${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`
-        );
-        cb(err2);
-      } else {
-        this.saveExample();
-        cb(null, ret);
-      }
+      this.saveExample();
+      cb(err, ret);
     }, true);
     return cb.promise;
   }
@@ -285,9 +264,8 @@ export class TestAgent {
    * @param {Boolean} raw 原始输出
    * @return {Promise}
    */
-  private output(callback?: ICallback<any>, raw = false): Promise<any> {
+  private output(cb: IPromiseCallback<any>, raw = false): Promise<any> {
     this.options.parent.api.$schemas.get(this.key).options.tested = true;
-    const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.options.agent!.end((err: Error, res: IKVObject) => {
       this.options.agentPath = res.req.path;
       this.options.agentOutput = res.body;

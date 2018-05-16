@@ -79,8 +79,8 @@ function examples(exampleList: any[]) {
   return exampleList
     .map((item) => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
-      const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) : "";
-      const input = `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
+      const header = item.headers && "\nheaders = " + jsonStringify(item.headers, 2);
+      const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};` ;
       const output = `output = ${jsonStringify(item.output, 2)};`;
       return `${title}\n${header}\n${input}\n${output}`.trim();
     })
@@ -101,7 +101,7 @@ export default function schemaDocs(data: IDocData) {
     const item = data.schemas[key];
 
     const line = [
-      `## ${key.replace("_", " ")} ${stringOrEmpty(item.title)} ${itemTFEmoji(item.tested)}`,
+      `## ${stringOrEmpty(item.title)} ${itemTFEmoji(item.tested)}`,
     ];
     line.push(`\n请求地址：**${item.method.toUpperCase()}** \`${item.path}\``);
 
