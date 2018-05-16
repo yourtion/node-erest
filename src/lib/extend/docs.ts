@@ -79,6 +79,7 @@ export default class IAPIDoc {
    * 获取文档数据
    */
   public data() {
+    debug("data");
     const data: IDocData = {
       info: this.info,
       errors: this.parent.errors,
@@ -123,6 +124,7 @@ export default class IAPIDoc {
    * 生成文档
    */
   public genDocs() {
+    debug("genDocs");
     this.markdown();
     if (this.docsOptions.swagger) {
       this.swagger();
@@ -137,6 +139,7 @@ export default class IAPIDoc {
    * 生成 Markdown 文档
    */
   public markdown() {
+    debug("markdown");
     this.plugins.push(generateMarkdown);
     return this;
   }
@@ -145,6 +148,7 @@ export default class IAPIDoc {
    * 生成 Swagger 文档
    */
   public swagger() {
+    debug("swagger");
     this.plugins.push(generateSwagger);
     return this;
   }
@@ -153,6 +157,7 @@ export default class IAPIDoc {
    * 生成 JSON 文档
    */
   public json() {
+    debug("json");
     const generateJson = (data: any, dir: string, options: IDocOptions) => {
       const filename = this.parent.utils.getPath("doc.json", options.json);
       fs.writeFileSync(path.resolve(dir, filename), this.parent.utils.jsonStringify(data, 2));
@@ -182,7 +187,7 @@ export default class IAPIDoc {
       }
     }
 
-    debug(dir);
+    debug("save: %s", dir);
 
     // 根据插件生成文档
     for (const fn of this.plugins) {
@@ -196,6 +201,7 @@ export default class IAPIDoc {
    * 当进程退出时存储文档
    */
   public saveOnExit(dir: string) {
+    debug("saveOnExit: %s", dir);
     process.on("exit", () => {
       this.save(dir);
     });

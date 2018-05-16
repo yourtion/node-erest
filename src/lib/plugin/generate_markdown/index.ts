@@ -19,11 +19,13 @@ import { itemTF, stringOrEmpty, trimSpaces } from "./utils";
 function filePath(dir: string, name: string) {
   const filename = name === "Home" ? name : name.toLowerCase();
   const p = path.resolve(dir, filename + ".md");
-  debug("filePath", p);
+  debug("filePath: %s", p);
   return p;
 }
 
 export default function generateMarkdown(data: IDocData, dir: string, options: IDocOptions) {
+
+  debug("generateMarkdown: %s - %o", dir, options);
 
   function getGroupName(name: string) {
     return `${ data.group[name] } ( ${ name } )`;

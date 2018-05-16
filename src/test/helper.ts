@@ -141,13 +141,13 @@ export function apiJson(api: any, path = "/json") {
     return res.json({ success: true, result: req.$params });
   }
   return api.define({
-      method: "get",
-      path,
-      group: "Index",
-      title: "JSON",
-      query: { age: ageParams },
-      handler: json,
-    });
+    method: "get",
+    path,
+    group: "Index",
+    title: "JSON",
+    query: { age: ageParams },
+    handler: json,
+  });
 }
 
 export function apiAll(api: any) {

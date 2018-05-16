@@ -31,7 +31,7 @@ test("Group - bindGroupToApp error when not forceGroup", () => {
 });
 
 describe("Group - bindGroupToApp", () => {
-  const apiService = lib({ forceGroup: true, info: {basePath: ""} });
+  const apiService = lib({ forceGroup: true, info: { basePath: "" } });
   const api = apiService.group("Index");
   const app = express();
   apiService.beforeHooks(globalBefore);

@@ -5,7 +5,7 @@
  */
 
 import * as assert from "assert";
-import { core as debug } from "../debug";
+import { coreError as debug } from "../debug";
 import { Manager } from "./manager";
 
 export interface IError {

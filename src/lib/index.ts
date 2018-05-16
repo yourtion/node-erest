@@ -152,7 +152,7 @@ export default class API<T = any, U = any> {
       return s;
     };
     this.defineAPI = (opt: ISchemaDefine<T, U>, group?: string) => {
-      const s =  Schema.define(opt, getCallerSourceLine(this.config.path), group);
+      const s = Schema.define(opt, getCallerSourceLine(this.config.path), group);
       const s2 = this.apiInfo.$schemas.get(s.key);
       assert(
         !s2,
@@ -260,7 +260,7 @@ export default class API<T = any, U = any> {
       throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
     }
     for (const [key, schema] of this.apiInfo.$schemas.entries()) {
-      debug("bind router" + key);
+      debug("bind router: %s", key);
       schema.init(this);
       router[schema.options.method].bind(router)(
         schema.options.path,
@@ -306,7 +306,7 @@ export default class API<T = any, U = any> {
       );
     }
     for (const [key, value] of routes.entries()) {
-      debug("bindGroupToApp - " + key);
+      debug("bindGroupToApp - %s", key);
       app.use(prefix ? `/${prefix}/${key}` : "/" + key, value);
     }
   }

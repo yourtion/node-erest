@@ -28,6 +28,7 @@ export default (options = {}) => {
         info: INFO,
         errors: ERROR_INFO,
         groups: GROUPS,
+        path: __dirname,
         docs: {
           wiki: true,
           index: true,

@@ -5,7 +5,7 @@
  */
 
 import * as assert from "assert";
-import { core as debug } from "../debug";
+import { coreType as debug } from "../debug";
 import { Manager } from "./manager";
 
 export interface IType {

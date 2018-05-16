@@ -98,6 +98,7 @@ export class TestAgent {
    * @param {Object} agent
    */
   public setAgent(agent: Test) {
+    this.debug("setAgent");
     this.options.agent = agent;
   }
 
@@ -118,7 +119,7 @@ export class TestAgent {
       return;
     }
     assert(app, `express app instance could not be empty`);
-    this.debug("create supertest agent");
+    debug("create supertest agent");
     this.setAgent(request(app)[this.options.method](this.options.path) as Test);
   }
 
@@ -139,12 +140,14 @@ export class TestAgent {
    * @returns {Object}
    */
   public takeExample(name: string) {
+    this.debug("takeExample: %s", name);
     this.options.agentTestName = name;
     this.options.takeExample = true;
     return this;
   }
 
   public headers(data: IKVObject) {
+    this.debug("headers: %j", data);
     this.options.agentHeader = data;
     Object.keys(data).forEach(k => this.options.agent && this.options.agent.set(k, data[k]));
     return this;
@@ -179,7 +182,7 @@ export class TestAgent {
   }
 
   public attach(data: IKVObject) {
-    this.debug("input: %j", data);
+    this.debug("attach: %j", data);
     Object.assign(this.options.agentInput, data);
     for (const i in data) {
       // TODO: use fs.ReadStream
@@ -200,6 +203,7 @@ export class TestAgent {
    * @return {Promise}
    */
   public success(callback?: ICallback<any>) {
+    this.debug("success");
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
       if (err) {
@@ -222,6 +226,7 @@ export class TestAgent {
    * @return {Promise}
    */
   public error(callback?: ICallback<any>) {
+    this.debug("error");
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
       if (err) {
@@ -244,6 +249,7 @@ export class TestAgent {
    * @return {Promise}
    */
   public raw(callback?: ICallback<any>) {
+    this.debug("raw");
     const cb = (callback as IPromiseCallback<any>) || utils.createPromiseCallback();
     this.output((err, ret) => {
       if (err) {
@@ -260,7 +266,7 @@ export class TestAgent {
   }
 
   private saveExample() {
-    debug("Save Example", this.key, this.options.takeExample);
+    this.debug("Save Example: %o", this.options.takeExample);
     if (this.options.takeExample) {
       this.options.parent.api.$schemas.get(this.key).example({
         name: this.options.agentTestName,
@@ -270,7 +276,6 @@ export class TestAgent {
         output: this.options.agentOutput,
       });
     }
-    debug(this.options.parent.api.$schemas.get(this.key).options.examples);
   }
 
   /**

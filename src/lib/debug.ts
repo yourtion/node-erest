@@ -16,6 +16,8 @@ export const create = (name: string) => {
 };
 
 export const core = create("core");
+export const coreError = create("core:error");
+export const coreType = create("core:types");
 export const schema = create("schema");
 export const params = create("params");
 export const test = create("test");
