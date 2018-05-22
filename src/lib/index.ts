@@ -280,9 +280,8 @@ export default class API<T = any, U = any> {
    *
    * @param {Object} app Express App 实例
    * @param {Object} express Express 对象
-   * @param {string} prefix 路由前缀
    */
-  public bindGroupToApp(app: any, express: any, prefix?: string) {
+  public bindGroupToApp(app: any, express: any) {
     if (!this.forceGroup) {
       throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
     }
@@ -307,7 +306,7 @@ export default class API<T = any, U = any> {
     }
     for (const [key, value] of routes.entries()) {
       debug("bindGroupToApp - %s", key);
-      app.use(prefix ? `/${prefix}/${key}` : "/" + key, value);
+      app.use("/" + key, value);
     }
   }
 
