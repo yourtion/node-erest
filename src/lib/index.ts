@@ -43,7 +43,7 @@ export interface IApiOptionInfo {
   basePath?: string;
 }
 
-export interface IAPIConfig {
+interface IAPIConfig {
   path: string;
 }
 
@@ -91,7 +91,6 @@ export default class API<T = any, U = any> {
   get privateInfo() {
     return {
       app: this.app,
-      config: this.config,
       info: this.info,
       groups: this.groups,
       docsOptions: this.docsOptions,
@@ -194,18 +193,17 @@ export default class API<T = any, U = any> {
     defaultErrors.call(this, this.errorManage);
   }
 
-  public initTest(app: any, path: string = "/docs/") {
+  public initTest(app: any, testPath = process.cwd(), docPath = "/docs/") {
     if (this.app && this.testAgent) {
       return;
     }
     debug("initTest");
     this.app = app;
-    this.testAgent = new IAPITest(this);
+    this.testAgent = new IAPITest(this, testPath);
     if (!this.api.docs) {
       this.api.docs = new IAPIDoc(this);
     }
-    this.apiInfo.docs!.markdown();
-    this.apiInfo.docs!.saveOnExit(process.cwd() + path);
+    this.apiInfo.docs!.saveOnExit(process.cwd() + docPath);
   }
 
   public setFormatOutput(fn: (out: any) => [Error | null, any]) {

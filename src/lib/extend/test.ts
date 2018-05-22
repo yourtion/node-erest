@@ -7,7 +7,7 @@
 import * as assert from "assert";
 import { TestAgent } from "../agent";
 import { test as debug } from "../debug";
-import API, { IAPIConfig, IApiOptionInfo } from "../index";
+import API, { IApiOptionInfo } from "../index";
 import { IKVObject, ISupportMethds } from "../interfaces";
 import { getCallerSourceLine, getSchemaKey } from "../utils";
 
@@ -23,15 +23,15 @@ export default class IAPITest {
   private parent: API;
   private info: IApiOptionInfo;
   private app: any;
+  private testPath: string;
   private supertest?: any;
-  private config: IAPIConfig;
 
-  constructor(apiService: API) {
+  constructor(apiService: API, path: string) {
     this.parent = apiService;
-    const { info, app, config } = this.parent.privateInfo;
+    const { info, app } = this.parent.privateInfo;
     this.info = info;
     this.app = app;
-    this.config = config;
+    this.testPath = path;
     this.supertest = require("supertest");
   }
 
@@ -117,7 +117,7 @@ export default class IAPITest {
       if (!s || !s.key) {
         throw new Error(`尝试请求未注册的API：${method} ${path}`);
       }
-      const a = new TestAgent(method, path, s.key, getCallerSourceLine(this.config.path), this.parent);
+      const a = new TestAgent(method, path, s.key, getCallerSourceLine(this.testPath), this.parent);
 
       assert(this.app, "请先调用 setApp() 设置 exprss 实例");
       a.initAgent(this.app);
