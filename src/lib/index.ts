@@ -19,12 +19,15 @@ const missingParameter = (msg: string) => new Error(`missing required parameter 
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
 const internalError = (msg: string) => new Error(`internal error ${msg}`);
 
+/** Schema方法 */
 export type genSchema<T, U> = Readonly<ISupportMethds<(path: string) => Schema<T, U>>>;
 
+/** 组方法 */
 export interface IGruop<T, U> extends IKVObject, genSchema<T, U> {
   define: (opt: ISchemaDefine<T, U>) => Schema<T, U>;
 }
 
+/** API接口定义 */
 export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
   readonly $schemas: Map<string, Schema<T, U>>;
   define: (opt: ISchemaDefine<T, U>) => Schema<T, U>;
@@ -35,18 +38,26 @@ export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
   docOutputForamt?: (out: any) => any;
 }
 
+/** API基础信息 */
 export interface IApiOptionInfo {
+  /** 项目标题 */
   title?: string;
+  /** 项目描述（可以为 markdown 字符串） */
   description?: string;
+  /** 项目版本 */
   version?: Date;
+  /** 服务器host地址 */
   host?: string;
+  /** API默认位置 */
   basePath?: string;
 }
 
+/** API配置 */
 interface IAPIConfig {
   path: string;
 }
 
+/** API定义 */
 export interface IApiOption {
   info?: IApiOptionInfo;
   path?: string;
@@ -58,15 +69,25 @@ export interface IApiOption {
   docs?: IDocOptions;
 }
 
+/** 文档生成信息 */
 export interface IDocOptions extends IKVObject {
+  /** 生成wiki */
   wiki?: string | boolean;
+  /** 生成 Index.md */
   index?: string | boolean;
+  /** 生成 Home.md */
   home?: string | boolean;
+  /** 生成 swagger.json */
   swagger?: string | boolean;
+  /** 生成 docs.json */
   json?: string | boolean;
+  /** 生成 all-in-one.md */
   all?: string | boolean;
 }
 
+/**
+ * Easy rest api helper
+ */
 export default class API<T = any, U = any> {
   public shareTestData?: any;
   private apiInfo: IApiInfo<T, U>;
@@ -88,6 +109,9 @@ export default class API<T = any, U = any> {
   private registAPI: (method: string, path: string, group?: string | undefined) => Schema<T, U>;
   private defineAPI: (options: ISchemaDefine<T, U>, group?: string | undefined) => Schema<T, U>;
 
+  /**
+   * 获取私有变量信息
+   */
   get privateInfo() {
     return {
       app: this.app,
@@ -98,22 +122,37 @@ export default class API<T = any, U = any> {
     };
   }
 
+  /**
+   * API实例
+   */
   get api() {
     return this.apiInfo;
   }
 
+  /**
+   * 测试实例
+   */
   get test() {
     return this.testAgent;
   }
 
+  /**
+   * 错误列表
+   */
   get errors() {
     return this.errorManage;
   }
 
+  /**
+   * 类型列表
+   */
   get type() {
     return this.typeManage;
   }
 
+  /**
+   * 工具类
+   */
   get utils() {
     return utils;
   }
@@ -121,6 +160,7 @@ export default class API<T = any, U = any> {
   constructor(options: IApiOption) {
     this.info = options.info || {};
     this.forceGroup = options.forceGroup || false;
+    // 设置内部错误报错信息
     this.error = {
       missingParameter: options.missingParameterError || missingParameter,
       invalidParameter: options.invalidParameterError || invalidParameter,
@@ -130,6 +170,8 @@ export default class API<T = any, U = any> {
       path: options.path || process.cwd(),
     };
     this.groups = options.groups || {};
+
+    // API注册方法
     this.registAPI = (method: string, path: string, group?: string) => {
       if (this.forceGroup) {
         assert(group, "使用 forceGroup 但是没有通过 group 注册");
@@ -150,6 +192,7 @@ export default class API<T = any, U = any> {
       debug("register: (%s)[%s] - %s ", group, method, path);
       return s;
     };
+    // define注册方法
     this.defineAPI = (opt: ISchemaDefine<T, U>, group?: string) => {
       const s = Schema.define(opt, getCallerSourceLine(this.config.path), group);
       const s2 = this.apiInfo.$schemas.get(s.key);
@@ -164,6 +207,7 @@ export default class API<T = any, U = any> {
       debug("define: (%s)[%s] - %s ", group, opt.method, opt.path);
       return s;
     };
+    // 初始化API
     this.apiInfo = {
       $schemas: new Map(),
       beforeHooks: new Set(),
@@ -175,6 +219,8 @@ export default class API<T = any, U = any> {
       delete: (path: string) => this.registAPI("delete", path),
       patch: (path: string) => this.registAPI("patch", path),
     };
+
+    // 初始化文档生成
     const getDocOpt = (key: string, def: string | boolean): string | boolean => {
       return options.docs && options.docs[key] !== undefined ? options.docs[key] : def;
     };
@@ -186,13 +232,21 @@ export default class API<T = any, U = any> {
       json: getDocOpt("json", false),
       all: getDocOpt("all", false),
     };
+
     // 参数类型管理
     this.typeManage = new TypeManager();
-    this.errorManage = new ErrorManager();
     defaultTypes.call(this, this.typeManage);
+    // 错误管理
+    this.errorManage = new ErrorManager();
     defaultErrors.call(this, this.errorManage);
   }
 
+  /**
+   * 初始化测试系统
+   * @param app APP或者serve实例，用于init supertest
+   * @param testPath 测试文件路径
+   * @param docPath 输出文件路径
+   */
   public initTest(app: any, testPath = process.cwd(), docPath = "/docs/") {
     if (this.app && this.testAgent) {
       return;
@@ -206,34 +260,55 @@ export default class API<T = any, U = any> {
     this.apiInfo.docs!.saveOnExit(process.cwd() + docPath);
   }
 
+  /**
+   * 设置测试格式化函数
+   */
   public setFormatOutput(fn: (out: any) => [Error | null, any]) {
     this.apiInfo.formatOutputReverse = fn;
   }
 
+  /**
+   * 设置文档格式化函数
+   */
   public setDocOutputForamt(fn: (out: any) => any) {
     this.apiInfo.docOutputForamt = fn;
   }
 
+  /**
+   * 设置全局 Before Hook
+   */
   public beforeHooks(fn: IHandler<T, U>) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
     this.apiInfo.beforeHooks.add(fn);
   }
 
+  /**
+   * 设置全局 After Hook
+   */
   public afterHooks(fn: IHandler<T, U>) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
     this.apiInfo.afterHooks.add(fn);
   }
 
+  /**
+   * 获取参数检查实例
+   */
   public paramsChecker() {
     return (name: string, value: any, schema: ISchemaType) =>
       paramsChecker(this, name, value, schema);
   }
 
+  /**
+   * 获取Schema检查实例
+   */
   public schemaChecker() {
     return (data: IKVObject, schema: IKVObject<ISchemaType>, requiredOneOf: string[] = []) =>
       schemaChecker(this, data, schema, requiredOneOf);
   }
 
+  /**
+   * 获取分组API实例
+   */
   public group(name: string): IGruop<T, U> {
     debug("using group: %s", name);
     const group = {
@@ -308,6 +383,11 @@ export default class API<T = any, U = any> {
     }
   }
 
+  /**
+   * 生成文档
+   * @param savePath 文档保存路径
+   * @param onExit 是否等待程序退出再保存
+   */
   public genDocs(savePath = process.cwd() + "/docs/", onExit = true) {
     if (!this.api.docs) {
       this.api.docs = new IAPIDoc(this);
