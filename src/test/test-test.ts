@@ -30,7 +30,7 @@ jsonApi.query(JsonSchema);
 jsonApi.requiredOneOf(["age", "type"]);
 apiService.bindRouter(router);
 
-apiService.initTest(app);
+apiService.initTest(app, __dirname, "/tmp");
 function format(data: any): [Error | null, any] {
   if (typeof data === "object") {
     if (data.success) {

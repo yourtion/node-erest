@@ -247,17 +247,17 @@ export default class API<T = any, U = any> {
    * @param testPath 测试文件路径
    * @param docPath 输出文件路径
    */
-  public initTest(app: any, testPath = process.cwd(), docPath = "/docs/") {
+  public initTest(app: any, testPath = process.cwd(), docPath = process.cwd() + "/docs/") {
     if (this.app && this.testAgent) {
       return;
     }
-    debug("initTest");
+    debug("initTest: %s %s", testPath, docPath);
     this.app = app;
     this.testAgent = new IAPITest(this, testPath);
     if (!this.api.docs) {
       this.api.docs = new IAPIDoc(this);
     }
-    this.apiInfo.docs!.saveOnExit(process.cwd() + docPath);
+    this.apiInfo.docs!.saveOnExit(docPath);
   }
 
   /**
