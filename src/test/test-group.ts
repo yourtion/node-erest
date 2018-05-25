@@ -71,9 +71,7 @@ describe("Group - bindGroupToApp", () => {
   it("TEST - Get success", async () => {
     apiService.initTest(app);
 
-    const { text: ret } = await apiService.test
-      .get("/index")
-      .raw();
+    const { text: ret } = await apiService.test.get("/index").raw();
     expect(ret).toBe(`"Hello, API Framework Index"`);
   });
 });
@@ -92,7 +90,7 @@ describe("Group - define and use route bindGroupToApp", () => {
     path: "/",
     title: "Patch",
     description: "test patch",
-    schema: {},
+    response: {},
     body: {},
     param: {},
     required: [],
@@ -117,9 +115,7 @@ describe("Group - define and use route bindGroupToApp", () => {
   it("TEST - Get success", async () => {
     apiService.initTest(app);
 
-    const ret = await apiService.test
-      .patch("/api/index")
-      .success();
+    const ret = await apiService.test.patch("/api/index").success();
     expect(ret).toBe("Hello, API Framework Index");
   });
 });

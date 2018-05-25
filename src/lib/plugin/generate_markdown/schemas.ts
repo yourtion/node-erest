@@ -46,7 +46,7 @@ function paramsTable(item: IKVObject) {
   return paramsList.join("\n");
 }
 
-function schemaTable(item: IKVObject<ISchemaOption<any, any>>) {
+function responseTable(item: IKVObject<ISchemaOption<any, any>>) {
   const schemaList: string[] = [];
   schemaList.push(tableHeader(["参数名", "类型", "说明"]));
   for (const name in item) {
@@ -121,9 +121,9 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n参数：无参数");
     }
 
-    const schemaDoc = schemaTable(item.schema!);
-    if (schemaDoc) {
-      line.push("\n### 输出结果说明：\n" + schemaDoc);
+    const responseDoc = responseTable(item.response!);
+    if (responseDoc) {
+      line.push("\n### 输出结果说明：\n" + responseDoc);
     }
 
     if (item.examples.length > 0) {

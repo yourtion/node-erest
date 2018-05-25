@@ -29,7 +29,7 @@ const DOC = [
   "group",
   "title",
   "description",
-  "schema",
+  "response",
   "tested",
 ];
 

@@ -29,7 +29,7 @@ test("Schema - modify", () => {
   };
   const outSchema = { name: nameParams };
   deleteApi.example(example);
-  deleteApi.schema(outSchema);
+  deleteApi.response(outSchema);
   deleteApi.query({
     numP2: build(TYPES.Number, "Number", true, 10, { max: 10, min: 0 }),
   });
@@ -41,7 +41,7 @@ test("Schema - modify", () => {
   expect(schema.options.description).toBe("Yourtion");
   expect(schema.options.examples.length).toBe(1);
   expect(schema.options.examples[0]).toEqual(example);
-  expect(schema.options.schema).toEqual(outSchema);
+  expect(schema.options.response).toEqual(outSchema);
   expect(schema.options.requiredOneOf.length).toBe(1);
   expect(schema.options.required.size).toBe(2);
 });

@@ -25,7 +25,7 @@ const JsonSchema = {
   int_arr: build(TYPES.IntArray, "数组"),
   date: build(TYPES.Date, "日期"),
 };
-jsonApi.schema(JsonSchema);
+jsonApi.response(JsonSchema);
 jsonApi.query(JsonSchema);
 jsonApi.requiredOneOf(["age", "type"]);
 apiService.bindRouter(router);

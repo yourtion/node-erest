@@ -34,7 +34,7 @@ export interface ISchemaDefine<T, U> {
   group?: string;
   sourceFile?: ISourceResult;
   description?: string;
-  schema?: IKVObject<ISchemaOption<T, U>>;
+  response?: IKVObject<ISchemaOption<T, U>>;
   body?: IKVObject;
   query?: IKVObject;
   param?: IKVObject;
@@ -67,7 +67,7 @@ export interface ISchemaOption<T = any, U = any> extends IKVObject {
   body: object;
   params: IKVObject;
   _params: Map<string, IParamsOption>;
-  schema?: IKVObject<ISchemaOption<T, U>>;
+  response?: IKVObject<ISchemaOption<T, U>>;
   tested: boolean;
 }
 
@@ -86,8 +86,8 @@ export class Schema<T, U> {
     if (options.description) {
       schema.description(options.description);
     }
-    if (options.schema) {
-      schema.schema(options.schema);
+    if (options.response) {
+      schema.response(options.response);
     }
     if (options.body) {
       schema.body(options.body);
@@ -234,9 +234,9 @@ export class Schema<T, U> {
    * @param {Object} schema 输出结果对象
    * @return {Object}
    */
-  public schema(schema: IKVObject<ISchemaOption<T, U>>) {
-    assert(typeof schema === "object", "`schema`必须是一个对象");
-    this.options.schema = schema;
+  public response(response: IKVObject<ISchemaOption<T, U>>) {
+    assert(typeof response === "object", "`schema`必须是一个对象");
+    this.options.response = response;
     return this;
   }
 
