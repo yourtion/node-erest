@@ -51,11 +51,12 @@ function responseTable(item: IKVObject<ISchemaOption<any, any>>) {
   schemaList.push(tableHeader(["参数名", "类型", "说明"]));
   for (const name in item) {
     const info = item[name];
+    const comment = info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
     schemaList.push(
       fieldString([
         stringOrEmpty(name, true),
         stringOrEmpty(info.type),
-        stringOrEmpty(info.comment),
+        stringOrEmpty(comment),
       ]),
     );
   }
