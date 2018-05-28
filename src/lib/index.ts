@@ -257,7 +257,7 @@ export default class API<T = any, U = any> {
     if (!this.api.docs) {
       this.api.docs = new IAPIDoc(this);
     }
-    this.apiInfo.docs!.saveOnExit(docPath);
+    this.genDocs(docPath);
   }
 
   /**
