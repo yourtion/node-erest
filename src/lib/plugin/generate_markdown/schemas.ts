@@ -20,6 +20,7 @@ function paramsTable(item: IKVObject) {
           }
         }
       }
+      const comment = info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
       paramsList.push(
         fieldString([
           stringOrEmpty(name, true),
@@ -27,7 +28,7 @@ function paramsTable(item: IKVObject) {
           stringOrEmpty(info.type),
           itemTF(info.format),
           required,
-          stringOrEmpty(info.comment),
+          stringOrEmpty(comment),
         ]),
       );
     }
