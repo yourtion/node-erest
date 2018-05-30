@@ -156,7 +156,7 @@ export class Schema<T, U> {
     };
 
     this.key = getSchemaKey(method, path, group);
-    this.pathTestRegExp = pathToRegExp(path);
+    this.pathTestRegExp = pathToRegExp(this.key.split("_")[1]);
     this.inited = false;
 
     debug("new: %s %s from %s", method, path, sourceFile);
