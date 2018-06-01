@@ -1,6 +1,6 @@
 import { IDocData } from "../../extend/docs";
 import { IKVObject } from "../../interfaces";
-import { ISchemaOption } from "../../schema";
+import { ISchemaOption, Schema } from "../../schema";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 
@@ -20,7 +20,8 @@ function paramsTable(item: IKVObject) {
           }
         }
       }
-      const comment = info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
+      const comment =
+        info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
       paramsList.push(
         fieldString([
           stringOrEmpty(name, true),
@@ -29,7 +30,7 @@ function paramsTable(item: IKVObject) {
           itemTF(info.format),
           required,
           stringOrEmpty(comment),
-        ]),
+        ])
       );
     }
   }
@@ -52,13 +53,10 @@ function responseTable(item: IKVObject<ISchemaOption<any, any>>) {
   schemaList.push(tableHeader(["参数名", "类型", "说明"]));
   for (const name in item) {
     const info = item[name];
-    const comment = info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
+    const comment =
+      info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
     schemaList.push(
-      fieldString([
-        stringOrEmpty(name, true),
-        stringOrEmpty(info.type),
-        stringOrEmpty(comment),
-      ]),
+      fieldString([stringOrEmpty(name, true), stringOrEmpty(info.type), stringOrEmpty(comment)])
     );
   }
   if (schemaList.length === 1) {
@@ -79,10 +77,10 @@ function formatExampleInput(inputData: IKVObject) {
 
 function examples(exampleList: any[]) {
   return exampleList
-    .map((item) => {
+    .map(item => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
       const header = item.headers && "\nheaders = " + jsonStringify(item.headers, 2);
-      const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};` ;
+      const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
       const output = `output = ${jsonStringify(item.output, 2)};`;
       return `${title}\n${header}\n${input}\n${output}`.trim();
     })
@@ -91,28 +89,32 @@ function examples(exampleList: any[]) {
 
 export default function schemaDocs(data: IDocData) {
   const group: IKVObject = {};
+  const groupTitles: IKVObject = {};
 
-  function add(name: string, content: string) {
+  function add(name: string, content: string, title: string) {
     if (!Array.isArray(group[name])) {
       group[name] = [];
+      groupTitles[name] = [];
     }
     group[name].push(content.trim());
+    groupTitles[name].push(title);
   }
 
   for (const key of Object.keys(data.schemas)) {
     const item = data.schemas[key];
+    const tested = itemTFEmoji(item.tested);
+    const tit = stringOrEmpty(item.title);
+    const method = item.method.toUpperCase();
 
-    const line = [
-      `## ${stringOrEmpty(item.title)} ${itemTFEmoji(item.tested)}`,
-    ];
-    line.push(`\n请求地址：**${item.method.toUpperCase()}** \`${item.path}\``);
+    const line = [`## ${tit} ${tested}`];
+    line.push(`\n请求地址：**${method}** \`${item.path}\``);
 
     if (item.description) {
       line.push(
         item.description
           .split("\n")
           .map((it: string) => it.trim())
-          .join("\n"),
+          .join("\n")
       );
     }
 
@@ -135,7 +137,8 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n```");
     }
 
-    add(item.group!, line.join("\n"));
+    const title = `  - ${method} \`${item.path}\` - ${tit} ${tested}`;
+    add(item.group!, line.join("\n"), title);
   }
 
   const list: Array<{ name: string; content: string }> = [];
@@ -146,5 +149,5 @@ export default function schemaDocs(data: IDocData) {
     });
   }
 
-  return list;
+  return { list, groupTitles };
 }

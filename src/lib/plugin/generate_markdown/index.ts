@@ -39,7 +39,7 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
     fs.writeFileSync(filePath(dir, "errors"), errorDoc);
   }
 
-  const list = schemaDocs(data);
+  const { list, groupTitles } = schemaDocs(data);
   const indexDoc: string[] = [];
   indexDoc.push(`# ${ data.info.title }\n`);
   indexDoc.push(data.info.description + "\n");
@@ -52,9 +52,13 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
   const wikiPath = utils.getPath("wiki", options.wiki);
 
   for (const item in data.group) {
+    const group = utils.camelCase2underscore(item);
     indexDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](./${ item.toLowerCase() }.md)`);
     allInOneDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关](#${ item.toLowerCase() })`);
-    wikiDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](${ wikiPath }${ item.toLowerCase() })`);
+    wikiDoc.push(`- [/${group} - ${ data.group[item] }相关文档](${ wikiPath }${ item.toLowerCase() })`);
+    if (options.wiki && groupTitles[item]) {
+      wikiDoc.push(groupTitles[item].join("\n"));
+    }
   }
 
   if (options.index) {
