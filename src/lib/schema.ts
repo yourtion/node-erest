@@ -57,6 +57,7 @@ export interface ISchemaOption<T = any, U = any> extends IKVObject {
   sourceFile: ISourceResult;
   method: string;
   path: string;
+  realPath: string;
   examples: IExample[];
   beforeHooks: Set<IHandler<T, U>>;
   afterHooks: Set<IHandler<T, U>>;
@@ -137,10 +138,13 @@ export class Schema<T, U> {
     assert(path && typeof path === "string", "`path`必须是字符串类型");
     assert(path[0] === "/", '`path`必须以"/"开头');
 
+    this.key = getSchemaKey(method, path, group);
+
     this.options = {
       sourceFile,
       method: method.toLowerCase(),
       path,
+      realPath: this.key.split("_")[1],
       examples: [],
       beforeHooks: new Set(),
       afterHooks: new Set(),
@@ -155,7 +159,6 @@ export class Schema<T, U> {
       tested: false,
     };
 
-    this.key = getSchemaKey(method, path, group);
     this.pathTestRegExp = pathToRegExp(this.key.split("_")[1]);
     this.inited = false;
 

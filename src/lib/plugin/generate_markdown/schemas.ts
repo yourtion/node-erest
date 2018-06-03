@@ -107,7 +107,7 @@ export default function schemaDocs(data: IDocData) {
     const method = item.method.toUpperCase();
 
     const line = [`## ${tit} ${tested}`];
-    line.push(`\n请求地址：**${method}** \`${item.path}\``);
+    line.push(`\n请求地址：**${method}** \`${item.realPath}\``);
 
     if (item.description) {
       line.push(

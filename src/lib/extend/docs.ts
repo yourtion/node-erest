@@ -19,6 +19,7 @@ import { ISchemaOption } from "../schema";
 const DOC = [
   "method",
   "path",
+  "realPath",
   "examples",
   "middlewares",
   "required",
