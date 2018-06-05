@@ -7,6 +7,7 @@
     "declaration": true,
     "sourceMap": false,
     "strict": true,
+    "declarationMap": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "allowUnreachableCode": false,
