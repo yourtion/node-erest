@@ -82,7 +82,7 @@ function examples(exampleList: any[]) {
       const header = item.headers && "\nheaders = " + jsonStringify(item.headers, 2);
       const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
       const output = `output = ${jsonStringify(item.output, 2)};`;
-      return `${title}\n${header}\n${input}\n${output}`.trim();
+      return `${title}\n${header || ""}\n${input}\n${output}`.trim();
     })
     .join("\n\n");
 }
