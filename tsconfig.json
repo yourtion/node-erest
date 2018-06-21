@@ -5,13 +5,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
-    "sourceMap": false,
     "strict": true,
-    "declarationMap": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
     "target": "es6",
     "pretty": true
   },

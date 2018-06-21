@@ -7,7 +7,6 @@
 import * as assert from "assert";
 import { IDebugger } from "debug";
 import * as stream from "stream";
-import { SuperAgent, SuperAgentRequest } from "superagent";
 import { Test } from "supertest";
 import * as util from "util";
 import { create as createDebug, test as debug } from "./debug";

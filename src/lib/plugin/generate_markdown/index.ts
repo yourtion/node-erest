@@ -8,13 +8,11 @@ import * as path from "path";
 import { plugin as debug } from "../../debug";
 import { IDocData } from "../../extend/docs";
 import { IDocOptions } from "../../index";
-import { IDocGeneratePlugin, IKVObject  } from "../../interfaces";
-import { ISchemaOption } from "../../schema";
 import * as utils from "../../utils";
 import errorDocs from "./errors";
 import schemaDocs from "./schemas";
 import typeDocs from "./types";
-import { itemTF, stringOrEmpty, trimSpaces } from "./utils";
+import { trimSpaces } from "./utils";
 
 function filePath(dir: string, name: string) {
   const filename = name === "Home" ? name : name.toLowerCase();

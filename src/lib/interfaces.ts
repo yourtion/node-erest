@@ -1,6 +1,5 @@
 import { IDocData } from "./extend/docs";
 import { IDocOptions } from "./index";
-import { Schema } from "./schema";
 
 export type ICallback<T> = (err: Error | null, ret?: T) => void;
 

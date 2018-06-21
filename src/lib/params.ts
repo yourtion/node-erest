@@ -7,7 +7,7 @@
 import API from ".";
 import { create, params as debug } from "./debug";
 import { IKVObject } from "./interfaces";
-import { ISchemaOption, Schema } from "./schema";
+import { Schema } from "./schema";
 
 export interface ISchemaType {
   type: string;

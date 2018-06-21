@@ -6,12 +6,12 @@
 import * as assert from "assert";
 import { core as debug } from "./debug";
 import { defaultErrors, defaultTypes } from "./default";
-import IAPIDoc, { IDocData } from "./extend/docs";
+import IAPIDoc from "./extend/docs";
 import IAPITest from "./extend/test";
 import { IKVObject, ISupportMethds } from "./interfaces";
-import { ErrorManager, IError, IType, TypeManager } from "./manager";
+import { ErrorManager, TypeManager } from "./manager";
 import { apiCheckParams, ISchemaType, paramsChecker, schemaChecker } from "./params";
-import { IHandler, ISchemaDefine, ISchemaOption, Schema } from "./schema";
+import { IHandler, ISchemaDefine, Schema } from "./schema";
 import * as utils from "./utils";
 const { camelCase2underscore, getCallerSourceLine } = utils;
 

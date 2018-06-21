@@ -1,4 +1,3 @@
-import { IApiInfo } from "../lib";
 import { IKVObject } from "../lib/interfaces";
 import { ISchemaType } from "../lib/params";
 

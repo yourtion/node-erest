@@ -3,7 +3,6 @@ import { resolve } from "path";
 
 import { apiAll, apiJson, build, TYPES } from "./helper";
 import lib from "./lib";
-import { GROUPS, INFO } from "./lib";
 
 import * as express from "express";
 

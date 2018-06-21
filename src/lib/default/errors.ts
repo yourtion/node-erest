@@ -4,10 +4,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as assert from "assert";
-import * as validator from "validator";
 import { ErrorManager } from "../manager/error";
-import { camelCase2underscore } from "../utils";
 
 export function defaultErrors(error: ErrorManager) {
   error.import([

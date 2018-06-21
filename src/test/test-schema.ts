@@ -1,6 +1,5 @@
-import { apiAll, apiDelete, apiPost, build, hook, nameParams, TYPES } from "./helper";
+import { apiDelete, build, nameParams, TYPES } from "./helper";
 import lib from "./lib";
-import { GROUPS, INFO } from "./lib";
 
 const apiService = lib();
 const api = apiService.api;

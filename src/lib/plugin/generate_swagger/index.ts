@@ -8,8 +8,7 @@ import * as path from "path";
 import { plugin as debug } from "../../debug";
 import { IDocData } from "../../extend/docs";
 import { IDocOptions } from "../../index";
-import { IDocGeneratePlugin, IKVObject } from "../../interfaces";
-import { ISchemaOption } from "../../schema";
+import { IKVObject } from "../../interfaces";
 import * as utils from "../../utils";
 
 interface ISwaggerResult {

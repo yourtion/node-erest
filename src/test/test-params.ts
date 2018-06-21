@@ -1,5 +1,4 @@
 import lib from "./lib";
-import { GROUPS, INFO } from "./lib";
 
 const apiService = lib();
 

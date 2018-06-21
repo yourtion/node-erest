@@ -3,7 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 import { resolve as pathResolve } from "path";
-import { IKVObject, IPromiseCallback } from "./interfaces";
+import { IPromiseCallback } from "./interfaces";
 
 export interface ISourceResult {
   relative?: string;

@@ -1,6 +1,6 @@
 import { IDocData } from "../../extend/docs";
 import { IKVObject } from "../../interfaces";
-import { ISchemaOption, Schema } from "../../schema";
+import { ISchemaOption } from "../../schema";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 

@@ -3,7 +3,6 @@ import { GROUPS, INFO } from "./lib";
 
 const apiService = lib();
 const paramsChecker = apiService.paramsChecker();
-const schemaChecker = apiService.schemaChecker();
 
 describe("Types - default", () => {
   it("TYPES - Boolean", () => {

@@ -8,7 +8,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import { docs as debug } from "../debug";
-import API, { IApiInfo, IApiOptionInfo } from "../index";
+import API, { IApiOptionInfo } from "../index";
 import { IDocOptions } from "../index";
 import { IDocGeneratePlugin, IKVObject } from "../interfaces";
 import { ErrorManager, IType, TypeManager } from "../manager";
