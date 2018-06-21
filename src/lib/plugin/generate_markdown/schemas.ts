@@ -137,7 +137,7 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n```");
     }
 
-    const title = `  - ${method} \`${item.path}\` - ${tit} ${tested}`;
+    const title = `  - ${method} \`${item.path}\` - ${tit}`;
     add(item.group!, line.join("\n"), title);
   }
 
