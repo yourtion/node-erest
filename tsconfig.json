@@ -7,7 +7,9 @@
     "declaration": true,
     "strict": true,
     "target": "es6",
-    "pretty": true
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "noUnusedLocals": true,
   },
   "include": [
     "./src/**/*"
