@@ -3,7 +3,18 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 import { resolve as pathResolve } from "path";
-import { IPromiseCallback } from "./interfaces";
+
+export interface IKVObject<T = any> {
+  [key: string]: T;
+}
+
+export interface ISupportMethds<T> {
+  get: T;
+  post: T;
+  put: T;
+  delete: T;
+  patch: T;
+}
 
 export interface ISourceResult {
   relative?: string;
@@ -12,9 +23,6 @@ export interface ISourceResult {
 
 /**
  * 获取调用当前函数的源码地址
- *
- * @param {String} dir 项目所在目录
- * @return {Object} 返回调用堆栈中第一个项目所在目录的文件
  */
 export function getCallerSourceLine(dir: string): ISourceResult {
   const resolvedDir = pathResolve(dir);
@@ -38,9 +46,9 @@ export function getCallerSourceLine(dir: string): ISourceResult {
 /**
  * 获取API的Key
  *
- * @param {String} method
- * @param {String} path
- * @return {String}
+ * @param {string} method
+ * @param {string} path
+ * @return {string}
  */
 export function getSchemaKey(method: string, path: string, group?: string): string {
   const p = group ? "/" + camelCase2underscore(group) + path : path;
@@ -50,9 +58,9 @@ export function getSchemaKey(method: string, path: string, group?: string): stri
 /**
  * 返回安全的JSON字符串
  *
- * @param {Object} data
- * @param {String|Number} space 缩进
- * @return {String}
+ * @param {object} data
+ * @param {string|number} space 缩进
+ * @return {string}
  */
 export function jsonStringify(data: object, space: string | number) {
   const seen: any[] = [];
@@ -73,31 +81,7 @@ export function jsonStringify(data: object, space: string | number) {
 }
 
 /**
- * 创建一个带 promise 的回调函数
- *
- * @return {Function}
- */
-export function createPromiseCallback<T>(): IPromiseCallback<T> {
-  const callback: IPromiseCallback<T> = (err, ret) => {
-    if (err) {
-      callback.reject(err);
-    } else {
-      callback.resolve(ret);
-    }
-  };
-  callback.promise = new Promise((resolve, reject) => {
-    callback.resolve = resolve;
-    callback.reject = reject;
-  });
-  return callback;
-}
-
-/**
  * 合并对象
- *
- * @param {Object} a
- * @param {Object} b
- * @return {Object}
  */
 export function merge(...args: object[]) {
   const ret = {};
@@ -109,10 +93,6 @@ export function merge(...args: object[]) {
 
 /**
  * 获取路径
- *
- * @param {string} def 定义的key
- * @param {(string | boolean)} [opt] 配置项
- * @returns {string} 结果路径
  */
 export function getPath(def: string, opt?: string | boolean): string {
   return typeof opt === "string" ? opt : def;
@@ -120,8 +100,6 @@ export function getPath(def: string, opt?: string | boolean): string {
 
 /**
  * 驼峰线转下划
- *
- * @param {String} str 输入字符串
  */
 export function camelCase2underscore(str: string): string {
   return str
