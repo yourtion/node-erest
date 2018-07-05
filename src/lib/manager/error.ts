@@ -4,7 +4,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as assert from "assert";
+import assert from "assert";
 import { coreError as debug } from "../debug";
 import { Manager } from "./manager";
 
@@ -46,7 +46,7 @@ export class ErrorManager extends Manager<IError> {
       isLog = false,
     } = data;
 
-    assert(!this.codes.has(code), "code already exits");
+    assert(!this.codes.has(code), "code already exits: " + code);
 
     debug("register: %s %j", name, data);
     this.codes.add(code);

@@ -8,7 +8,6 @@ import * as path from "path";
 import { plugin as debug } from "../../debug";
 import { IDocData } from "../../extend/docs";
 import { IDocOptions } from "../../index";
-import { IKVObject } from "../../interfaces";
 import * as utils from "../../utils";
 
 interface ISwaggerResult {
@@ -93,7 +92,7 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
     };
 
     sc[schema.method].parameters = [];
-    const bodySchema: IKVObject = {};
+    const bodySchema: Record<string, any> = {};
     let example = schema.examples && schema.examples[0];
     if (schema.examples && schema.examples.length > 1) {
       for (const item of schema.examples) {

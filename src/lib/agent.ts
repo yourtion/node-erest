@@ -10,7 +10,7 @@ import { Test } from "supertest";
 import util from "util";
 import { create as createDebug, test as debug } from "./debug";
 import { SUPPORT_METHOD, SUPPORT_METHODS } from "./api";
-import { ISourceResult } from "./utils";
+import { SourceResult } from "./utils";
 
 const defaultFormatOutput = (data: any) => [null, data];
 
@@ -23,7 +23,7 @@ function inspect(obj: any) {
 
 export interface ITestAgentOption {
   parent: any;
-  sourceFile: ISourceResult;
+  sourceFile: SourceResult;
   method: SUPPORT_METHODS;
   path: string;
   agent?: Test;
@@ -55,7 +55,7 @@ export class TestAgent {
    * @param {Object} sourceFile 源文件路径描述对象
    * @param {Object} parent hojs实例
    */
-  constructor(method: SUPPORT_METHODS, path: string, key: string, sourceFile: ISourceResult, parent: any) {
+  constructor(method: SUPPORT_METHODS, path: string, key: string, sourceFile: SourceResult, parent: any) {
     assert(method && typeof method === "string", "`method` must be string");
     assert(SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, "`method` must be one of " + SUPPORT_METHOD);
     assert(path && typeof path === "string", "`path` must be string");

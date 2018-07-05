@@ -1,10 +1,9 @@
 import { IDocData } from "../../extend/docs";
-import { IKVObject } from "../../interfaces";
-import { ISchemaOption } from "../../schema";
+import { APIOption } from "../../api";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 
-function paramsTable(item: IKVObject) {
+function paramsTable(item: Record<string, any>) {
   const paramsList: string[] = [];
   paramsList.push(tableHeader(["参数名", "位置", "类型", "格式化", "必填", "说明"]));
   // 参数输出
@@ -40,15 +39,14 @@ function paramsTable(item: IKVObject) {
     for (const names of item.requiredOneOf) {
       paramsList.push(`- \`${names.join("`, `")}\` 其中一个`);
     }
-  }
-  // 没有参数
+  }  // 没有参数
   if (paramsList.length === 1) {
     return;
   }
   return paramsList.join("\n");
 }
 
-function responseTable(item: IKVObject<ISchemaOption<any, any>>) {
+function responseTable(item: Record<string, APIOption<any>>) {
   const schemaList: string[] = [];
   schemaList.push(tableHeader(["参数名", "类型", "说明"]));
   for (const name in item) {
@@ -65,7 +63,7 @@ function responseTable(item: IKVObject<ISchemaOption<any, any>>) {
   return schemaList.join("\n");
 }
 
-function formatExampleInput(inputData: IKVObject) {
+function formatExampleInput(inputData: Record<string, any>) {
   const ret = Object.assign({}, inputData);
   for (const name in ret) {
     if (name[0] === "$") {
@@ -88,8 +86,8 @@ function examples(exampleList: any[]) {
 }
 
 export default function schemaDocs(data: IDocData) {
-  const group: IKVObject = {};
-  const groupTitles: IKVObject = {};
+  const group: Record<string, any> = {};
+  const groupTitles: Record<string, any> = {};
 
   function add(name: string, content: string, title: string) {
     if (!Array.isArray(group[name])) {
