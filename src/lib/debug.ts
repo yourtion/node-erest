@@ -3,7 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as Debug from "debug";
+import Debug from "debug";
 
 /**
  * 创建一个调试输出函数
@@ -18,7 +18,7 @@ export const create = (name: string) => {
 export const core = create("core");
 export const coreError = create("core:error");
 export const coreType = create("core:types");
-export const schema = create("schema");
+export const api = create("api");
 export const params = create("params");
 export const test = create("test");
 export const docs = create("docs");

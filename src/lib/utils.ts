@@ -4,10 +4,6 @@
  */
 import { resolve as pathResolve } from "path";
 
-export interface IKVObject<T = any> {
-  [key: string]: T;
-}
-
 export interface ISupportMethds<T> {
   get: T;
   post: T;
@@ -16,7 +12,7 @@ export interface ISupportMethds<T> {
   patch: T;
 }
 
-export interface ISourceResult {
+export interface SourceResult {
   relative?: string;
   absolute?: string;
 }
@@ -24,7 +20,7 @@ export interface ISourceResult {
 /**
  * 获取调用当前函数的源码地址
  */
-export function getCallerSourceLine(dir: string): ISourceResult {
+export function getCallerSourceLine(dir: string): SourceResult {
   const resolvedDir = pathResolve(dir);
   const err = new Error().stack;
   const stack = err ? err.split("\n").slice(1) : "";
@@ -35,7 +31,7 @@ export function getCallerSourceLine(dir: string): ISourceResult {
       if (s) {
         return {
           relative: s[1].slice(resolvedDir.length + 1),
-          absolute: s[1],
+          absolute: s[1]
         };
       }
     }

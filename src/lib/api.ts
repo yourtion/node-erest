@@ -6,8 +6,8 @@
 import assert from "assert";
 import joi from "joi";
 import pathToRegExp from "path-to-regexp";
-import { schema as debug } from "./debug";
-import { getSchemaKey, ISourceResult } from "./utils";
+import { api as debug } from "./debug";
+import { getSchemaKey, SourceResult } from "./utils";
 
 export interface IExample {
   input: Record<string, any>;
@@ -15,12 +15,11 @@ export interface IExample {
 }
 
 export type DEFAULT_HANDLER = (...args: any[]) => any;
+export type SUPPORT_METHODS = "get" | "post" | "put" | "delete" | "patch";
 
 export const SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"];
 
-export type SUPPORT_METHODS = "get" | "post" | "put" | "delete" | "patch";
-
-export interface ISchemaCommon<T = DEFAULT_HANDLER> {
+export interface APICommon<T = DEFAULT_HANDLER> {
   method: SUPPORT_METHODS;
   path: string;
   title: string;
@@ -29,16 +28,16 @@ export interface ISchemaCommon<T = DEFAULT_HANDLER> {
   response?: joi.SchemaMap;
 }
 
-export interface ISchemaOptionDefine<T> extends ISchemaCommon<T> {
+export interface APIDefine<T> extends APICommon<T> {
   query?: joi.SchemaMap;
   body?: joi.SchemaMap;
   params?: joi.SchemaMap;
-  before?: T[];
-  middlewares?: T[];
+  before?: Array<T>;
+  middlewares?: Array<T>;
   handler: T;
 }
 
-export interface ISchemaOption<T> extends Record<string, any> {
+export interface APIOption<T> extends Record<string, any> {
   group: string;
   realPath: string;
   examples: IExample[];
@@ -48,20 +47,20 @@ export interface ISchemaOption<T> extends Record<string, any> {
   tested: boolean;
 }
 
-export default class Schema<T = DEFAULT_HANDLER> {
+export default class API<T = DEFAULT_HANDLER> {
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
-  private options: ISchemaOption<T>;
+  public options: APIOption<T>;
 
   /**
    * 构造函数
    */
-  constructor(method: SUPPORT_METHODS, path: any, sourceFile: ISourceResult, group?: string) {
+  constructor(method: SUPPORT_METHODS, path: any, sourceFile: SourceResult, group?: string) {
     assert(method && typeof method === "string", "`method`必须是字符串类型");
     assert(
       SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
-      "`method`必须是以下请求方法中的一个：" + SUPPORT_METHOD
+      "`method`必须是以下请求方法中的一个：" + SUPPORT_METHOD,
     );
     assert(path && typeof path === "string", "`path`必须是字符串类型");
     assert(path[0] === "/", '`path`必须以"/"开头');
@@ -84,14 +83,14 @@ export default class Schema<T = DEFAULT_HANDLER> {
       tested: false,
     };
 
-    this.pathTestRegExp = pathToRegExp(this.key.split("_")[1]);
+    this.pathTestRegExp = pathToRegExp(this.options.realPath);
     this.inited = false;
 
     debug("new: %s %s from %s", method, path, sourceFile);
   }
 
-  public static define<T>(options: ISchemaOptionDefine<T>, sourceFile: ISourceResult, group?: string) {
-    const schema = new Schema<T>(options.method, options.path, sourceFile, group);
+  public static define<T>(options: APIDefine<T>, sourceFile: SourceResult, group?: string) {
+    const schema = new API<T>(options.method, options.path, sourceFile, group);
     schema.title(options.title);
     if (group) {
       schema.group(group);
@@ -175,7 +174,7 @@ export default class Schema<T = DEFAULT_HANDLER> {
    * API使用例子
    */
   public example(example: IExample) {
-    // this.checkInited();
+    this.checkInited();
     assert(example.input && typeof example.input === "object", "`input`必须是一个对象");
     assert(example.output && typeof example.output === "object", "`output`必须是一个对象");
     this.addExample(example);
@@ -245,7 +244,7 @@ export default class Schema<T = DEFAULT_HANDLER> {
   /**
    * 中间件
    */
-  public middlewares(...list: T[]) {
+  public middlewares(...list: Array<T>) {
     this.checkInited();
     for (const mid of list) {
       assert(typeof mid === "function", "中间件必须是Function类型");
@@ -257,7 +256,7 @@ export default class Schema<T = DEFAULT_HANDLER> {
   /**
    * 注册执行之前的钩子
    */
-  public before(...list: T[]) {
+  public before(...list: Array<T>) {
     this.checkInited();
     for (const hook of list) {
       assert(typeof hook === "function", "钩子名称必须是Function类型");
@@ -282,7 +281,7 @@ export default class Schema<T = DEFAULT_HANDLER> {
     assert(this.options.group, `请为 API ${this.key} 选择一个分组`);
     assert(
       this.options.group && this.options.group in parent.privateInfo.groups,
-      `请先配置 ${this.options.group} 类型`
+      `请先配置 ${this.options.group} 分组`,
     );
 
     // TODO: 初始化时参数类型检查
