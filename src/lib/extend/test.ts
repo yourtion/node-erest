@@ -1,17 +1,16 @@
 /**
  * @file API Test
- * 参考 hojs
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as assert from "assert";
+import assert from "assert";
 import { TestAgent } from "../agent";
 import { test as debug } from "../debug";
-import API, { IApiOptionInfo } from "../index";
-import { IKVObject, ISupportMethds } from "../interfaces";
-import { getCallerSourceLine, getSchemaKey } from "../utils";
+import ERest, { IApiOptionInfo } from "../index";
+import { getCallerSourceLine, getSchemaKey, ISupportMethds } from "../utils";
 
 import { SuperTest } from "supertest";
+import { SUPPORT_METHODS } from "../api";
 
 export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
 
@@ -20,13 +19,13 @@ export interface ITestSession extends IAgent {
 }
 
 export default class IAPITest {
-  private parent: API;
+  private parent: ERest<any>;
   private info: IApiOptionInfo;
   private app: any;
   private testPath: string;
   private supertest?: any;
 
-  constructor(apiService: API, path: string) {
+  constructor(apiService: ERest<any>, path: string) {
     this.parent = apiService;
     const { info, app } = this.parent.privateInfo;
     this.info = info;
@@ -63,7 +62,7 @@ export default class IAPITest {
     assert(this.supertest, "请先安装 supertest");
     const agent = this.supertest.agent(this.app);
 
-    const regSession = (method: string) => {
+    const regSession = (method: SUPPORT_METHODS) => {
       return (path: string) => {
         const s = this.findSchema(method, path);
 
@@ -72,7 +71,7 @@ export default class IAPITest {
         }
         const a = new TestAgent(method, path, s && s.key, s.options.sourceFile, this.parent);
 
-        a.setAgent((agent as IKVObject)[method](path));
+        a.setAgent((agent as any)[method](path));
         return a.agent();
       };
     };
@@ -91,7 +90,7 @@ export default class IAPITest {
   /**
    * 根据请求方法和请求路径查找对应的schema
    */
-  private findSchema(method: string, path: string) {
+  private findSchema(method: SUPPORT_METHODS, path: string) {
     // 如果定义了 API 的 basePath，需要在测试时替换掉
     const routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
 
@@ -99,19 +98,17 @@ export default class IAPITest {
     debug(method, path, key);
 
     // 检查path无变量情况
-    if (this.parent.api.$schemas.get(key)) {
-      return this.parent.api.$schemas.get(key);
+    if (this.parent.api.$apis.get(key)) {
+      return this.parent.api.$apis.get(key);
     }
     // 检查path有变量情况
-    for (const s of this.parent.api.$schemas.values()) {
-      if (s.pathTest(method, routerPath)) {
-        return s;
-      }
+    for (const s of this.parent.api.$apis.values()) {
+      if (s.pathTest(method, routerPath)) return s;
     }
     return;
   }
 
-  private regTest(method: string) {
+  private regTest(method: SUPPORT_METHODS) {
     return (path: string) => {
       const s = this.findSchema(method, path);
       if (!s || !s.key) {
