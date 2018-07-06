@@ -1,6 +1,5 @@
 /**
- * @file API 管理器
- * 参考 hojs
+ * @file 管理器
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 export class Manager<T = any> {

@@ -39,7 +39,8 @@ function paramsTable(item: Record<string, any>) {
     for (const names of item.requiredOneOf) {
       paramsList.push(`- \`${names.join("`, `")}\` 其中一个`);
     }
-  }  // 没有参数
+  }
+  // 没有参数
   if (paramsList.length === 1) {
     return;
   }

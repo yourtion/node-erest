@@ -1,6 +1,5 @@
 /**
- * @file API 基本类型
- * 参考 hojs
+ * @file 基本错误类型
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
