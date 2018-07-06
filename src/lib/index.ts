@@ -3,37 +3,34 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as assert from "assert";
+import assert from "assert";
 import { core as debug } from "./debug";
-import { defaultErrors, defaultTypes } from "./default";
-import IAPIDoc from "./extend/docs";
+import { defaultErrors } from "./default";
+import { ErrorManager } from "./manager";
+import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
+import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
 import IAPITest from "./extend/test";
-import { IKVObject, ISupportMethds } from "./interfaces";
-import { ErrorManager, TypeManager } from "./manager";
-import { apiCheckParams, ISchemaType, paramsChecker, schemaChecker } from "./params";
-import { IHandler, ISchemaDefine, Schema } from "./schema";
-import * as utils from "./utils";
-const { camelCase2underscore, getCallerSourceLine } = utils;
+import IAPIDoc from "./extend/docs";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
 const internalError = (msg: string) => new Error(`internal error ${msg}`);
 
 /** Schema方法 */
-export type genSchema<T, U> = Readonly<ISupportMethds<(path: string) => Schema<T, U>>>;
+export type genSchema<T> = Readonly<ISupportMethds<(path: string) => API<T>>>;
 
 /** 组方法 */
-export interface IGruop<T, U> extends IKVObject, genSchema<T, U> {
-  define: (opt: ISchemaDefine<T, U>) => Schema<T, U>;
+export interface IGruop<T> extends Record<string, any>, genSchema<T> {
+  define: (opt: APIDefine<T>) => API<T>;
 }
 
 /** API接口定义 */
-export interface IApiInfo<T, U> extends IKVObject, genSchema<T, U> {
-  readonly $schemas: Map<string, Schema<T, U>>;
-  define: (opt: ISchemaDefine<T, U>) => Schema<T, U>;
-  beforeHooks: Set<IHandler<T, U>>;
-  afterHooks: Set<IHandler<T, U>>;
-  docs?: IAPIDoc;
+export interface IApiInfo<T> extends Record<string, any>, genSchema<T> {
+  readonly $apis: Map<string, API<T>>;
+  define: (opt: APIDefine<T>) => API<T>;
+  beforeHooks: Set<T>;
+  afterHooks: Set<T>;
+  // docs?: IAPIDoc;
   formatOutputReverse?: (out: any) => [Error | null, any];
   docOutputForamt?: (out: any) => any;
 }
@@ -64,13 +61,13 @@ export interface IApiOption {
   missingParameterError?: (msg: string) => Error;
   invalidParameterError?: (msg: string) => Error;
   internalError?: (msg: string) => Error;
-  groups?: IKVObject<string>;
+  groups?: Record<string, string>;
   forceGroup?: boolean;
   docs?: IDocOptions;
 }
 
 /** 文档生成信息 */
-export interface IDocOptions extends IKVObject {
+export interface IDocOptions extends Record<string, any> {
   /** 生成wiki */
   wiki?: string | boolean;
   /** 生成 Index.md */
@@ -88,9 +85,9 @@ export interface IDocOptions extends IKVObject {
 /**
  * Easy rest api helper
  */
-export default class API<T = any, U = any> {
+export default class ERest<T = DEFAULT_HANDLER> {
   public shareTestData?: any;
-  private apiInfo: IApiInfo<T, U>;
+  private apiInfo: IApiInfo<T>;
   private testAgent: IAPITest = {} as IAPITest;
   private app: any;
   private info: IApiOptionInfo;
@@ -100,14 +97,12 @@ export default class API<T = any, U = any> {
     invalidParameter: (msg: string) => Error;
     internalError: (msg: string) => Error;
   };
-  private typeManage: TypeManager;
   private errorManage: ErrorManager;
-  private schemas: any;
   private docsOptions: IDocOptions;
-  private groups: IKVObject<string>;
+  private groups: Record<string, string>;
   private forceGroup: boolean;
-  private registAPI: (method: string, path: string, group?: string | undefined) => Schema<T, U>;
-  private defineAPI: (options: ISchemaDefine<T, U>, group?: string | undefined) => Schema<T, U>;
+  private registAPI: (method: SUPPORT_METHODS, path: string, group?: string | undefined) => API<T>;
+  private defineAPI: (options: APIDefine<T>, group?: string | undefined) => API<T>;
 
   /**
    * 获取私有变量信息
@@ -143,20 +138,6 @@ export default class API<T = any, U = any> {
     return this.errorManage;
   }
 
-  /**
-   * 类型列表
-   */
-  get type() {
-    return this.typeManage;
-  }
-
-  /**
-   * 工具类
-   */
-  get utils() {
-    return utils;
-  }
-
   constructor(options: IApiOption) {
     this.info = options.info || {};
     this.forceGroup = options.forceGroup || false;
@@ -172,47 +153,45 @@ export default class API<T = any, U = any> {
     this.groups = options.groups || {};
 
     // API注册方法
-    this.registAPI = (method: string, path: string, group?: string) => {
+    this.registAPI = (method: SUPPORT_METHODS, path: string, group?: string) => {
       if (this.forceGroup) {
         assert(group, "使用 forceGroup 但是没有通过 group 注册");
         assert(group! in this.groups, `请先配置 ${group} 类型`);
       } else {
         assert(!group, "请开启 forceGroup 再使用 group 功能");
       }
-      const s = new Schema<T, U>(method, path, getCallerSourceLine(this.config.path), group);
-      const s2 = this.apiInfo.$schemas.get(s.key);
+      const s = new API<T>(method, path, getCallerSourceLine(this.config.path), group);
+      const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
-        `尝试注册API：${s.key}（所在文件：${
-          s.options.sourceFile.absolute
-        }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`
+        `尝试注册API：${s.key}（所在文件：${s.options.sourceFile.absolute}）失败，因为该API已在文件${s2 &&
+          s2.options.sourceFile.absolute}中注册过`
       );
 
-      this.apiInfo.$schemas.set(s.key, s);
+      this.apiInfo.$apis.set(s.key, s);
       debug("register: (%s)[%s] - %s ", group, method, path);
       return s;
     };
     // define注册方法
-    this.defineAPI = (opt: ISchemaDefine<T, U>, group?: string) => {
-      const s = Schema.define(opt, getCallerSourceLine(this.config.path), group);
-      const s2 = this.apiInfo.$schemas.get(s.key);
+    this.defineAPI = (opt: APIDefine<T>, group?: string) => {
+      const s = API.define(opt, getCallerSourceLine(this.config.path), group);
+      const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
-        `尝试注册API：${s.key}（所在文件：${
-          s.options.sourceFile.absolute
-        }）失败，因为该API已在文件${s2 && s2.options.sourceFile.absolute}中注册过`
+        `尝试注册API：${s.key}（所在文件：${s.options.sourceFile.absolute}）失败，因为该API已在文件${s2 &&
+          s2.options.sourceFile.absolute}中注册过`
       );
 
-      this.apiInfo.$schemas.set(s.key, s);
+      this.apiInfo.$apis.set(s.key, s);
       debug("define: (%s)[%s] - %s ", group, opt.method, opt.path);
       return s;
     };
     // 初始化API
     this.apiInfo = {
-      $schemas: new Map(),
+      $apis: new Map(),
       beforeHooks: new Set(),
       afterHooks: new Set(),
-      define: (opt: ISchemaDefine<T, U>) => this.defineAPI(opt),
+      define: (opt: APIDefine<T>) => this.defineAPI(opt),
       get: (path: string) => this.registAPI("get", path),
       post: (path: string) => this.registAPI("post", path),
       put: (path: string) => this.registAPI("put", path),
@@ -232,10 +211,6 @@ export default class API<T = any, U = any> {
       json: getDocOpt("json", false),
       all: getDocOpt("all", false),
     };
-
-    // 参数类型管理
-    this.typeManage = new TypeManager();
-    defaultTypes.call(this, this.typeManage);
     // 错误管理
     this.errorManage = new ErrorManager();
     defaultErrors.call(this, this.errorManage);
@@ -277,7 +252,7 @@ export default class API<T = any, U = any> {
   /**
    * 设置全局 Before Hook
    */
-  public beforeHooks(fn: IHandler<T, U>) {
+  public beforeHooks(fn: T) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
     this.apiInfo.beforeHooks.add(fn);
   }
@@ -285,31 +260,15 @@ export default class API<T = any, U = any> {
   /**
    * 设置全局 After Hook
    */
-  public afterHooks(fn: IHandler<T, U>) {
+  public afterHooks(fn: T) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
     this.apiInfo.afterHooks.add(fn);
   }
 
   /**
-   * 获取参数检查实例
-   */
-  public paramsChecker() {
-    return (name: string, value: any, schema: ISchemaType) =>
-      paramsChecker(this, name, value, schema);
-  }
-
-  /**
-   * 获取Schema检查实例
-   */
-  public schemaChecker() {
-    return (data: IKVObject, schema: IKVObject<ISchemaType>, requiredOneOf: string[] = []) =>
-      schemaChecker(this, data, schema, requiredOneOf);
-  }
-
-  /**
    * 获取分组API实例
    */
-  public group(name: string): IGruop<T, U> {
+  public group(name: string): IGruop<T> {
     debug("using group: %s", name);
     const group = {
       get: (path: string) => this.registAPI("get", path, name),
@@ -317,70 +276,9 @@ export default class API<T = any, U = any> {
       put: (path: string) => this.registAPI("put", path, name),
       delete: (path: string) => this.registAPI("delete", path, name),
       patch: (path: string) => this.registAPI("patch", path, name),
-      define: (opt: ISchemaDefine<T, U>) => this.defineAPI(opt, name),
+      define: (opt: APIDefine<T>) => this.defineAPI(opt, name),
     };
     return group;
-  }
-
-  /**
-   * 绑定路由
-   * （加载顺序：beforeHooks -> apiCheckParams -> middlewares -> handler -> afterHooks ）
-   *
-   * @param {Object} router 路由
-   */
-  public bindRouter(router: any) {
-    if (this.forceGroup) {
-      throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
-    }
-    for (const [key, schema] of this.apiInfo.$schemas.entries()) {
-      debug("bind router: %s", key);
-      schema.init(this);
-      router[schema.options.method].bind(router)(
-        schema.options.path,
-        ...this.apiInfo.beforeHooks,
-        ...schema.options.beforeHooks,
-        apiCheckParams(this, schema),
-        ...schema.options.middlewares,
-        schema.options.handler,
-        ...schema.options.afterHooks,
-        ...this.apiInfo.afterHooks
-      );
-    }
-  }
-
-  /**
-   * 绑定路由到Express
-   *
-   * @param {Object} app Express App 实例
-   * @param {Object} express Express 对象
-   */
-  public bindGroupToApp(app: any, express: any) {
-    if (!this.forceGroup) {
-      throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
-    }
-    const routes = new Map();
-    for (const [key, schema] of this.apiInfo.$schemas.entries()) {
-      schema.init(this);
-      const group = camelCase2underscore(schema.options.group || "");
-      debug("bindGroupToApp: %s - %s", key, group);
-      if (!routes.get(group)) {
-        routes.set(group, new express.Router());
-      }
-      routes.get(group)[schema.options.method].bind(routes.get(group))(
-        schema.options.path,
-        ...this.apiInfo.beforeHooks,
-        ...schema.options.beforeHooks,
-        apiCheckParams(this, schema),
-        ...schema.options.middlewares,
-        schema.options.handler,
-        ...schema.options.afterHooks,
-        ...this.apiInfo.afterHooks
-      );
-    }
-    for (const [key, value] of routes.entries()) {
-      debug("bindGroupToApp - %s", key);
-      app.use("/" + key, value);
-    }
   }
 
   /**
@@ -400,4 +298,62 @@ export default class API<T = any, U = any> {
       docs.save(savePath);
     }
   }
+
+  /**
+   * 绑定路由
+   * （加载顺序：beforeHooks -> apiCheckParams -> middlewares -> handler -> afterHooks ）
+   *
+   * @param {Object} router 路由
+   */
+  public bindRouter(router: any) {
+    if (this.forceGroup) {
+      throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
+    }
+    for (const [key, schema] of this.apiInfo.$apis.entries()) {
+      debug("bind router: %s", key);
+      schema.init(this);
+      router[schema.options.method].bind(router)(
+        schema.options.path,
+        ...this.apiInfo.beforeHooks,
+        ...schema.options.beforeHooks,
+        // apiCheckParams(this, schema),
+        ...schema.options.middlewares,
+        schema.options.handler,
+      );
+    }
+  }
+
+  /**
+   * 绑定路由到Express
+   *
+   * @param {Object} app Express App 实例
+   * @param {Object} Router Router 对象
+   */
+  public bindRouterToApp(app: any, Router: any) {
+    if (!this.forceGroup) {
+      throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
+    }
+    const routes = new Map();
+    for (const [key, schema] of this.apiInfo.$apis.entries()) {
+      schema.init(this);
+      const group = camelCase2underscore(schema.options.group || "");
+      debug("bindGroupToApp: %s - %s", key, group);
+      if (!routes.get(group)) {
+        routes.set(group, new Router());
+      }
+      routes.get(group)[schema.options.method].bind(routes.get(group))(
+        schema.options.path,
+        ...this.apiInfo.beforeHooks,
+        ...schema.options.beforeHooks,
+        // apiCheckParams(this, schema),
+        ...schema.options.middlewares,
+        schema.options.handler,
+      );
+    }
+    for (const [key, value] of routes.entries()) {
+      debug("bindGroupToApp - %s", key);
+      app.use("/" + key, value);
+    }
+  }
+
 }
