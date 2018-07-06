@@ -4,17 +4,19 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as assert from "assert";
-import * as fs from "fs";
-import * as path from "path";
+import assert from "assert";
+import fs from "fs";
+import path from "path";
 import { docs as debug } from "../debug";
-import API, { IApiOptionInfo } from "../index";
+import ERest, { IApiOptionInfo } from "../index";
 import { IDocOptions } from "../index";
-import { IDocGeneratePlugin, IKVObject } from "../interfaces";
-import { ErrorManager, IType, TypeManager } from "../manager";
+import { ErrorManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
-import { ISchemaOption } from "../schema";
+import { getPath, jsonStringify } from "../utils"
+import { APIOption } from "../api";
+
+export type IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions) => void;
 
 const DOC = [
   "method",
@@ -22,8 +24,6 @@ const DOC = [
   "realPath",
   "examples",
   "middlewares",
-  "required",
-  "requiredOneOf",
   "query",
   "body",
   "params",
@@ -37,9 +37,9 @@ const DOC = [
 export interface IDocData {
   info: IApiOptionInfo;
   errors: ErrorManager;
-  group: IKVObject<string>;
-  types: IKVObject<IDocTypes>;
-  schemas: IKVObject<ISchemaOption<any, any>>;
+  group: Record<string, string>;
+  types: Record<string, IDocTypes>;
+  schemas: Record<string, APIOption<any>>;
   apiInfo: {
     count: number;
     tested: number;
@@ -62,13 +62,13 @@ export interface IDocTypes {
 const docOutputForamt = (out: any) => out;
 
 export default class IAPIDoc {
-  private parent: API;
+  private parent: ERest<any>;
   private info: IApiOptionInfo;
-  private groups: IKVObject<string>;
+  private groups: Record<string, string>;
   private docsOptions: IDocOptions;
   private plugins: IDocGeneratePlugin[] = [];
 
-  constructor(apiService: API) {
+  constructor(apiService: ERest<any>) {
     this.parent = apiService;
     const { info, groups, docsOptions } = this.parent.privateInfo;
     this.info = info;
@@ -85,8 +85,8 @@ export default class IAPIDoc {
       info: this.info,
       errors: this.parent.errors,
       group: this.groups,
-      types: {} as IKVObject,
-      schemas: {} as IKVObject,
+      types: {} as Record<string, any>,
+      schemas: {} as Record<string, any>,
       apiInfo: {
         count: 0,
         tested: 0,
@@ -95,18 +95,9 @@ export default class IAPIDoc {
     };
     const formatOutput = this.parent.api.docOutputForamt || docOutputForamt;
 
-    // types
-    this.parent.type.forEach((item: IType) => {
-      const t = this.parent.utils.merge(item) as any;
-      t.parser = t.parser && t.parser.toString();
-      t.checker = t.checker && t.checker.toString();
-      t.formatter = t.formatter && t.formatter.toString();
-      data.types[t.name] = t as IDocTypes;
-    });
-
-    for (const [k, schema] of this.parent.api.$schemas.entries()) {
+    for (const [k, schema] of this.parent.api.$apis.entries()) {
       const o = schema.options;
-      data.schemas[k] = {} as ISchemaOption<any, any>;
+      data.schemas[k] = {} as APIOption<any>;
       for (const key of DOC) {
         data.schemas[k][key] = o[key];
       }
@@ -160,8 +151,8 @@ export default class IAPIDoc {
   public json() {
     debug("json");
     const generateJson = (data: any, dir: string, options: IDocOptions) => {
-      const filename = this.parent.utils.getPath("doc.json", options.json);
-      fs.writeFileSync(path.resolve(dir, filename), this.parent.utils.jsonStringify(data, 2));
+      const filename = getPath("doc.json", options.json);
+      fs.writeFileSync(path.resolve(dir, filename), jsonStringify(data, 2));
     };
     this.plugins.push(generateJson);
     return this;
