@@ -31,7 +31,7 @@ export function getCallerSourceLine(dir: string): SourceResult {
       if (s) {
         return {
           relative: s[1].slice(resolvedDir.length + 1),
-          absolute: s[1]
+          absolute: s[1],
         };
       }
     }

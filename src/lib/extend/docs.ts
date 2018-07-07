@@ -31,6 +31,8 @@ const DOC = [
   "title",
   "description",
   "response",
+  "required",
+  "requiredOneOf",
   "tested",
 ];
 

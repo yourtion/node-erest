@@ -159,7 +159,7 @@ export class TestAgent {
   private saveExample() {
     this.debug("Save Example: %o", this.options.takeExample);
     if (this.options.takeExample) {
-      this.options.parent.api.$schemas.get(this.key).example({
+      this.options.parent.api.$apis.get(this.key).example({
         name: this.options.agentTestName,
         path: this.options.agentPath,
         headers: this.options.agentHeader,
@@ -173,7 +173,7 @@ export class TestAgent {
    * 输出结果
    */
   private output(raw = false, save = false) {
-    this.options.parent.api.$schemas.get(this.key).options.tested = true;
+    this.options.parent.api.$apis.get(this.key).options.tested = true;
     return this.options.agent!.then(res => {
       // TODO: hack res.req.path
       this.options.agentPath = (res as any).req.path;

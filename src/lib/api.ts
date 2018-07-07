@@ -4,10 +4,10 @@
  */
 
 import assert from "assert";
-import joi from "joi";
 import pathToRegExp from "path-to-regexp";
 import { api as debug } from "./debug";
 import { getSchemaKey, SourceResult } from "./utils";
+import { ISchemaType } from "./params";
 
 export interface IExample {
   input: Record<string, any>;
@@ -25,13 +25,16 @@ export interface APICommon<T = DEFAULT_HANDLER> {
   title: string;
   description?: string;
   handler?: T;
-  response?: joi.SchemaMap;
+  response?: Record<string, ISchemaType>;
 }
 
 export interface APIDefine<T> extends APICommon<T> {
-  query?: joi.SchemaMap;
-  body?: joi.SchemaMap;
-  params?: joi.SchemaMap;
+  group?: string;
+  query?: Record<string, ISchemaType>;
+  body?: Record<string, ISchemaType>;
+  params?: Record<string, ISchemaType>;
+  required?: string[];
+  requiredOneOf?: string[];
   before?: Array<T>;
   middlewares?: Array<T>;
   handler: T;
@@ -43,7 +46,9 @@ export interface APIOption<T> extends Record<string, any> {
   examples: IExample[];
   beforeHooks: Set<T>;
   middlewares: Set<T>;
-  _params: Map<string, joi.SchemaLike>;
+  required: Set<string>;
+  requiredOneOf: string[][];
+  _allParams: Map<string, ISchemaType>;
   tested: boolean;
 }
 
@@ -60,7 +65,7 @@ export default class API<T = DEFAULT_HANDLER> {
     assert(method && typeof method === "string", "`method`必须是字符串类型");
     assert(
       SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
-      "`method`必须是以下请求方法中的一个：" + SUPPORT_METHOD,
+      "`method`必须是以下请求方法中的一个：" + SUPPORT_METHOD
     );
     assert(path && typeof path === "string", "`path`必须是字符串类型");
     assert(path[0] === "/", '`path`必须以"/"开头');
@@ -73,12 +78,14 @@ export default class API<T = DEFAULT_HANDLER> {
       path,
       realPath: this.key.split("_")[1],
       examples: [],
+      required: new Set(),
+      requiredOneOf: [],
       beforeHooks: new Set(),
       middlewares: new Set(),
-      query: {} as joi.SchemaMap,
-      body: {} as joi.SchemaMap,
-      params: {} as joi.SchemaMap,
-      _params: new Map() as Map<string, joi.SchemaLike>,
+      query: {} as Record<string, ISchemaType>,
+      body: {} as Record<string, ISchemaType>,
+      params: {} as Record<string, ISchemaType>,
+      _allParams: new Map() as Map<string, ISchemaType>,
       group: group || "",
       tested: false,
     };
@@ -86,14 +93,15 @@ export default class API<T = DEFAULT_HANDLER> {
     this.pathTestRegExp = pathToRegExp(this.options.realPath);
     this.inited = false;
 
-    debug("new: %s %s from %s", method, path, sourceFile);
+    debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
 
   public static define<T>(options: APIDefine<T>, sourceFile: SourceResult, group?: string) {
     const schema = new API<T>(options.method, options.path, sourceFile, group);
     schema.title(options.title);
-    if (group) {
-      schema.group(group);
+    const g = group || options.group;
+    if (g) {
+      schema.group(g);
     }
     if (options.description) {
       schema.description(options.description);
@@ -109,6 +117,12 @@ export default class API<T = DEFAULT_HANDLER> {
     }
     if (options.params) {
       schema.params(options.params);
+    }
+    if (options.required) {
+      schema.required(options.required);
+    }
+    if (options.requiredOneOf) {
+      schema.requiredOneOf(options.requiredOneOf);
     }
     if (options.middlewares && options.middlewares.length > 0) {
       schema.middlewares(...options.middlewares);
@@ -174,7 +188,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * API使用例子
    */
   public example(example: IExample) {
-    this.checkInited();
+    // this.checkInited();
     assert(example.input && typeof example.input === "object", "`input`必须是一个对象");
     assert(example.output && typeof example.output === "object", "`output`必须是一个对象");
     this.addExample(example);
@@ -184,7 +198,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 输出结果对象
    */
-  public response(response: joi.SchemaMap) {
+  public response(response: Record<string, ISchemaType>) {
     assert(typeof response === "object", "`schema`必须是一个对象");
     this.options.response = response;
     return this;
@@ -193,25 +207,25 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 输入参数
    */
-  private setParams(name: string, options: joi.SchemaLike, place: string) {
+  private setParams(name: string, options: ISchemaType, place: string) {
     this.checkInited();
 
     assert(name && typeof name === "string", "`name`必须是字符串类型");
     assert(place && ["query", "body", "params"].indexOf(place) > -1, '`place` 必须是 "query" "body", "param"');
     assert(name.indexOf(" ") === -1, "`name`不能包含空格");
     assert(name[0] !== "$", '`name`不能以"$"开头');
-    assert(!(name in this.options._params), `参数 ${name} 已存在`);
+    assert(!(name in this.options._allParams), `参数 ${name} 已存在`);
 
     assert(options && (typeof options === "string" || typeof options === "object"));
 
-    this.options._params.set(name, options);
+    this.options._allParams.set(name, options);
     this.options[place][name] = options;
   }
 
   /**
    * Body 参数
    */
-  public body(obj: Record<string, joi.SchemaLike>) {
+  public body(obj: Record<string, ISchemaType>) {
     for (const key of Object.keys(obj)) {
       const o = obj[key];
       this.setParams(key, o, "body");
@@ -222,7 +236,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * Query 参数
    */
-  public query(obj: Record<string, joi.SchemaLike>) {
+  public query(obj: Record<string, ISchemaType>) {
     for (const key of Object.keys(obj)) {
       const o = obj[key];
       this.setParams(key, o, "query");
@@ -233,10 +247,36 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * Param 参数
    */
-  public params(obj: Record<string, joi.SchemaLike>) {
+  public params(obj: Record<string, ISchemaType>) {
     for (const key of Object.keys(obj)) {
       const o = obj[key];
       this.setParams(key, o, "params");
+    }
+    return this;
+  }
+
+  /**
+   * 必填参数
+   */
+  public required(list: string[]) {
+    this.checkInited();
+    for (const item of list) {
+      assert(typeof item === "string", "`name`必须是字符串类型");
+      this.options.required.add(item);
+    }
+    return this;
+  }
+
+  /**
+   * 多选一必填参数
+   */
+  public requiredOneOf(list: string[]) {
+    this.checkInited();
+    if (list.length > 0) {
+      for (const item of list) {
+        assert(typeof item === "string", "`name`必须是字符串类型");
+      }
+      this.options.requiredOneOf.push(list);
     }
     return this;
   }
@@ -281,10 +321,26 @@ export default class API<T = DEFAULT_HANDLER> {
     assert(this.options.group, `请为 API ${this.key} 选择一个分组`);
     assert(
       this.options.group && this.options.group in parent.privateInfo.groups,
-      `请先配置 ${this.options.group} 分组`,
+      `请先配置 ${this.options.group} 分组`
     );
 
-    // TODO: 初始化时参数类型检查
+    // 初始化时参数类型检查
+    for (const [name, options] of this.options._allParams) {
+      const typeName = options.type;
+      const type = parent.type.get(typeName!);
+      assert(type && type.checker, `please register type ${typeName}`);
+      if (type!.isParamsRequire && options.params === undefined) {
+        throw new Error(`${typeName} is require a params`);
+      }
+      if (options.params) {
+        assert(type!.paramsChecker!(options.params), `test type params failed`);
+        try {
+          options._paramsJSON = JSON.stringify(options.params);
+        } catch (err) {
+          throw new Error(`cannot JSON.stringify(options.params) for param ${name}`);
+        }
+      }
+    }
 
     this.inited = true;
   }

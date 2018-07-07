@@ -5,12 +5,15 @@
 
 import assert from "assert";
 import { core as debug } from "./debug";
-import { defaultErrors } from "./default";
-import { ErrorManager } from "./manager";
+import { defaultErrors, defaultTypes } from "./default";
+import { ErrorManager, TypeManager } from "./manager";
 import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
+import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType } from "./params";
 import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
 import IAPITest from "./extend/test";
 import IAPIDoc from "./extend/docs";
+
+export * from "./api";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
@@ -97,6 +100,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
     invalidParameter: (msg: string) => Error;
     internalError: (msg: string) => Error;
   };
+  private typeManage: TypeManager;
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;
@@ -136,6 +140,13 @@ export default class ERest<T = DEFAULT_HANDLER> {
    */
   get errors() {
     return this.errorManage;
+  }
+
+  /**
+   * 类型列表
+   */
+  get type() {
+    return this.typeManage;
   }
 
   constructor(options: IApiOption) {
@@ -211,6 +222,9 @@ export default class ERest<T = DEFAULT_HANDLER> {
       json: getDocOpt("json", false),
       all: getDocOpt("all", false),
     };
+    // 参数类型管理
+    this.typeManage = new TypeManager();
+    defaultTypes.call(this, this.typeManage);
     // 错误管理
     this.errorManage = new ErrorManager();
     defaultErrors.call(this, this.errorManage);
@@ -266,6 +280,29 @@ export default class ERest<T = DEFAULT_HANDLER> {
   }
 
   /**
+   * 获取参数检查实例
+   */
+  public paramsChecker() {
+    return (name: string, value: any, schema: ISchemaType) => paramsChecker(this, name, value, schema);
+  }
+
+  /**
+   * 获取Schema检查实例
+   */
+  public schemaChecker() {
+    return (data: any, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
+      schemaChecker(this, data, schema, requiredOneOf);
+  }
+
+  /**
+   * 获取Schema检查实例
+   */
+  public apiChecker() {
+    return (schema: API<any>, params?: Record<string, any>, query?: Record<string, any>, body?: Record<string, any>) =>
+      apiParamsCheck(this, schema, params, query, body);
+  }
+
+  /**
    * 获取分组API实例
    */
   public group(name: string): IGruop<T> {
@@ -299,13 +336,27 @@ export default class ERest<T = DEFAULT_HANDLER> {
     }
   }
 
+  public checkerLeiWeb<K>(ereat: ERest<T>, schema: API): (ctx: K) => void {
+    return function apiParamsChecker(ctx: any) {
+      ctx.$params = apiParamsCheck(ereat, schema, ctx.request.params, ctx.request.query, ctx.request.body);
+      ctx.next();
+    };
+  }
+
+  public checkerExpress<U, V, W>(ereat: ERest<T>, schema: API): (req: U, res: V, next: W) => void {
+    return function apiParamsChecker(req: any, res: any, next: any) {
+      req.$params = apiParamsCheck(ereat, schema, req.params, req.query, req.body);
+      next();
+    };
+  }
+
   /**
    * 绑定路由
    * （加载顺序：beforeHooks -> apiCheckParams -> middlewares -> handler -> afterHooks ）
    *
    * @param {Object} router 路由
    */
-  public bindRouter(router: any) {
+  public bindRouter(router: any, checker: (ctx: ERest<T>, schema: API<T>) => T) {
     if (this.forceGroup) {
       throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
     }
@@ -316,9 +367,9 @@ export default class ERest<T = DEFAULT_HANDLER> {
         schema.options.path,
         ...this.apiInfo.beforeHooks,
         ...schema.options.beforeHooks,
-        // apiCheckParams(this, schema),
+        checker(this, schema),
         ...schema.options.middlewares,
-        schema.options.handler,
+        schema.options.handler
       );
     }
   }
@@ -329,7 +380,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * @param {Object} app Express App 实例
    * @param {Object} Router Router 对象
    */
-  public bindRouterToApp(app: any, Router: any) {
+  public bindRouterToApp(app: any, Router: any, checker: (ctx: ERest<T>, schema: API<T>) => T) {
     if (!this.forceGroup) {
       throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
     }
@@ -345,9 +396,9 @@ export default class ERest<T = DEFAULT_HANDLER> {
         schema.options.path,
         ...this.apiInfo.beforeHooks,
         ...schema.options.beforeHooks,
-        // apiCheckParams(this, schema),
+        checker(this, schema),
         ...schema.options.middlewares,
-        schema.options.handler,
+        schema.options.handler
       );
     }
     for (const [key, value] of routes.entries()) {
@@ -355,5 +406,4 @@ export default class ERest<T = DEFAULT_HANDLER> {
       app.use("/" + key, value);
     }
   }
-
 }
