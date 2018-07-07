@@ -18,16 +18,6 @@ describe("API - base", () => {
     expect(apiService.privateInfo.groups).toEqual(GROUPS);
   });
 
-  it("API - utils", () => {
-    expect(apiService.utils.getCallerSourceLine("/qq")).toEqual({
-      relative: undefined,
-      absolute: undefined,
-    });
-    const cb = apiService.utils.createPromiseCallback();
-    expect(cb.promise).rejects.toEqual(new Error());
-    cb(new Error());
-  });
-
   it("API - service Init", () => {
     apiService.setDocOutputForamt((out: any) => out);
     expect(apiService.privateInfo.groups).toEqual(GROUPS);

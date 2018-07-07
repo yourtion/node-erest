@@ -4,7 +4,7 @@ import { resolve } from "path";
 import { apiAll, apiJson, build, TYPES } from "./helper";
 import lib from "./lib";
 
-import * as express from "express";
+import express from "express";
 
 const app = express();
 const router = express.Router();
@@ -26,8 +26,7 @@ const JsonSchema = {
 };
 jsonApi.response(JsonSchema);
 jsonApi.query(JsonSchema);
-jsonApi.requiredOneOf(["age", "type"]);
-apiService.bindRouter(router);
+apiService.bindRouter(router, apiService.checkerExpress);
 
 apiService.initTest(app, __dirname, "/tmp");
 function format(data: any): [Error | null, any] {

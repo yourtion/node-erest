@@ -1,18 +1,15 @@
-import { IKVObject } from "../lib/interfaces";
-import { ISchemaType } from "../lib/params";
-
 /**
  * 删除对象中的 undefined
  */
-function removeUndefined(object: IKVObject) {
+function removeUndefined(object: Record<string, any>) {
   Object.keys(object).forEach(key => object[key] === undefined && delete object[key]);
   return object;
 }
 
 function renameFunction(name: string, fn: any) {
-  return new Function(
-    `return function (call) { return function ${name}() { return call(this, arguments) }; };`
-  )()(Function.apply.bind(fn));
+  return new Function(`return function (call) { return function ${name}() { return call(this, arguments) }; };`)()(
+    Function.apply.bind(fn)
+  );
 }
 
 /**
@@ -22,16 +19,12 @@ export const TYPES = Object.freeze({
   Boolean: "Boolean",
   Date: "Date",
   String: "String",
-  TrimString: "TrimString",
   Number: "Number",
   Integer: "Integer",
   Float: "Float",
-  Object: "Object",
-  Array: "Array",
   JSON: "JSON",
   JSONString: "JSONString",
   Any: "Any",
-  MongoIdString: "MongoIdString",
   Email: "Email",
   Domain: "Domain",
   Alpha: "Alpha",
@@ -41,6 +34,7 @@ export const TYPES = Object.freeze({
   URL: "URL",
   ENUM: "ENUM",
   IntArray: "IntArray",
+  StringArray: "StringArray",
   NullableString: "NullableString",
   NullableInteger: "NullableInteger",
 });
@@ -54,14 +48,8 @@ export const TYPES = Object.freeze({
  * @param {any} defaultValue 默认值
  * @return {Object}
  */
-export function build(
-  type: string,
-  comment: string,
-  required?: boolean,
-  defaultValue?: any,
-  params?: any
-) {
-  return removeUndefined({ type, comment, required, default: defaultValue, params }) as ISchemaType;
+export function build(type: string, comment: string, required?: boolean, defaultValue?: any, params?: any) {
+  return removeUndefined({ type, comment, required, default: defaultValue, params }) as any;
 }
 
 export const nameParams = build(TYPES.String, "Your name", true);
@@ -115,7 +103,7 @@ export function apiDelete(api: any) {
   return api
     .delete("/index/:name")
     .group("Index")
-    .param({ name: nameParams })
+    .params({ name: nameParams })
     .title("Delete")
     .register(function del(req: any, res: any) {
       res.end(`Delete ${req.$params.name}`);
@@ -134,7 +122,7 @@ export function apiPatch(api: any) {
 
 export function apiJson(api: any, path = "/json") {
   function json(req: any, res: any) {
-    if (req.$params.age < 18) {
+    if (!req.$params.age || req.$params.age < 18) {
       return res.json({ success: false });
     }
     return res.json({ success: true, result: req.$params, headers: req.headers });
