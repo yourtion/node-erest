@@ -8,7 +8,7 @@ import assert from "assert";
 import fs from "fs";
 import path from "path";
 import { docs as debug } from "../debug";
-import ERest, { IApiOptionInfo, IApiOption } from "../index";
+import ERest, { IApiOptionInfo } from "../index";
 import { IDocOptions } from "../index";
 import { ErrorManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
