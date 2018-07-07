@@ -3,7 +3,7 @@ import { APIOption } from "../../api";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 
-function paramsTable(item: Record<string, any>) {
+function paramsTable(item: APIOption<any>) {
   const paramsList: string[] = [];
   paramsList.push(tableHeader(["参数名", "位置", "类型", "格式化", "必填", "说明"]));
   // 参数输出
@@ -47,11 +47,11 @@ function paramsTable(item: Record<string, any>) {
   return paramsList.join("\n");
 }
 
-function responseTable(item: Record<string, APIOption<any>>) {
+function responseTable(apis: Record<string, APIOption<any>>) {
   const schemaList: string[] = [];
   schemaList.push(tableHeader(["参数名", "类型", "说明"]));
-  for (const name in item) {
-    const info = item[name];
+  for (const name in apis) {
+    const info = apis[name];
     const comment =
       info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
     schemaList.push(
@@ -78,7 +78,7 @@ function examples(exampleList: any[]) {
   return exampleList
     .map(item => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
-      const header = item.headers && "\nheaders = " + jsonStringify(item.headers, 2);
+      const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) : "";
       const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
       const output = `output = ${jsonStringify(item.output, 2)};`;
       return `${title}\n${header || ""}\n${input}\n${output}`.trim();

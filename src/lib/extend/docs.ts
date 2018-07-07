@@ -8,7 +8,7 @@ import assert from "assert";
 import fs from "fs";
 import path from "path";
 import { docs as debug } from "../debug";
-import ERest, { IApiOptionInfo } from "../index";
+import ERest, { IApiOptionInfo, IApiOption } from "../index";
 import { IDocOptions } from "../index";
 import { ErrorManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
@@ -87,8 +87,8 @@ export default class IAPIDoc {
       info: this.info,
       errors: this.parent.errors,
       group: this.groups,
-      types: {} as Record<string, any>,
-      schemas: {} as Record<string, any>,
+      types: {} as Record<string, IDocTypes>,
+      schemas: {} as Record<string, APIOption<any>>,
       apiInfo: {
         count: 0,
         tested: 0,
