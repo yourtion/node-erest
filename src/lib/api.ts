@@ -10,6 +10,9 @@ import { getSchemaKey, SourceResult } from "./utils";
 import { ISchemaType } from "./params";
 
 export interface IExample {
+  name: string;
+  path: string;
+  headers: Record<string, any>;
   input: Record<string, any>;
   output: Record<string, any>;
 }

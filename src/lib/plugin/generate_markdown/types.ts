@@ -1,7 +1,7 @@
-import { IDocData } from "../../extend/docs";
+import { IDocData, IDocTypes } from "../../extend/docs";
 import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
 
-function typeString(item: any) {
+function typeString(item: IDocTypes) {
   return fieldString([
     stringOrEmpty(item.name, true),
     stringOrEmpty(item.description),
@@ -12,8 +12,8 @@ function typeString(item: any) {
 }
 
 export default function typeDocs(data: IDocData) {
-  const defaultTypes: any[] = [];
-  const customTypes: any[] = [];
+  const defaultTypes: IDocTypes[] = [];
+  const customTypes: IDocTypes[] = [];
 
   for (const name in data.types) {
     const info = data.types[name];

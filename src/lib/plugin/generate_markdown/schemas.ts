@@ -1,5 +1,5 @@
 import { IDocData } from "../../extend/docs";
-import { APIOption } from "../../api";
+import { APIOption, IExample } from "../../api";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 
@@ -67,28 +67,26 @@ function responseTable(apis: Record<string, APIOption<any>>) {
 function formatExampleInput(inputData: Record<string, any>) {
   const ret = Object.assign({}, inputData);
   for (const name in ret) {
-    if (name[0] === "$") {
-      delete ret[name];
-    }
+    if (name[0] === "$") delete ret[name];
   }
   return ret;
 }
 
-function examples(exampleList: any[]) {
+function examples(exampleList: IExample[]) {
   return exampleList
     .map(item => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
-      const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) : "";
+      const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) + "\n" : "";
       const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
       const output = `output = ${jsonStringify(item.output, 2)};`;
-      return `${title}\n${header || ""}\n${input}\n${output}`.trim();
+      return `${title}\n${header}${input}\n${output}`.trim();
     })
     .join("\n\n");
 }
 
 export default function schemaDocs(data: IDocData) {
-  const group: Record<string, any> = {};
-  const groupTitles: Record<string, any> = {};
+  const group: Record<string, string[]> = {};
+  const groupTitles: Record<string, string[]> = {};
 
   function add(name: string, content: string, title: string) {
     if (!Array.isArray(group[name])) {
