@@ -10,7 +10,7 @@ import path from "path";
 import { docs as debug } from "../debug";
 import ERest, { IApiOptionInfo } from "../index";
 import { IDocOptions } from "../index";
-import { ErrorManager } from "../manager";
+import { ErrorManager, IType } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
 import { getPath, jsonStringify } from "../utils"
@@ -96,6 +96,15 @@ export default class IAPIDoc {
       },
     };
     const formatOutput = this.parent.api.docOutputForamt || docOutputForamt;
+
+    // types
+    this.parent.type.forEach((item: IType) => {
+      const t = Object.assign({}, item) as any;
+      t.parser = t.parser && t.parser.toString();
+      t.checker = t.checker && t.checker.toString();
+      t.formatter = t.formatter && t.formatter.toString();
+      data.types[t.name] = t as IDocTypes;
+    });
 
     for (const [k, schema] of this.parent.api.$apis.entries()) {
       const o = schema.options;

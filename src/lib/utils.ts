@@ -77,17 +77,6 @@ export function jsonStringify(data: object, space: string | number) {
 }
 
 /**
- * 合并对象
- */
-export function merge(...args: object[]) {
-  const ret = {};
-  for (const obj of args) {
-    Object.assign(ret, obj);
-  }
-  return ret;
-}
-
-/**
  * 获取路径
  */
 export function getPath(def: string, opt?: string | boolean): string {
