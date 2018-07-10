@@ -5,7 +5,6 @@ import * as express from "express";
 
 test("Router - bind empty", () => {
   const apiService = lib();
-  apiService.api;
   const router = express.Router();
   apiService.bindRouter(router, apiService.checkerExpress);
   expect(router.stack.length).toBe(0);

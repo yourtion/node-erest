@@ -148,7 +148,7 @@ export function apiAll(api: any) {
 
 export function hook(name: string, value: any = 1) {
   return renameFunction(name, (req: any, res: any, next: any) => {
-    req["$" + name] = 1;
+    req["$" + name] = value;
     next();
   });
 }
