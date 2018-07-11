@@ -16,7 +16,7 @@
     "clean": "rm -rf dist",
     "compile": "npm run clean && tsc && prettier --single-quote --write dist/**/*.js",
     "prepublishOnly": "npm run format && npm run test:cov && npm test",
-    "postpublish": "npm run tags"
+    "postpublish": "npm run tag"
   },
   "repository": {
     "type": "git",

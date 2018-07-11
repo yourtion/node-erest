@@ -205,9 +205,7 @@ export default class IAPIDoc {
    */
   public saveOnExit(dir: string) {
     debug("saveOnExit: %s", dir);
-    process.on("exit", () => {
-      this.save(dir);
-    });
+    process.on("exit", () => this.save(dir));
     return this;
   }
 }

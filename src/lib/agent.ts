@@ -202,7 +202,7 @@ export class TestAgent {
    */
   public error() {
     this.debug("error");
-    return this.output(false, false)
+    return this.output()
       .then(ret => {
         throw new Error(`${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`);
       })
