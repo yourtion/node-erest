@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "Easy to build api server depend on express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
@@ -37,8 +37,8 @@
   "dependencies": {
     "@types/debug": "0.0.30",
     "@types/node": "^10.5.2",
-    "@types/path-to-regexp": "^1.7.0",
     "@types/validator": "^9.4.1",
+    "@types/supertest": "^2.0.4",
     "debug": "^3.1.0",
     "path-to-regexp": "^2.2.1",
     "validator": "^10.4.0"
@@ -46,7 +46,6 @@
   "devDependencies": {
     "@types/express": "^4.16.0",
     "@types/jest": "^23.1.4",
-    "@types/supertest": "^2.0.4",
     "express": "^4.16.3",
     "jest": "^23.3.0",
     "prettier": "^1.13.7",

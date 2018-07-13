@@ -51,7 +51,7 @@ export class TypeManager extends Manager<IType> {
       isDefaultFormat = false,
     } = options;
 
-    assert(name && typeof name === "string", "参数名称必须是字符串类型");
+    assert(typeof name === "string", "参数名称必须是字符串类型");
     assert(/^[A-Z]/.test(name[0]), `参数名称必须以大写字母开头：${ name }`);
     assert(!this.get(name), `该参数已被注册：${ name }`);
 
