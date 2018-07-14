@@ -1,4 +1,4 @@
-import * as api from "../lib";
+import ERest from "../lib";
 
 export const ERROR_INFO = Object.freeze({
   DataBaseError: { code: -1004, desc: "数据库错误", show: false, log: true },
@@ -21,8 +21,8 @@ export const GROUPS = {
 export default (options = {}) => {
   const packPath = process.env.ISLIB ? "../lib" : "../../dist/lib";
   const pack = require(packPath);
-  const API = pack.default;
-  const apiService = new API(
+  const ERest = pack.default;
+  const apiService = new ERest(
     Object.assign(
       {
         info: INFO,
@@ -41,5 +41,5 @@ export default (options = {}) => {
       options
     )
   );
-  return apiService as api.default;
+  return apiService as ERest;
 };

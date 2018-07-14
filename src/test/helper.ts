@@ -83,6 +83,7 @@ export function apiPost(api: any) {
     .query({ name: nameParams })
     .body({ age: ageParams })
     .title("Post")
+    .required(["name", "age"])
     .register(function post(req: any, res: any) {
       res.end(`Post ${req.$params.name}:${req.$params.age}`);
     });
@@ -148,7 +149,7 @@ export function apiAll(api: any) {
 
 export function hook(name: string, value: any = 1) {
   return renameFunction(name, (req: any, res: any, next: any) => {
-    req["$" + name] = 1;
+    req["$" + name] = value;
     next();
   });
 }

@@ -26,6 +26,7 @@ const JsonSchema = {
 };
 jsonApi.response(JsonSchema);
 jsonApi.query(JsonSchema);
+jsonApi.requiredOneOf(["age", "type"]);
 apiService.bindRouter(router, apiService.checkerExpress);
 
 apiService.initTest(app, __dirname, "/tmp");
@@ -114,15 +115,15 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       const { text: ret } = await agent
         .post("/api/index")
         .query({
-          test: "a",
+          name: "a",
         })
         .attach({
-          age: share.age,
+          field: 666,
           file: createReadStream(resolve(__dirname, "./lib.ts")),
         })
         .takeExample("Index-Post")
         .raw();
-      expect(ret).toBe("missing required parameter 'name' is required!");
+      expect(ret).toBe("missing required parameter 'age' is required!");
     });
 
     it("TEST - Post missing params", async () => {

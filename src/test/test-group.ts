@@ -16,7 +16,6 @@ const ORDER = ["globalBefore", "beforHook", "apiParamsChecker", "middleware", "r
 
 test("Group - bindRouter error when forceGroup", () => {
   const apiService = lib({ forceGroup: true });
-  apiService.api;
   const router = express.Router();
   const fn = () => apiService.bindRouter(router, apiService.checkerExpress);
   expect(fn).toThrow("internal error 使用了 forceGroup，请使用bindGroupToApp");
