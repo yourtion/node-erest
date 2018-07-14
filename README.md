@@ -1,4 +1,29 @@
+[![NPM version][npm-image]][npm-url]
+[![build status][travis-image]][travis-url]
+[![Test coverage][coveralls-image]][coveralls-url]
+[![David deps][david-image]][david-url]
+[![node version][node-image]][node-url]
+[![npm download][download-image]][download-url]
+[![npm license][license-image]][download-url]
+
+[npm-image]: https://img.shields.io/npm/v/erest.svg?style=flat-square
+[npm-url]: https://npmjs.org/package/erest
+[travis-image]: https://img.shields.io/travis/yourtion/node-erest.svg?style=flat-square
+[travis-url]: https://travis-ci.org/yourtion/node-erest
+[coveralls-image]: https://img.shields.io/coveralls/yourtion/node-erest.svg?style=flat-square
+[coveralls-url]: https://coveralls.io/r/yourtion/node-erest?branch=master
+[david-image]: https://img.shields.io/david/yourtion/node-erest.svg?style=flat-square
+[david-url]: https://david-dm.org/yourtion/node-erest
+[node-image]: https://img.shields.io/badge/node.js-%3E=_6-green.svg?style=flat-square
+[node-url]: http://nodejs.org/download/
+[download-image]: https://img.shields.io/npm/dm/erest.svg?style=flat-square
+[download-url]: https://npmjs.org/package/erest
+[license-image]: https://img.shields.io/npm/l/erest.svg
+
 # node-erest
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/yourtion/node-erest.svg)](https://greenkeeper.io/)
+[![DeepScan grade](https://deepscan.io/api/projects/2707/branches/19046/badge/grade.svg)](https://deepscan.io/dashboard#view=project&pid=2707&bid=19046)
 
 Easy to build api server depend on express.
 
@@ -16,7 +41,7 @@ $ npm install erest --save
 $ npm install generator-erest -g
 # Express
 $ yo erest:express
-# @leizm/web
+# erest
 $ yo erest:lei-web
 ```
 
