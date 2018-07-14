@@ -1,7 +1,7 @@
 {
   "name": "erest",
-  "version": "1.5.2",
-  "description": "Easy to build api server. (run on express and @leizm/web)",
+  "version": "1.5.6",
+  "description": "Easy to build api server depend on express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
   "files": [
@@ -38,8 +38,8 @@
   "dependencies": {
     "@types/debug": "0.0.30",
     "@types/node": "^10.5.2",
-    "@types/supertest": "^2.0.4",
     "@types/validator": "^9.4.1",
+    "@types/supertest": "^2.0.4",
     "debug": "^3.1.0",
     "path-to-regexp": "^2.2.1",
     "validator": "^10.4.0"

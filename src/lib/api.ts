@@ -65,12 +65,12 @@ export default class API<T = DEFAULT_HANDLER> {
    * 构造函数
    */
   constructor(method: SUPPORT_METHODS, path: any, sourceFile: SourceResult, group?: string) {
-    assert(method && typeof method === "string", "`method`必须是字符串类型");
+    assert(typeof method === "string", "`method`必须是字符串类型");
     assert(
       SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
       "`method`必须是以下请求方法中的一个：" + SUPPORT_METHOD
     );
-    assert(path && typeof path === "string", "`path`必须是字符串类型");
+    assert(typeof path === "string", "`path`必须是字符串类型");
     assert(path[0] === "/", '`path`必须以"/"开头');
 
     this.key = getSchemaKey(method, path, group);
@@ -213,7 +213,7 @@ export default class API<T = DEFAULT_HANDLER> {
   private setParams(name: string, options: ISchemaType, place: string) {
     this.checkInited();
 
-    assert(name && typeof name === "string", "`name`必须是字符串类型");
+    assert(typeof name === "string", "`name`必须是字符串类型");
     assert(place && ["query", "body", "params"].indexOf(place) > -1, '`place` 必须是 "query" "body", "param"');
     assert(name.indexOf(" ") === -1, "`name`不能包含空格");
     assert(name[0] !== "$", '`name`不能以"$"开头');

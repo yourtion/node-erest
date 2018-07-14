@@ -29,6 +29,13 @@ export function defaultTypes(type: TypeManager) {
     isDefault: true,
   });
 
+  type.register("TrimString", {
+    checker: (v: any) => typeof v === "string",
+    formatter: (v: string) => v.trim(),
+    description: "自动去首尾空格的字符串",
+    isDefaultFormat: true,
+  });
+
   type.register("Number", {
     parser: (v: any) => Number(v),
     checker: (v: any, p: any) => {
@@ -71,6 +78,18 @@ export function defaultTypes(type: TypeManager) {
     isDefaultFormat: true,
   });
 
+  type.register("Object", {
+    checker: (v: any) => v && typeof v === "object",
+    description: "对象",
+    isDefault: true,
+  });
+
+  type.register("Array", {
+    checker: (v: any) => Array.isArray(v),
+    description: "数组",
+    isDefault: true,
+  });
+
   type.register("JSON", {
     checker: (v: any) => typeof v === "string" && validator.isJSON(v),
     formatter: (v: string) => JSON.parse(v),
@@ -90,6 +109,12 @@ export function defaultTypes(type: TypeManager) {
   type.register("Any", {
     checker: (_: any) => true,
     description: "任意类型",
+    isDefault: true,
+  });
+
+  type.register("MongoIdString", {
+    checker: (v: any) => validator.isMongoId(String(v)),
+    description: "MongoDB ObjectId 字符串",
     isDefault: true,
   });
 

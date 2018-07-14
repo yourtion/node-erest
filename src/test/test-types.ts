@@ -3,118 +3,86 @@ import lib from "./lib";
 const apiService = lib();
 const paramsChecker = apiService.paramsChecker();
 
-describe("Types - default", () => {
-  it("TYPES - Boolean", () => {
-    expect(paramsChecker("Boolean", true, { type: "Boolean" })).toBe(true);
-    expect(paramsChecker("Boolean", false, { type: "Boolean" })).toBe(false);
-    expect(paramsChecker("Boolean", "false", { type: "Boolean" })).toBe(false);
-    expect(paramsChecker("Boolean", "true", { type: "Boolean", format: false })).toBe("true");
-  });
+const date = new Date();
 
-  it("TYPES - Date", () => {
-    expect(paramsChecker("Date", "2017-05-01", { type: "Date" })).toBe("2017-05-01");
-    const date = new Date();
-    expect(paramsChecker("Date", date, { type: "Date" })).toBe(date);
-  });
+test.each([
+  // Boolean
+  ["Boolean", true, { type: "Boolean" }, true],
+  ["Boolean", false, { type: "Boolean" }, false],
+  ["Boolean", "false", { type: "Boolean" }, false],
+  ["Boolean", "true", { type: "Boolean", format: false }, "true"],
 
-  it("TYPES - String", () => {
-    expect(paramsChecker("String", "1", { type: "String" })).toBe("1");
-  });
+  // Date
+  ["Date", "2017-05-01", { type: "Date" }, "2017-05-01"],
+  ["Date", date, { type: "Date" }, date],
 
-  it("TYPES - Number", () => {
-    expect(paramsChecker("Number", "1", { type: "Number" })).toBe(1);
-    const min = () => paramsChecker("Number", -2, { type: "Number", params: { min: 0 } });
-    expect(min).toThrow();
-    const max = () => paramsChecker("Number", 200, { type: "Number", params: { max: 10 } });
-    expect(max).toThrow();
-    const minmax = () => paramsChecker("Number", "-1", { type: "Number", params: { min: 0, max: 10 } });
-    expect(minmax).toThrow();
-  });
+  // String
+  ["String", "1", { type: "String" }, "1"],
+  ["TrimString", " 1 ", { type: "TrimString", format: false }, " 1 "],
+  ["TrimString", " 1 ", { type: "TrimString" }, "1"],
 
-  it("TYPES - Integer", () => {
-    expect(paramsChecker("Integer", "-1", { type: "Integer" })).toBe(-1);
-    expect(paramsChecker("Integer", "1", { type: "Integer", format: false })).toBe("1");
-    expect(paramsChecker("Integer", 1, { type: "Integer" })).toBe(1);
-    const float = () => paramsChecker("Integer", "-1.0", { type: "Integer" });
-    expect(float).toThrow();
-  });
+  // Number
+  ["Number", "1", { type: "Number" }, 1],
+  ["Integer", "-1", { type: "Integer" }, -1],
+  ["Integer", "1", { type: "Integer", format: false }, "1"],
+  ["Integer", 1, { type: "Integer" }, 1],
+  ["Float", "1.1", { type: "Float" }, 1.1],
+  ["Float", "-1", { type: "Float", format: true }, -1],
+  ["Float", "100.12233", { type: "Float", format: false }, "100.12233"],
 
-  it("TYPES - Float", () => {
-    expect(paramsChecker("Float", "1.1", { type: "Float" })).toBe(1.1);
-    expect(paramsChecker("Float", "-1", { type: "Float", format: true })).toBe(-1);
-    expect(paramsChecker("Float", "100.12233", { type: "Float", format: false })).toBe("100.12233");
-  });
+  // Object
+  ["Object", { a: 1 }, { type: "Object" }, { a: 1 }],
+  ["Object", {}, { type: "Object" }, {}],
+  ["Object", ["1"], { type: "Object" }, ["1"]],
 
-  it("TYPES - JSON", () => {
-    expect(paramsChecker("JSON", `{"a": "b"}`, { type: "JSON", format: false })).toBe(`{"a": "b"}`);
-    expect(paramsChecker("JSON", `{"a": "b"}`, { type: "JSON" })).toEqual({ a: "b" });
-  });
+  // JSON
+  ["JSON", `{"a": "b"}`, { type: "JSON", format: false }, `{"a": "b"}`],
+  ["JSON", `{"a": "b"}`, { type: "JSON" }, { a: "b" }],
+  ["JSONString", `{"a": "b"}`, { type: "JSONString", format: false }, `{"a": "b"}`],
+  ["JSONString", ` {"a": "b"} `, { type: "JSONString" }, `{"a": "b"}`],
 
-  it("TYPES - JSONString", () => {
-    expect(paramsChecker("JSONString", `{"a": "b"}`, { type: "JSONString", format: false })).toBe(`{"a": "b"}`);
-    expect(paramsChecker("JSONString", ` {"a": "b"} `, { type: "JSONString" })).toEqual(`{"a": "b"}`);
-  });
+  // Array
+  ["Array", ["1"], { type: "Array" }, ["1"]],
+  ["Array", [1, 2, 3], { type: "Array" }, [1, 2, 3]],
+  ["IntArray", [1, 2, 3], { type: "IntArray" }, [1, 2, 3]],
+  ["IntArray", "1, 5, 3", { type: "IntArray" }, [1, 3, 5]],
+  ["StringArray", ["a", 2, "3"], { type: "StringArray" }, ["a", "2", "3"]],
+  ["StringArray", "a, 5, q", { type: "StringArray" }, ["a", "5", "q"]],
 
-  it("TYPES - Any", () => {
-    expect(paramsChecker("Any", "1", { type: "Any" })).toBe("1");
-    expect(paramsChecker("Any", 1, { type: "Any" })).toBe(1);
-    expect(paramsChecker("Any", null, { type: "Any" })).toBe(null);
-    expect(paramsChecker("Any", { a: "b" }, { type: "Any" })).toEqual({ a: "b" });
-  });
+  // Nullable
+  ["NullableString", "1", { type: "NullableString" }, "1"],
+  ["NullableString", null, { type: "NullableString" }, null],
+  ["NullableInteger", "1", { type: "NullableInteger" }, "1"],
+  ["NullableInteger", "1", { type: "NullableInteger", format: true }, 1],
+  ["NullableInteger", 1, { type: "NullableInteger" }, 1],
+  ["NullableInteger", null, { type: "NullableInteger" }, null],
 
-  it("TYPES - Email", () => {
-    expect(paramsChecker("Email", "yourtion@gmail.com", { type: "Email" })).toBe("yourtion@gmail.com");
-  });
+  // Other
+  ["Any", "1", { type: "Any" }, "1"],
+  ["Any", 1, { type: "Any" }, 1],
+  ["Any", null, { type: "Any" }, null],
+  ["Any", { a: "b" }, { type: "Any" }, { a: "b" }],
+  ["MongoIdString", "507f1f77bcf86cd799439011", { type: "MongoIdString" }, "507f1f77bcf86cd799439011"],
+  ["Email", "yourtion@gmail.com", { type: "Email" }, "yourtion@gmail.com"],
+  ["Domain", "yourtion.com", { type: "Domain" }, "yourtion.com"],
+  ["Alpha", "Yourtion", { type: "Alpha" }, "Yourtion"],
+  ["AlphaNumeric", "Yourtion012", { type: "AlphaNumeric" }, "Yourtion012"],
+  ["Ascii", "Yourtion.com/hello", { type: "Ascii" }, "Yourtion.com/hello"],
+  ["Base64", "WW91cnRpb24=", { type: "Base64" }, "WW91cnRpb24="],
+  ["URL", "http://github.com/yourtion", { type: "URL" }, "http://github.com/yourtion"],
+  ["ENUM", "Hello", { type: "ENUM", params: ["Hello", "World"] }, "Hello"],
+])("TYPES - %s (%s) success", (type, value, params, expected) => {
+  expect(paramsChecker(type, value, params)).toEqual(expected);
+});
 
-  it("TYPES - Domain", () => {
-    expect(paramsChecker("Domain", "yourtion.com", { type: "Domain" })).toBe("yourtion.com");
-  });
-
-  it("TYPES - Alpha", () => {
-    expect(paramsChecker("Alpha", "Yourtion", { type: "Alpha" })).toBe("Yourtion");
-  });
-
-  it("TYPES - AlphaNumeric", () => {
-    expect(paramsChecker("AlphaNumeric", "Yourtion012", { type: "AlphaNumeric" })).toBe("Yourtion012");
-  });
-
-  it("TYPES - Ascii", () => {
-    expect(paramsChecker("Ascii", "Yourtion.com/hello", { type: "Ascii" })).toBe("Yourtion.com/hello");
-  });
-
-  it("TYPES - Base64", () => {
-    expect(paramsChecker("Base64", "WW91cnRpb24=", { type: "Base64" })).toBe("WW91cnRpb24=");
-  });
-
-  it("TYPES - URL", () => {
-    expect(paramsChecker("URL", "http://github.com/yourtion", { type: "URL" })).toBe("http://github.com/yourtion");
-  });
-
-  it("TYPES - ENUM", () => {
-    expect(paramsChecker("ENUM", "Hello", { type: "ENUM", params: ["Hello", "World"] })).toBe("Hello");
-    const tenum = () => paramsChecker("Integer", "Yourtion", { type: "ENUM", params: ["Hello", "World"] });
-    expect(tenum).toThrow();
-  });
-
-  it("TYPES - IntArray", () => {
-    expect(paramsChecker("IntArray", [1, 2, 3], { type: "IntArray" })).toEqual([1, 2, 3]);
-    expect(paramsChecker("IntArray", "1, 5, 3", { type: "IntArray" })).toEqual([1, 3, 5]);
-  });
-
-  it("TYPES - StringArray", () => {
-    expect(paramsChecker("StringArray", ["a", 2, "3"], { type: "StringArray" })).toEqual(["a", "2", "3"]);
-    expect(paramsChecker("StringArray", "a, 5, q", { type: "StringArray" })).toEqual(["a", "5", "q"]);
-  });
-
-  it("TYPES - NullableString", () => {
-    expect(paramsChecker("NullableString", "1", { type: "NullableString" })).toBe("1");
-    expect(paramsChecker("NullableString", null, { type: "NullableString" })).toBeNull();
-  });
-
-  it("TYPES - NullableInteger", () => {
-    expect(paramsChecker("NullableInteger", "1", { type: "NullableInteger" })).toBe("1");
-    expect(paramsChecker("NullableInteger", "1", { type: "NullableInteger", format: true })).toBe(1);
-    expect(paramsChecker("NullableInteger", 1, { type: "NullableInteger" })).toBe(1);
-    expect(paramsChecker("NullableInteger", null, { type: "NullableInteger" })).toBeNull();
-  });
+test.each([
+  ["Number", -2, { type: "Number", params: { min: 0 } }],
+  ["Number", 200, { type: "Number", params: { max: 10 } }],
+  ["Number", "-1", { type: "Number", params: { min: 0, max: 10 } }],
+  ["Integer", "-1.0", { type: "Integer" }],
+  ["Integer", "Yourtion", { type: "ENUM", params: ["Hello", "World"] }],
+  ["ENUM", "Yourtion", { type: "ENUM", params: ["Hello", "World"] }],
+])("TYPES - %s (%s) toThrow", (type, value, params) => {
+  const fn = () => paramsChecker(type, value, params);
+  expect(fn).toThrow();
 });
