@@ -8,10 +8,8 @@
     "strict": true,
     "target": "es6",
     "esModuleInterop": true,
-    "sourceMap": true,
+    "sourceMap": false,
+    "allowUnusedLabels": false,
     "noUnusedLocals": true,
-  },
-  "include": [
-    "./src/**/*"
-  ]
+  }
 }
