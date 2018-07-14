@@ -8,14 +8,14 @@
     "dist/lib"
   ],
   "scripts": {
-    "test": "npm run test:lib -- --coverage",
+    "test": "npm run compile && jest",
     "test:lib": "export ISLIB=1 && jest",
-    "test:dist": "npm run compile && jest",
+    "test:cov": "npm run test:lib -- --coverage && cat ./coverage/lcov.info | coveralls",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "prettier --write src/**/*.ts",
     "clean": "rm -rf dist",
     "compile": "npm run clean && tsc && prettier --single-quote --write dist/**/*.js",
-    "prepublishOnly": "npm run format && npm test && npm run test:dist",
+    "prepublishOnly": "npm run format && npm run test:cov && npm test",
     "postpublish": "npm run tag"
   },
   "repository": {
@@ -47,6 +47,7 @@
   "devDependencies": {
     "@types/express": "^4.16.0",
     "@types/jest": "^23.1.4",
+    "coveralls": "^3.0.2",
     "express": "^4.16.3",
     "jest": "^23.3.0",
     "prettier": "^1.13.7",
