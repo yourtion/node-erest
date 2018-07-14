@@ -8,14 +8,14 @@
     "dist/lib"
   ],
   "scripts": {
-    "test": "npm run compile && jest",
+    "test": "npm run test:lib -- --coverage",
     "test:lib": "export ISLIB=1 && jest",
-    "test:cov": "npm run test:lib -- --coverage",
+    "test:dist": "npm run compile && jest",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "prettier --write src/**/*.ts",
     "clean": "rm -rf dist",
     "compile": "npm run clean && tsc && prettier --single-quote --write dist/**/*.js",
-    "prepublishOnly": "npm run format && npm run test:cov && npm test",
+    "prepublishOnly": "npm run format && npm test && npm run test:dist",
     "postpublish": "npm run tag"
   },
   "repository": {
