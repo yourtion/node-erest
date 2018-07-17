@@ -2,9 +2,14 @@ import { hook } from "./helper";
 import lib from "./lib";
 
 import express from "express";
+import { Connect, Router, Context } from "@leizm/web"
 
 function reqFn(req: any, res: any) {
   res.json("Hello, API Framework Index");
+}
+
+function reqFnLeiWeb(ctx: Context) {
+  ctx.response.json("Hello, API Framework Index");
 }
 
 const globalBefore = hook("globalBefore");
@@ -43,6 +48,7 @@ describe("Group - bindGroupToApp", () => {
     .middlewares(middleware)
     .register(reqFn);
   api.post("/").register(reqFn);
+  api.put("/").register(reqFn);
   api.delete("/").register(reqFn);
   api.patch("/").register(reqFn);
   apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress);
@@ -104,5 +110,23 @@ describe("Group - define and use route bindGroupToApp", () => {
 
     const ret = await apiService.test.patch("/api/index").success();
     expect(ret).toBe("Hello, API Framework Index");
+  });
+});
+
+describe("Group - simple @leizm/web", () => {
+  const apiService = lib({ forceGroup: true, info: { basePath: "" } });
+  const api = apiService.group("Index");
+  const app = new Connect();
+  api
+    .get("/")
+    .title("Get")
+    .register(reqFnLeiWeb);
+  apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb);
+
+  it("TEST - Get success", async () => {
+    apiService.initTest(app.server);
+
+    const { text: ret } = await apiService.test.get("/index/").raw();
+    expect(ret).toBe(`"Hello, API Framework Index"`);
   });
 });
