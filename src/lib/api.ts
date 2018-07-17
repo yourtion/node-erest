@@ -79,7 +79,7 @@ export default class API<T = DEFAULT_HANDLER> {
       sourceFile,
       method: method.toLowerCase() as SUPPORT_METHODS,
       path,
-      realPath: this.key.split("_")[1],
+      realPath: this.key.split(/_(.+)/)[1],
       examples: [],
       required: new Set(),
       requiredOneOf: [],

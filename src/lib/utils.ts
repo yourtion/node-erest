@@ -48,7 +48,7 @@ export function getCallerSourceLine(dir: string): SourceResult {
  */
 export function getSchemaKey(method: string, path: string, group?: string): string {
   const p = group ? "/" + camelCase2underscore(group) + path : path;
-  return `${method.toUpperCase()}_${p}/`.replace(/\/\//g, "/").replace(/\/$/, "");
+  return `${method.toUpperCase()}_${p.replace(/\/\//g, "/").replace(/\/$/, "") || "/"}`;
 }
 
 /**
