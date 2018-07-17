@@ -8,13 +8,14 @@ import pathToRegExp from "path-to-regexp";
 import { api as debug } from "./debug";
 import { getSchemaKey, SourceResult } from "./utils";
 import { ISchemaType } from "./params";
+import ERest from ".";
 
 export interface IExample {
-  name: string;
-  path: string;
-  headers: Record<string, any>;
-  input: Record<string, any>;
-  output: Record<string, any>;
+  name?: string | undefined;
+  path?: string;
+  headers?: Record<string, any>;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
 }
 
 export type DEFAULT_HANDLER = (...args: any[]) => any;
@@ -64,7 +65,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 构造函数
    */
-  constructor(method: SUPPORT_METHODS, path: any, sourceFile: SourceResult, group?: string) {
+  constructor(method: SUPPORT_METHODS, path: string, sourceFile: SourceResult, group?: string) {
     assert(typeof method === "string", "`method`必须是字符串类型");
     assert(
       SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
@@ -318,7 +319,7 @@ export default class API<T = DEFAULT_HANDLER> {
     return this;
   }
 
-  public init(parent: any) {
+  public init(parent: ERest<any>) {
     this.checkInited();
 
     assert(this.options.group, `请为 API ${this.key} 选择一个分组`);

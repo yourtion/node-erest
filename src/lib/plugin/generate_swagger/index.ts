@@ -96,7 +96,7 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
     let example = schema.examples && schema.examples[0];
     if (schema.examples && schema.examples.length > 1) {
       for (const item of schema.examples) {
-        if (item.output.success) {
+        if (item.output!.success) {
           example = item;
           break;
         }
@@ -111,7 +111,7 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
           description: schema[place][sKey].comment,
           type: schema[place][sKey].type.toLowerCase(),
           required: schema[place][sKey].required,
-          example: example.input[sKey],
+          example: example.input![sKey],
         };
         if (schema.required.has(sKey)) {
           obj.required = true;

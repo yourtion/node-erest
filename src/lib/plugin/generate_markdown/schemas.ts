@@ -78,7 +78,7 @@ function examples(exampleList: IExample[]) {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
       const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) + "\n" : "";
       const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
-      const output = `output = ${jsonStringify(item.output, 2)};`;
+      const output = `output = ${jsonStringify(item.output!, 2)};`;
       return `${title}\n${header}${input}\n${output}`.trim();
     })
     .join("\n\n");
