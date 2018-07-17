@@ -33,12 +33,12 @@ describe("API - base", () => {
 describe("API - more test", () => {
   const apiService = lib();
   const api = apiService.api
-      .get("/a")
-      .params({
-        p: build(TYPES.ENUM, "Int", true),
-      })
-      .group("Index")
-      .register(() => {});
+    .get("/a")
+    .params({
+      p: build(TYPES.ENUM, "Int", true),
+    })
+    .group("Index")
+    .register(() => {});
 
   it("Utils - getCallerSourceLine", () => {
     const { relative, absolute } = getCallerSourceLine("z:/getCallerSourceLine");
@@ -58,7 +58,6 @@ describe("API - more test", () => {
   it("API - apiChecker", () => {
     const checker = apiService.apiChecker();
     expect(() => checker(api, {}, {}, {})).toThrow("missing required parameter 'p' is required!");
-
   });
 
   it("API - require a params", () => {

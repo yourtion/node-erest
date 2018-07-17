@@ -2,7 +2,7 @@ import { hook } from "./helper";
 import lib from "./lib";
 
 import express from "express";
-import { Connect, Router, Context } from "@leizm/web"
+import { Connect, Router, Context } from "@leizm/web";
 
 function reqFn(req: any, res: any) {
   res.json("Hello, API Framework Index");
