@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "description": "Easy to build api server depend on express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
