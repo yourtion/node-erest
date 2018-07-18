@@ -2,14 +2,9 @@ import { hook, nodeVersion } from "./helper";
 import lib from "./lib";
 
 import express from "express";
-import { Connect, Router, Context } from "@leizm/web";
 
 function reqFn(req: any, res: any) {
   res.json("Hello, API Framework Index");
-}
-
-function reqFnLeiWeb(ctx: Context) {
-  ctx.response.json("Hello, API Framework Index");
 }
 
 const globalBefore = hook("globalBefore");
@@ -114,6 +109,12 @@ describe("Group - define and use route bindGroupToApp", () => {
 });
 
 if (nodeVersion() >= 8) {
+  const { Connect, Router } = require("@leizm/web");
+
+  function reqFnLeiWeb(ctx: any) {
+    ctx.response.json("Hello, API Framework Index");
+  }
+
   describe("Group - simple @leizm/web", () => {
     const apiService = lib({ forceGroup: true, info: { basePath: "" } });
     const api = apiService.group("Index");
