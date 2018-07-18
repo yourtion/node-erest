@@ -12,6 +12,11 @@ function renameFunction(name: string, fn: any) {
   );
 }
 
+export function nodeVersion() {
+  const v = process.version.match(/^v(\d+)/);
+  return (v && Number(v[1])) || 0;
+}
+
 /**
  * 类型枚举
  */

@@ -1,4 +1,4 @@
-import { hook } from "./helper";
+import { hook, nodeVersion } from "./helper";
 import lib from "./lib";
 
 import express from "express";
@@ -113,20 +113,22 @@ describe("Group - define and use route bindGroupToApp", () => {
   });
 });
 
-describe("Group - simple @leizm/web", () => {
-  const apiService = lib({ forceGroup: true, info: { basePath: "" } });
-  const api = apiService.group("Index");
-  const app = new Connect();
-  api
-    .get("/")
-    .title("Get")
-    .register(reqFnLeiWeb);
-  apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb);
+if (nodeVersion() >= 8) {
+  describe("Group - simple @leizm/web", () => {
+    const apiService = lib({ forceGroup: true, info: { basePath: "" } });
+    const api = apiService.group("Index");
+    const app = new Connect();
+    api
+      .get("/")
+      .title("Get")
+      .register(reqFnLeiWeb);
+    apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb);
 
-  it("TEST - Get success", async () => {
-    apiService.initTest(app.server);
+    it("TEST - Get success", async () => {
+      apiService.initTest(app.server);
 
-    const { text: ret } = await apiService.test.get("/index/").raw();
-    expect(ret).toBe(`"Hello, API Framework Index"`);
+      const { text: ret } = await apiService.test.get("/index/").raw();
+      expect(ret).toBe(`"Hello, API Framework Index"`);
+    });
   });
-});
+}
