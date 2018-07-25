@@ -6,7 +6,7 @@
 import assert from "assert";
 import { TestAgent } from "../agent";
 import { test as debug } from "../debug";
-import ERest, { IApiOptionInfo } from "../index";
+import ERest, { IApiOptionInfo } from "..";
 import { getCallerSourceLine, getSchemaKey, ISupportMethds } from "../utils";
 
 import { SuperTest } from "supertest";

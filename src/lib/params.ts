@@ -4,7 +4,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import ERest from "./index";
+import ERest from ".";
 import { create, params as debug } from "./debug";
 import API from "./api";
 

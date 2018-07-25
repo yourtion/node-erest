@@ -7,10 +7,10 @@ import * as fs from "fs";
 import * as path from "path";
 import { plugin as debug } from "../../debug";
 import { IDocData } from "../../extend/docs";
-import { IDocOptions } from "../../index";
+import { IDocOptions } from "../..";
 import * as utils from "../../utils";
 import errorDocs from "./errors";
-import schemaDocs from "./schemas";
+import apiDocs from "./apis";
 import typeDocs from "./types";
 import { trimSpaces } from "./utils";
 
@@ -37,7 +37,7 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
     fs.writeFileSync(filePath(dir, "errors"), errorDoc);
   }
 
-  const { list, groupTitles } = schemaDocs(data);
+  const { list, groupTitles } = apiDocs(data);
   const indexDoc: string[] = [];
   indexDoc.push(`# ${ data.info.title }\n`);
   indexDoc.push(data.info.description + "\n");

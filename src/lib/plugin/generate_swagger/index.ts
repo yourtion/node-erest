@@ -7,7 +7,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { plugin as debug } from "../../debug";
 import { IDocData } from "../../extend/docs";
-import { IDocOptions } from "../../index";
+import { IDocOptions } from "../..";
 import * as utils from "../../utils";
 
 interface ISwaggerResult {
@@ -58,7 +58,7 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
   result.tags = result.tags.sort((a, b) => a.name > b.name ? 1 : -1);
 
   const paths = result.paths;
-  const schemas = data.schemas;
+  const schemas = data.apis;
   for (const key in schemas) {
     const schema = schemas[key];
     const pathArray: string[] = [];

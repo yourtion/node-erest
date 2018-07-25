@@ -96,8 +96,8 @@ export default function schemaDocs(data: IDocData) {
     groupTitles[name].push(title);
   }
 
-  for (const key of Object.keys(data.schemas)) {
-    const item = data.schemas[key];
+  for (const key of Object.keys(data.apis)) {
+    const item = data.apis[key];
     const tested = itemTFEmoji(item.tested);
     const tit = stringOrEmpty(item.title);
     const method = item.method.toUpperCase();

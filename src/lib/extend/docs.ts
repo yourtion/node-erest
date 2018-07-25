@@ -8,8 +8,8 @@ import assert from "assert";
 import fs from "fs";
 import path from "path";
 import { docs as debug } from "../debug";
-import ERest, { IApiOptionInfo } from "../index";
-import { IDocOptions } from "../index";
+import ERest, { IApiOptionInfo } from "..";
+import { IDocOptions } from "..";
 import { ErrorManager, IType } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
@@ -41,7 +41,7 @@ export interface IDocData {
   errors: ErrorManager;
   group: Record<string, string>;
   types: Record<string, IDocTypes>;
-  schemas: Record<string, APIOption<any>>;
+  apis: Record<string, APIOption<any>>;
   apiInfo: {
     count: number;
     tested: number;
@@ -88,7 +88,7 @@ export default class IAPIDoc {
       errors: this.parent.errors,
       group: this.groups,
       types: {} as Record<string, IDocTypes>,
-      schemas: {} as Record<string, APIOption<any>>,
+      apis: {} as Record<string, APIOption<any>>,
       apiInfo: {
         count: 0,
         tested: 0,
@@ -108,11 +108,11 @@ export default class IAPIDoc {
 
     for (const [k, schema] of this.parent.api.$apis.entries()) {
       const o = schema.options;
-      data.schemas[k] = {} as APIOption<any>;
+      data.apis[k] = {} as APIOption<any>;
       for (const key of DOC) {
-        data.schemas[k][key] = o[key];
+        data.apis[k][key] = o[key];
       }
-      const examples = data.schemas[k].examples;
+      const examples = data.apis[k].examples;
       if (examples) {
         examples.forEach((item: any) => {
           item.output = formatOutput(item.output);
@@ -181,9 +181,9 @@ export default class IAPIDoc {
     // 保存 all.json
     const data = this.data();
 
-    for (const key of Object.keys(data.schemas)) {
+    for (const key of Object.keys(data.apis)) {
       data.apiInfo.count += 1;
-      if (data.schemas[key].examples && data.schemas[key].examples.length > 0) {
+      if (data.apis[key].examples && data.apis[key].examples.length > 0) {
         data.apiInfo.tested += 1;
       } else {
         data.apiInfo.untest.push(key);
