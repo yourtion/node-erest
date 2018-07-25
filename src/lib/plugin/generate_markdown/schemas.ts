@@ -19,8 +19,7 @@ function paramsTable(item: APIOption<any>) {
           }
         }
       }
-      const comment =
-        info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
+      const comment = info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
       paramsList.push(
         fieldString([
           stringOrEmpty(name, true),
@@ -47,23 +46,6 @@ function paramsTable(item: APIOption<any>) {
   return paramsList.join("\n");
 }
 
-function responseTable(apis: Record<string, APIOption<any>>) {
-  const schemaList: string[] = [];
-  schemaList.push(tableHeader(["参数名", "类型", "说明"]));
-  for (const name in apis) {
-    const info = apis[name];
-    const comment =
-      info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
-    schemaList.push(
-      fieldString([stringOrEmpty(name, true), stringOrEmpty(info.type), stringOrEmpty(comment)])
-    );
-  }
-  if (schemaList.length === 1) {
-    return;
-  }
-  return schemaList.join("\n");
-}
-
 function formatExampleInput(inputData: Record<string, any>) {
   const ret = Object.assign({}, inputData);
   for (const name in ret) {
@@ -72,13 +54,30 @@ function formatExampleInput(inputData: Record<string, any>) {
   return ret;
 }
 
-function examples(exampleList: IExample[]) {
+function formatExample(str: string, data: Record<string, any>) {
+  return str
+    .split("\n")
+    .map(s => {
+      const r = s.match(/"(.*)"\:/);
+      if (r && r[1] && data[r[1]] && data[r[1]].comment) {
+        return s + " \t// " + data[r[1]].comment;
+      }
+      return s;
+    })
+    .join("\n");
+}
+
+function examples(exampleList: IExample[], response: Record<string, any>) {
   return exampleList
     .map(item => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
       const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) + "\n" : "";
       const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
-      const output = `output = ${jsonStringify(item.output!, 2)};`;
+      let outString = jsonStringify(item.output!, 2);
+      if (response && Object.keys(response).length > 0) {
+        outString = formatExample(outString, response);
+      }
+      const output = `output = ${outString};`;
       return `${title}\n${header}${input}\n${output}`.trim();
     })
     .join("\n\n");
@@ -122,15 +121,10 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n参数：无参数");
     }
 
-    const responseDoc = responseTable(item.response!);
-    if (responseDoc) {
-      line.push("\n### 输出结果说明：\n" + responseDoc);
-    }
-
     if (item.examples.length > 0) {
       line.push("\n### 使用示例：\n");
       line.push("```javascript");
-      line.push(examples(item.examples));
+      line.push(examples(item.examples, item.response));
       line.push("\n```");
     }
 
