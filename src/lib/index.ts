@@ -79,6 +79,8 @@ export interface IDocOptions extends Record<string, any> {
   home?: string | boolean;
   /** 生成 swagger.json */
   swagger?: string | boolean;
+  /** 生成 postman.json */
+  postman?: string | boolean;
   /** 生成 docs.json */
   json?: string | boolean;
   /** 生成 all-in-one.md */
@@ -219,6 +221,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       index: getDocOpt("index", false),
       home: getDocOpt("home", true),
       swagger: getDocOpt("swagger", false),
+      postman: getDocOpt("postman", false),
       json: getDocOpt("json", false),
       all: getDocOpt("all", false),
     };

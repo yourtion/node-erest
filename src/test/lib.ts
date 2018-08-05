@@ -34,6 +34,7 @@ export default (options = {}) => {
           index: true,
           home: true,
           swagger: true,
+          postman: true,
           json: true,
           all: true,
         },

@@ -13,6 +13,7 @@ import { IDocOptions } from "..";
 import { ErrorManager, IType } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
+import generatePostman from "../plugin/generate_postman";
 import { getPath, jsonStringify } from "../utils"
 import { APIOption } from "../api";
 
@@ -132,6 +133,9 @@ export default class IAPIDoc {
     if (this.docsOptions.swagger) {
       this.swagger();
     }
+    if (this.docsOptions.postman) {
+      this.postman();
+    }
     if (this.docsOptions.json) {
       this.json();
     }
@@ -153,6 +157,15 @@ export default class IAPIDoc {
   public swagger() {
     debug("swagger");
     this.plugins.push(generateSwagger);
+    return this;
+  }
+
+  /**
+   * 生成 Postman 文档
+   */
+  public postman() {
+    debug("postman");
+    this.plugins.push(generatePostman);
     return this;
   }
 
