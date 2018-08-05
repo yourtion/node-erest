@@ -14,13 +14,13 @@ export interface IType {
   parser?: (v: any) => any;
   paramsChecker?: (params?: any) => boolean;
   description: string;
+  tsType?: string;
   isDefault: boolean;
   isDefaultFormat?: boolean;
   isParamsRequire: boolean;
 }
 
 export class TypeManager extends Manager<IType> {
-
   /**
    * 注册参数类型
    *
@@ -44,16 +44,21 @@ export class TypeManager extends Manager<IType> {
    * @return {Object}
    */
   public register(name: string, options: Partial<IType>) {
-
-    const { formatter, parser, paramsChecker, checker, description,
+    const {
+      formatter,
+      parser,
+      paramsChecker,
+      checker,
+      description,
+      tsType = "any",
       isDefault = false,
       isParamsRequire = false,
       isDefaultFormat = false,
     } = options;
 
     assert(typeof name === "string", "参数名称必须是字符串类型");
-    assert(/^[A-Z]/.test(name[0]), `参数名称必须以大写字母开头：${ name }`);
-    assert(!this.get(name), `该参数已被注册：${ name }`);
+    assert(/^[A-Z]/.test(name[0]), `参数名称必须以大写字母开头：${name}`);
+    assert(!this.get(name), `该参数已被注册：${name}`);
 
     assert(typeof description === "string", "参数描述必须是字符串类型");
 
@@ -71,14 +76,30 @@ export class TypeManager extends Manager<IType> {
       assert(typeof paramsChecker === "function", "paramsChecker必须是函数类型");
     }
 
-    this.map.set(name, { name, checker: checker!, formatter, parser, paramsChecker, description: description!, isDefault, isParamsRequire, isDefaultFormat });
+    this.map.set(name, {
+      name,
+      checker: checker!,
+      formatter,
+      parser,
+      paramsChecker,
+      description: description!,
+      tsType,
+      isDefault,
+      isParamsRequire,
+      isDefaultFormat,
+    });
 
     if (!isDefault) {
-      debug("register type: name=%s, checker=%s, formatter=%s, paramsChecker=%s description=%s",
-        name, checker, formatter, paramsChecker, description);
+      debug(
+        "register type: name=%s, checker=%s, formatter=%s, paramsChecker=%s description=%s",
+        name,
+        checker,
+        formatter,
+        paramsChecker,
+        description
+      );
     }
 
     return this;
   }
-
 }

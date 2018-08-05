@@ -8,11 +8,11 @@ import validator from "validator";
 import { TypeManager } from "../manager";
 
 export function defaultTypes(type: TypeManager) {
-
   type.register("Boolean", {
     checker: (v: any) => typeof v === "boolean" || (typeof v === "string" && validator.isBoolean(v)),
     formatter: (v: any) => String(v).toLowerCase() === "true",
     description: "布尔值",
+    tsType: "boolean",
     isDefault: true,
     isDefaultFormat: true,
   });
@@ -20,12 +20,14 @@ export function defaultTypes(type: TypeManager) {
   type.register("Date", {
     checker: (v: any) => v instanceof Date || (typeof v === "string" && (v as string).split("-").length === 3),
     description: "日期(2017-05-01)",
+    tsType: "Date",
     isDefault: true,
   });
 
   type.register("String", {
     checker: (v: any) => typeof v === "string",
     description: "字符串",
+    tsType: "string",
     isDefault: true,
   });
 
@@ -33,6 +35,7 @@ export function defaultTypes(type: TypeManager) {
     checker: (v: any) => typeof v === "string",
     formatter: (v: string) => v.trim(),
     description: "自动去首尾空格的字符串",
+    tsType: "string",
     isDefaultFormat: true,
   });
 
@@ -41,17 +44,27 @@ export function defaultTypes(type: TypeManager) {
     checker: (v: any, p: any) => {
       const ok = !isNaN(v);
       if (ok && p) {
-        if ("min" in p && !(v >= p.min)) { return false; }
-        if ("max" in p && !(v <= p.max)) { return false; }
+        if ("min" in p && !(v >= p.min)) {
+          return false;
+        }
+        if ("max" in p && !(v <= p.max)) {
+          return false;
+        }
       }
       return ok;
     },
     paramsChecker: (params: any) => {
       if ("max" in params) {
-        assert(typeof params.max === "number", `params.max必须为数值类型，但实际输入为${ params.max }(${ typeof params.max })`);
+        assert(
+          typeof params.max === "number",
+          `params.max必须为数值类型，但实际输入为${params.max}(${typeof params.max})`
+        );
       }
       if ("min" in params) {
-        assert(typeof params.min === "number", `params.min必须为数值类型，但实际输入为${ params.min }(${ typeof params.min })`);
+        assert(
+          typeof params.min === "number",
+          `params.min必须为数值类型，但实际输入为${params.min}(${typeof params.min})`
+        );
       }
       if ("max" in params && "min" in params) {
         assert(params.min < params.max, `params.min必须小于params.max`);
@@ -59,6 +72,7 @@ export function defaultTypes(type: TypeManager) {
       return true;
     },
     description: "数值",
+    tsType: "number",
     isDefault: true,
   });
 
@@ -66,6 +80,7 @@ export function defaultTypes(type: TypeManager) {
     checker: (v: any) => validator.isInt(String(v)),
     formatter: (v: any) => Number(v),
     description: "整数",
+    tsType: "number",
     isDefault: true,
     isDefaultFormat: true,
   });
@@ -74,6 +89,7 @@ export function defaultTypes(type: TypeManager) {
     checker: (v: any) => validator.isFloat(String(v)),
     formatter: (v: any) => Number(v),
     description: "浮点数",
+    tsType: "number",
     isDefault: true,
     isDefaultFormat: true,
   });
@@ -81,12 +97,14 @@ export function defaultTypes(type: TypeManager) {
   type.register("Object", {
     checker: (v: any) => v && typeof v === "object",
     description: "对象",
+    tsType: "Record<string, any>",
     isDefault: true,
   });
 
   type.register("Array", {
     checker: (v: any) => Array.isArray(v),
     description: "数组",
+    tsType: "any[]",
     isDefault: true,
   });
 
@@ -94,6 +112,7 @@ export function defaultTypes(type: TypeManager) {
     checker: (v: any) => typeof v === "string" && validator.isJSON(v),
     formatter: (v: string) => JSON.parse(v),
     description: "来源于JSON字符串的对象",
+    tsType: "Record<string, any>",
     isDefault: true,
     isDefaultFormat: true,
   });
@@ -102,6 +121,7 @@ export function defaultTypes(type: TypeManager) {
     checker: (v: any) => typeof v === "string" && validator.isJSON(v),
     formatter: (v: string) => v.trim(),
     description: "JSON字符串",
+    tsType: "string",
     isDefault: true,
     isDefaultFormat: true,
   });
@@ -109,54 +129,63 @@ export function defaultTypes(type: TypeManager) {
   type.register("Any", {
     checker: (_: any) => true,
     description: "任意类型",
+    tsType: "any",
     isDefault: true,
   });
 
   type.register("MongoIdString", {
     checker: (v: any) => validator.isMongoId(String(v)),
     description: "MongoDB ObjectId 字符串",
+    tsType: "string",
     isDefault: true,
   });
 
   type.register("Email", {
     checker: (v: any) => typeof v === "string" && validator.isEmail(v),
     description: "邮箱地址",
+    tsType: "string",
     isDefault: true,
   });
 
   type.register("Domain", {
     checker: (v: any) => typeof v === "string" && validator.isFQDN(v),
     description: "域名（比如：domain.com）",
+    tsType: "string",
     isDefault: true,
   });
 
   type.register("Alpha", {
     checker: (v: any) => typeof v === "string" && validator.isAlpha(v),
     description: "字母字符串（a-zA-Z）",
+    tsType: "string",
     isDefault: true,
   });
 
   type.register("AlphaNumeric", {
     checker: (v: any) => typeof v === "string" && validator.isAlphanumeric(v),
     description: "字母和数字字符串（a-zA-Z0-9）",
+    tsType: "string | number",
     isDefault: true,
   });
 
   type.register("Ascii", {
     checker: (v: any) => typeof v === "string" && validator.isAscii(v),
     description: "ASCII字符串",
+    tsType: "string",
     isDefault: true,
   });
 
   type.register("Base64", {
     checker: (v: any) => typeof v === "string" && validator.isBase64(v),
     description: "base64字符串",
+    tsType: "string",
     isDefault: true,
   });
 
   type.register("URL", {
     checker: (v: any) => typeof v === "string" && validator.isURL(v),
     description: "URL字符串",
+    tsType: "string",
     isDefault: true,
   });
 
@@ -167,37 +196,47 @@ export function defaultTypes(type: TypeManager) {
       return true;
     },
     description: "枚举类型",
+    tsType: "string",
     isDefault: true,
     isParamsRequire: true,
   });
 
   type.register("IntArray", {
-    parser: (v: any) => Array.isArray(v) ? v : String(v).split(",").map((n) => Number(n)).sort(),
+    parser: (v: any) =>
+      Array.isArray(v)
+        ? v
+        : String(v)
+            .split(",")
+            .map(n => Number(n))
+            .sort(),
     checker: (v: any[]) => {
       let ok = Array.isArray(v) && v.length > 0;
-      v.forEach((n) => {
+      v.forEach(n => {
         ok = ok && validator.isInt(String(n));
       });
       return ok;
     },
     description: "逗号分隔的Int数组",
+    tsType: "number[]",
     isDefault: true,
   });
 
   type.register("StringArray", {
-    parser: (v: any) => Array.isArray(v) ? v : String(v).split(","),
+    parser: (v: any) => (Array.isArray(v) ? v : String(v).split(",")),
     checker: (v: any[]) => {
       return Array.isArray(v) && v.length > 0;
     },
     formatter: (arr: string[]) => arr.map(v => String(v).trim()),
     isDefaultFormat: true,
     description: "逗号分隔的字符串数组",
+    tsType: "string[]",
     isDefault: true,
   });
 
   type.register("NullableString", {
     checker: (v: any) => typeof v === "string" || v === null,
     description: "可为null字符串",
+    tsType: "string | null",
     isDefault: true,
   });
 
@@ -205,7 +244,7 @@ export function defaultTypes(type: TypeManager) {
     checker: (v: any) => validator.isInt(String(v)) || v === null,
     formatter: (v: any) => Number(v),
     description: "可为null整数",
+    tsType: "number | null",
     isDefault: true,
   });
-
 }
