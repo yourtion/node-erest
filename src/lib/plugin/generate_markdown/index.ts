@@ -3,10 +3,9 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as fs from "fs";
 import * as path from "path";
 import { plugin as debug } from "../../debug";
-import { IDocData } from "../../extend/docs";
+import { IDocData, IDocWritter } from "../../extend/docs";
 import { IDocOptions } from "../..";
 import * as utils from "../../utils";
 import errorDocs from "./errors";
@@ -21,7 +20,7 @@ function filePath(dir: string, name: string) {
   return p;
 }
 
-export default function generateMarkdown(data: IDocData, dir: string, options: IDocOptions) {
+export default function generateMarkdown(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
 
   debug("generateMarkdown: %s - %o", dir, options);
 
@@ -33,8 +32,8 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
   const errorDoc = trimSpaces(errorDocs(data));
 
   if (options.wiki) {
-    fs.writeFileSync(filePath(dir, "types"), typeDoc);
-    fs.writeFileSync(filePath(dir, "errors"), errorDoc);
+    writter(filePath(dir, "types"), typeDoc);
+    writter(filePath(dir, "errors"), errorDoc);
   }
 
   const { list, groupTitles } = apiDocs(data);
@@ -60,15 +59,15 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
   }
 
   if (options.index) {
-    fs.writeFileSync(filePath(dir, "index"), trimSpaces(indexDoc.join("\n")));
+    writter(filePath(dir, "index"), trimSpaces(indexDoc.join("\n")));
   }
 
   if (options.wiki) {
     for (const item of list) {
       const titie = `# ${ getGroupName(item.name) } 相关文档\n\n`;
-      fs.writeFileSync(filePath(dir, item.name), titie + trimSpaces(item.content));
+      writter(filePath(dir, item.name), titie + trimSpaces(item.content));
     }
-    fs.writeFileSync(filePath(dir, "Home"), trimSpaces(wikiDoc.join("\n")));
+    writter(filePath(dir, "Home"), trimSpaces(wikiDoc.join("\n")));
   }
 
   if (options.all) {
@@ -83,6 +82,6 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
     allInOneDoc.push(typeDoc);
     allInOneDoc.push(`# <a id="errors">错误信息文档</a>\n\n`);
     allInOneDoc.push(errorDoc);
-    fs.writeFileSync(filePath(dir, "API文档-" + data.info.title), trimSpaces(allInOneDoc.join("\n")));
+    writter(filePath(dir, "API文档-" + data.info.title), trimSpaces(allInOneDoc.join("\n")));
   }
 }

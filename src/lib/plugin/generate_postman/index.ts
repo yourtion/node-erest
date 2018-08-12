@@ -1,7 +1,6 @@
-import * as fs from "fs";
 import * as path from "path";
 import { plugin as debug } from "../../debug";
-import { IDocData } from "../../extend/docs";
+import { IDocData, IDocWritter } from "../../extend/docs";
 import { IDocOptions } from "../..";
 import * as utils from "../../utils";
 
@@ -29,7 +28,7 @@ interface IPostManItem {
 }
 
 
-export default function generatePostman(data: IDocData, dir: string, options: IDocOptions) {
+export default function generatePostman(data: IDocData, dir: string, options: IDocOptions, writter:IDocWritter) {
 
   debug("generatePostman: %s - %o", dir, options);
 
@@ -90,5 +89,5 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
 
   const filename = utils.getPath("postman.json", options.swagger);
 
-  fs.writeFileSync(path.resolve(dir, filename), JSON.stringify(postman, null, "  "));
+  writter(path.resolve(dir, filename), JSON.stringify(postman, null, "  "));
 }

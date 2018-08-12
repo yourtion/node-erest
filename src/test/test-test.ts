@@ -42,7 +42,7 @@ function format(data: any): [Error | null, any] {
 
 apiService.setFormatOutput(format);
 
-function writter(path:string, data:any) {
+function writter(path: string, data: any) {
   return writeFileSync(path, data);
 }
 apiService.setDocWritter(writter);

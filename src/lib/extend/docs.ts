@@ -17,8 +17,8 @@ import generatePostman from "../plugin/generate_postman";
 import { getPath, jsonStringify } from "../utils"
 import { APIOption } from "../api";
 
-export type IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions) => void;
 export type IDocWritter = (path: string, data: any) => void;
+export type IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) => void;
 
 const DOC = [
   "method",
@@ -214,7 +214,7 @@ export default class IAPIDoc {
 
     // 根据插件生成文档
     for (const fn of this.plugins) {
-      fn(data, dir, this.docsOptions);
+      fn(data, dir, this.docsOptions, this.writer);
     }
 
     return this;

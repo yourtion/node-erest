@@ -3,10 +3,9 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as fs from "fs";
 import * as path from "path";
 import { plugin as debug } from "../../debug";
-import { IDocData } from "../../extend/docs";
+import { IDocData, IDocWritter } from "../../extend/docs";
 import { IDocOptions } from "../..";
 import * as utils from "../../utils";
 
@@ -33,7 +32,7 @@ interface ISwaggerResultParams {
   format?: string;
 }
 
-export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions) {
+export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
 
   debug("generateSwagger: %s - %o", dir, options);
 
@@ -158,5 +157,5 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
 
   const filename = utils.getPath("swagger.json", options.swagger);
 
-  fs.writeFileSync(path.resolve(dir, filename), JSON.stringify(result, null, "  "));
+  writter(path.resolve(dir, filename), JSON.stringify(result, null, "  "));
 }
