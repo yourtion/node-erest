@@ -11,7 +11,7 @@ import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
 import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType } from "./params";
 import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
 import IAPITest from "./extend/test";
-import IAPIDoc from "./extend/docs";
+import IAPIDoc, { IDocWritter } from "./extend/docs";
 
 export * from "./api";
 
@@ -33,7 +33,7 @@ export interface IApiInfo<T> extends Record<string, any>, genSchema<T> {
   define: (opt: APIDefine<T>) => API<T>;
   beforeHooks: Set<T>;
   afterHooks: Set<T>;
-  // docs?: IAPIDoc;
+  docs?: IAPIDoc;
   formatOutputReverse?: (out: any) => [Error | null, any];
   docOutputForamt?: (out: any) => any;
 }
@@ -264,6 +264,13 @@ export default class ERest<T = DEFAULT_HANDLER> {
    */
   public setDocOutputForamt(fn: (out: any) => any) {
     this.apiInfo.docOutputForamt = fn;
+  }
+
+  /**
+   * 设置文档格式化函数
+   */
+  public setDocWritter(fn: IDocWritter) {
+    this.apiInfo.docs!.setWritter(fn);
   }
 
   /**

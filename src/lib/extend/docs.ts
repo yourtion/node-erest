@@ -18,6 +18,7 @@ import { getPath, jsonStringify } from "../utils"
 import { APIOption } from "../api";
 
 export type IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions) => void;
+export type IDocWritter = (path: string, data: any) => void;
 
 const DOC = [
   "method",
@@ -62,7 +63,8 @@ export interface IDocTypes {
   isParamsRequire: boolean;
 }
 
-const docOutputForamt = (out: any) => out;
+const docOutputFormat = (out: any) => out;
+const docWriteSync:IDocWritter = (path: string, data: any) => fs.writeFileSync(path, data);
 
 export default class IAPIDoc {
   private parent: ERest<any>;
@@ -70,6 +72,7 @@ export default class IAPIDoc {
   private groups: Record<string, string>;
   private docsOptions: IDocOptions;
   private plugins: IDocGeneratePlugin[] = [];
+  private writer:IDocWritter = docWriteSync;
 
   constructor(apiService: ERest<any>) {
     this.parent = apiService;
@@ -96,7 +99,7 @@ export default class IAPIDoc {
         untest: [],
       },
     };
-    const formatOutput = this.parent.api.docOutputForamt || docOutputForamt;
+    const formatOutput = this.parent.api.docOutputForamt || docOutputFormat;
 
     // types
     this.parent.type.forEach((item: IType) => {
@@ -122,6 +125,10 @@ export default class IAPIDoc {
     }
 
     return data;
+  }
+
+  public setWritter(writer: IDocWritter) {
+    this.writer = writer;
   }
 
   /**
@@ -176,7 +183,7 @@ export default class IAPIDoc {
     debug("json");
     const generateJson = (data: any, dir: string, options: IDocOptions) => {
       const filename = getPath("doc.json", options.json);
-      fs.writeFileSync(path.resolve(dir, filename), jsonStringify(data, 2));
+      this.writer(path.resolve(dir, filename), jsonStringify(data, 2));
     };
     this.plugins.push(generateJson);
     return this;

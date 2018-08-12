@@ -1,4 +1,4 @@
-import { createReadStream } from "fs";
+import { createReadStream, writeFileSync } from "fs";
 import { resolve } from "path";
 
 import { apiAll, apiJson, build, TYPES } from "./helper";
@@ -41,6 +41,12 @@ function format(data: any): [Error | null, any] {
 }
 
 apiService.setFormatOutput(format);
+
+function writter(path:string, data:any) {
+  return writeFileSync(path, data);
+}
+apiService.setDocWritter(writter);
+
 const share = {
   name: "Yourtion",
   age: 22,
