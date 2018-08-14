@@ -16,6 +16,8 @@ const enumP = build(TYPES.ENUM, "Int", true, undefined, ["A", "B", 1]);
 const jsonP = build(TYPES.JSON, "Json");
 
 const schema1: Record<string, any> = { stringP2, stringP3, numP, intP };
+const array1 = build(TYPES.Array, "Array with String param", true, undefined, TYPES.Integer);
+const array2 = build(TYPES.Array, "Array with Type param", true, undefined, jsonP);
 
 describe("Params - params checker", () => {
   it("ParamsChecker - simple checker success", () => {
@@ -33,6 +35,19 @@ describe("Params - params checker", () => {
     expect(paramsChecker("en1", 1, enumP)).toBe(1);
     const fn = () => paramsChecker("en2", "C", enumP);
     expect(fn).toThrow("incorrect parameter 'en2' should be valid ENUM with additional restrictions: A,B,1");
+  });
+
+  it("ParamsChecker - Array with String param", () => {
+    expect(paramsChecker("array1", ["1", 2, "99"], array1)).toEqual([1, 2, 99]);
+    const fn = () => paramsChecker("array1", ["1", 2, "a"], array1);
+    expect(fn).toThrow("incorrect parameter 'array1[2]' should be valid Integer");
+  });
+
+  it("ParamsChecker - Array with Type param", () => {
+    jsonP.format = true;
+    expect(paramsChecker("array2", ['{ "a": 1 }', '{ "b": 2 }', "{}"], array2)).toEqual([{ a: 1 }, { b: 2 }, {}]);
+    const fn = () => paramsChecker("array2", ['{ "a": 1 }', "{"], array2);
+    expect(fn).toThrow("incorrect parameter 'array2[1]' should be valid JSON");
   });
 });
 
