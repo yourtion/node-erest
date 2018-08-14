@@ -19,7 +19,6 @@ export interface IError {
 }
 
 export class ErrorManager extends Manager<IError> {
-
   private codes: Set<number> = new Set();
   private NAME_REGX = new RegExp("[^A-Z_]", "g");
 
@@ -33,18 +32,10 @@ export class ErrorManager extends Manager<IError> {
    * @return {Object}
    */
   public register(name: string, data: Partial<IError>) {
-
     assert(typeof name === "string", "error name must be string");
     assert(!this.NAME_REGX.test(name), `name must be uppercase or _ but get ${name}`);
 
-    const {
-      code = -1,
-      description = "",
-      status = 200,
-      isDefault = false,
-      isShow = false,
-      isLog = false,
-    } = data;
+    const { code = -1, description = "", status = 200, isDefault = false, isShow = false, isLog = false } = data;
 
     assert(!this.codes.has(code), "code already exits: " + code);
 
@@ -60,5 +51,4 @@ export class ErrorManager extends Manager<IError> {
       this.register(err.name!, err);
     }
   }
-
 }

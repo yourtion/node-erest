@@ -14,7 +14,7 @@ import { ErrorManager, IType } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
 import generatePostman from "../plugin/generate_postman";
-import { getPath, jsonStringify } from "../utils"
+import { getPath, jsonStringify } from "../utils";
 import { APIOption } from "../api";
 
 export type IDocWritter = (path: string, data: any) => void;
@@ -64,7 +64,7 @@ export interface IDocTypes {
 }
 
 const docOutputFormat = (out: any) => out;
-const docWriteSync:IDocWritter = (path: string, data: any) => fs.writeFileSync(path, data);
+const docWriteSync: IDocWritter = (path: string, data: any) => fs.writeFileSync(path, data);
 
 export default class IAPIDoc {
   private parent: ERest<any>;
@@ -72,7 +72,7 @@ export default class IAPIDoc {
   private groups: Record<string, string>;
   private docsOptions: IDocOptions;
   private plugins: IDocGeneratePlugin[] = [];
-  private writer:IDocWritter = docWriteSync;
+  private writer: IDocWritter = docWriteSync;
 
   constructor(apiService: ERest<any>) {
     this.parent = apiService;
@@ -193,10 +193,7 @@ export default class IAPIDoc {
    * 存储文档
    */
   public save(dir: string) {
-    assert(
-      typeof dir === "string" && dir.length > 0,
-      `文档存储目录"${dir}"格式不正确：必须是字符串类型`,
-    );
+    assert(typeof dir === "string" && dir.length > 0, `文档存储目录"${dir}"格式不正确：必须是字符串类型`);
 
     // 保存 all.json
     const data = this.data();

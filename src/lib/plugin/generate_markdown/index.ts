@@ -21,11 +21,10 @@ function filePath(dir: string, name: string) {
 }
 
 export default function generateMarkdown(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
-
   debug("generateMarkdown: %s - %o", dir, options);
 
   function getGroupName(name: string) {
-    return `${ data.group[name] } ( ${ name } )`;
+    return `${data.group[name]} ( ${name} )`;
   }
 
   const typeDoc = trimSpaces(typeDocs(data));
@@ -38,10 +37,10 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
 
   const { list, groupTitles } = apiDocs(data);
   const indexDoc: string[] = [];
-  indexDoc.push(`# ${ data.info.title }\n`);
+  indexDoc.push(`# ${data.info.title}\n`);
   indexDoc.push(data.info.description + "\n");
-  indexDoc.push(`测试服务器： ${ data.info.host }${ data.info.basePath }\n`);
-  indexDoc.push(`生成时间： ${ data.info.version!.toLocaleDateString() } ${ data.info.version!.toLocaleTimeString() }\n`);
+  indexDoc.push(`测试服务器： ${data.info.host}${data.info.basePath}\n`);
+  indexDoc.push(`生成时间： ${data.info.version!.toLocaleDateString()} ${data.info.version!.toLocaleTimeString()}\n`);
   indexDoc.push("文档列表：\n");
   const allInOneDoc = indexDoc.slice(0, indexDoc.length);
   const wikiDoc = indexDoc.slice(0, indexDoc.length);
@@ -50,9 +49,9 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
 
   for (const item in data.group) {
     const group = utils.camelCase2underscore(item);
-    indexDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关文档](./${ item.toLowerCase() }.md)`);
-    allInOneDoc.push(`- [${ data.group[item] } ( ${ item } ) 相关](#${ item.toLowerCase() })`);
-    wikiDoc.push(`- [/${group} - ${ data.group[item] }相关文档](${ wikiPath }${ item.toLowerCase() })`);
+    indexDoc.push(`- [${data.group[item]} ( ${item} ) 相关文档](./${item.toLowerCase()}.md)`);
+    allInOneDoc.push(`- [${data.group[item]} ( ${item} ) 相关](#${item.toLowerCase()})`);
+    wikiDoc.push(`- [/${group} - ${data.group[item]}相关文档](${wikiPath}${item.toLowerCase()})`);
     if (options.wiki && groupTitles[item]) {
       wikiDoc.push(groupTitles[item].join("\n"));
     }
@@ -64,7 +63,7 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
 
   if (options.wiki) {
     for (const item of list) {
-      const titie = `# ${ getGroupName(item.name) } 相关文档\n\n`;
+      const titie = `# ${getGroupName(item.name)} 相关文档\n\n`;
       writter(filePath(dir, item.name), titie + trimSpaces(item.content));
     }
     writter(filePath(dir, "Home"), trimSpaces(wikiDoc.join("\n")));
@@ -75,7 +74,7 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
     allInOneDoc.push(`- [错误信息文档](#errors)`);
     allInOneDoc.push("\n");
     for (const item of list) {
-      allInOneDoc.push(`# <a id="${ item.name.toLowerCase() }">${ getGroupName(item.name) } 相关文档</a>\n\n`);
+      allInOneDoc.push(`# <a id="${item.name.toLowerCase()}">${getGroupName(item.name)} 相关文档</a>\n\n`);
       allInOneDoc.push(item.content);
     }
     allInOneDoc.push(`# <a id="types">类型相关文档</a>\n\n`);

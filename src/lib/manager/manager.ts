@@ -3,7 +3,6 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 export class Manager<T = any> {
-
   protected map: Map<string, T> = new Map();
 
   /**
@@ -19,5 +18,4 @@ export class Manager<T = any> {
   public forEach(iter: (value: T, key: string, map: Map<string, T>) => void) {
     return this.map.forEach(iter);
   }
-
 }

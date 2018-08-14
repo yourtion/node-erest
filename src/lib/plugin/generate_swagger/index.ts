@@ -123,8 +123,8 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
           delete obj.name;
           delete obj.required;
           bodySchema[sKey] = obj;
-          if (schema.required.has(sKey)) {
-            bodySchema.required.push(sKey)
+          if (schema.required.has(sKey) && Array.isArray(bodySchema.required)) {
+            bodySchema.required.push(sKey);
           }
         } else {
           sc[schema.method].parameters.push(obj);
