@@ -25,16 +25,17 @@ interface ISwaggerResultParams {
   in: string;
   description: string;
   type: string;
-  required: boolean;
-  example: any;
+  required: string[] | boolean;
+  example?: any;
   enum?: string[];
   items?: any;
   format?: string;
 }
 
 export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
-
   debug("generateSwagger: %s - %o", dir, options);
+
+  const url = new URL(`${data.info.host || ""}${data.info.basePath || ""}`);
 
   const result: ISwaggerResult = {
     swagger: "2.0",
@@ -43,9 +44,9 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
       description: data.info.description,
       version: data.info.version || "1.0.0",
     },
-    host: data.info.host && data.info.host.replace("http://", "").replace("https://", "") || "",
-    basePath: data.info.basePath || "",
-    schemes: [ "http" ],
+    host: url.host,
+    basePath: url.pathname,
+    schemes: [url.protocol.replace(":", "")],
     tags: [],
     definitions: {},
     paths: {},
@@ -54,35 +55,24 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
   for (const k in data.group) {
     result.tags.push({ name: k, description: data.group[k] });
   }
-  result.tags = result.tags.sort((a, b) => a.name > b.name ? 1 : -1);
+  result.tags = result.tags.sort((a, b) => (a.name > b.name ? 1 : -1));
 
   const paths = result.paths;
   const schemas = data.apis;
   for (const key in schemas) {
     const schema = schemas[key];
-    const pathArray: string[] = [];
-    for (const p of schema.path.split("/")) {
-      if (p.indexOf(":") === 0) {
-        pathArray.push(`{${ p.substr(1, p.length) }}`);
-      } else {
-        pathArray.push(p);
-      }
-    }
-    const newPath = pathArray.join("/");
+
+    const newPath = key.split("_")[1].replace(/:(\w+)/, "{$1}");
     if (!paths[newPath]) {
       paths[newPath] = {};
     }
     const sc = paths[newPath];
     sc[schema.method] = {
-      tags: [ schema.group ],
+      tags: [schema.group],
       summary: schema.title,
       description: schema.description || "",
-      consumes: [
-        "application/json",
-      ],
-      produces: [
-        "application/json",
-      ],
+      consumes: ["application/json"],
+      produces: ["application/json"],
       responses: {
         200: {
           description: "请求成功",
@@ -101,19 +91,20 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
         }
       }
     }
-    example = example || { input: {}, output: {}};
-    for (const place of [ "params", "query", "body" ]) {
+    example = example || { input: {}, output: {} };
+    for (const place of ["params", "query", "body"]) {
       for (const sKey in schema[place]) {
         const obj: ISwaggerResultParams = {
           name: sKey,
           in: place === "params" ? "path" : place,
           description: schema[place][sKey].comment,
-          type: schema[place][sKey].type.toLowerCase(),
-          required: schema[place][sKey].required,
-          example: example.input![sKey],
+          required: sKey === "body" ? [] : false,
+          type: "string", //schema[place][sKey].type.toLowerCase(),
+          example: place === "body" ? example.input![sKey] : undefined,
         };
+        if (place === "params") obj.required = true;
         if (schema.required.has(sKey)) {
-          obj.required = true;
+          if (place === "query") obj.required = true;
         }
         if (schema[place][sKey].type === "ENUM") {
           obj.type = "string";
@@ -132,15 +123,18 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
           delete obj.name;
           delete obj.required;
           bodySchema[sKey] = obj;
+          if (schema.required.has(sKey)) {
+            bodySchema.required.push(sKey)
+          }
         } else {
           sc[schema.method].parameters.push(obj);
         }
       }
     }
 
-    sc[schema.method].responses[200].example = example.output;
+    // sc[schema.method].responses[200].example = example.output;
     if (schema.method === "post" && schema.body) {
-      const required = schema.required && [ ...schema.required ].filter((it) => Object.keys(bodySchema).indexOf(it) > -1);
+      const required = schema.required && [...schema.required].filter(it => Object.keys(bodySchema).indexOf(it) > -1);
       sc[schema.method].parameters.push({
         in: "body",
         name: "body",
@@ -148,7 +142,7 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
         required: true,
         schema: {
           type: "object",
-          required,
+          required: required && required.length > 0 ? required : undefined,
           properties: bodySchema,
         },
       });
