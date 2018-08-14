@@ -14,7 +14,7 @@
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "prettier --write \"src/**/*.ts\"",
     "clean": "rm -rf dist",
-    "compile": "npm run clean && tsc && prettier --single-quote --write dist/**/*.js",
+    "compile": "npm run clean && tsc && prettier --single-quote --write \"dist/**/*.js\"",
     "prepublishOnly": "npm run format && npm run test:cov && cat ./coverage/lcov.info | coveralls && npm test",
     "postpublish": "npm run tag"
   },
