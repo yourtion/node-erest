@@ -25,6 +25,13 @@ export function paramsChecker(ctx: ERest<any>, name: string, value: any, typeInf
   const type = ctx.type.get(typeInfo.type)!;
   const { error } = ctx.privateInfo;
   let result = value;
+
+  if (typeInfo.type === "Array" && Array.isArray(value) && typeInfo.params) {
+    const type = typeof typeInfo.params === "string" ? { type: typeInfo.params } : typeInfo.params;
+    result = value.map((val, idx) => paramsChecker(ctx, `${name}[${idx}]`, val, type));
+    return result;
+  }
+
   // 如果类型有 parser 则先执行
   if (type.parser) {
     debug("param `%s` run parser", name);

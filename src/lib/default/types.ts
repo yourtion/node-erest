@@ -103,6 +103,9 @@ export function defaultTypes(type: TypeManager) {
 
   type.register("Array", {
     checker: (v: any) => Array.isArray(v),
+    paramsChecker: (params: any) => {
+      return typeof params === "string" || (typeof params === "object" && typeof params.type === "string");
+    },
     description: "数组",
     tsType: "any[]",
     isDefault: true,
