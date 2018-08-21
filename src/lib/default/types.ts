@@ -205,13 +205,13 @@ export function defaultTypes(type: TypeManager) {
   });
 
   type.register("IntArray", {
-    parser: (v: any) =>
-      Array.isArray(v)
-        ? v
-        : String(v)
-            .split(",")
-            .map(n => Number(n))
-            .sort(),
+    parser: (v: any) => {
+      if (Array.isArray(v)) return v;
+      return String(v)
+        .split(",")
+        .map(n => Number(n))
+        .sort();
+    },
     checker: (v: any[]) => {
       let ok = Array.isArray(v) && v.length > 0;
       v.forEach(n => {
