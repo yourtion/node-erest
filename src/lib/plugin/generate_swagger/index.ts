@@ -4,6 +4,7 @@
  */
 
 import * as path from "path";
+import { URL } from "url";
 import { plugin as debug } from "../../debug";
 import { IDocData, IDocWritter } from "../../extend/docs";
 import { IDocOptions } from "../..";
