@@ -36,13 +36,12 @@
   },
   "homepage": "https://github.com/yourtion/node-erest#readme",
   "dependencies": {
+    "@tuzhanai/value-type-manager": "^1.0.2",
     "@types/debug": "0.0.30",
     "@types/node": "^10.5.8",
     "@types/supertest": "^2.0.5",
-    "@types/validator": "^9.4.1",
     "debug": "^3.1.0",
-    "path-to-regexp": "^2.2.1",
-    "validator": "^10.5.0"
+    "path-to-regexp": "^2.2.1"
   },
   "devDependencies": {
     "@leizm/web": "^2.2.1",

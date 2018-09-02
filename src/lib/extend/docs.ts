@@ -10,7 +10,7 @@ import path from "path";
 import { docs as debug } from "../debug";
 import ERest, { IApiOptionInfo } from "..";
 import { IDocOptions } from "..";
-import { ErrorManager, IType } from "../manager";
+import { ErrorManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
 import generateSwagger from "../plugin/generate_swagger";
 import generatePostman from "../plugin/generate_postman";
@@ -102,7 +102,7 @@ export default class IAPIDoc {
     const formatOutput = this.parent.api.docOutputForamt || docOutputFormat;
 
     // types
-    this.parent.type.forEach((item: IType) => {
+    this.parent.type.forEach(item => {
       const t = Object.assign({}, item) as any;
       t.parser = t.parser && t.parser.toString();
       t.checker = t.checker && t.checker.toString();

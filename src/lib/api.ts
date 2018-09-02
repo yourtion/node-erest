@@ -331,9 +331,9 @@ export default class API<T = DEFAULT_HANDLER> {
     // 初始化时参数类型检查
     for (const [name, options] of this.options._allParams) {
       const typeName = options.type;
-      const type = parent.type.get(typeName!);
+      const type = parent.type.get(typeName).info;
       assert(type && type.checker, `please register type ${typeName}`);
-      if (type!.isParamsRequire && options.params === undefined) {
+      if (type!.isParamsRequired && options.params === undefined) {
         throw new Error(`${typeName} is require a params`);
       }
       if (options.params) {

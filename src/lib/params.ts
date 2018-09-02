@@ -21,26 +21,20 @@ export interface ISchemaType {
 const schemaDebug = create("params:schema");
 const apiDebug = create("params:api");
 
-export function paramsChecker(ctx: ERest<any>, name: string, value: any, typeInfo: ISchemaType) {
-  const type = ctx.type.get(typeInfo.type)!;
+export function paramsChecker(ctx: ERest<any>, name: string, input: any, typeInfo: ISchemaType): any {
   const { error } = ctx.privateInfo;
-  let result = value;
 
-  if (typeInfo.type === "Array" && Array.isArray(value) && typeInfo.params) {
+  if (typeInfo.type === "Array" && Array.isArray(input) && typeInfo.params) {
     const type = typeof typeInfo.params === "string" ? { type: typeInfo.params } : typeInfo.params;
-    result = value.map((val, idx) => paramsChecker(ctx, `${name}[${idx}]`, val, type));
-    return result;
+    debug("paramsChecker: Array type - subType", type);
+    return input.map((val, idx) => paramsChecker(ctx, `${name}[${idx}]`, val, type));
   }
 
-  // 如果类型有 parser 则先执行
-  if (type.parser) {
-    debug("param `%s` run parser", name);
-    result = type.parser(result);
-  }
+  const { ok, message, value } = ctx.type.value(typeInfo.type, input, typeInfo.params, typeInfo.format);
+  debug("paramsChecker: ", input, ok, message, value);
 
   // 如果类型有 checker 则检查
-  if (!type.checker(result, typeInfo.params)) {
-    debug("param `%s` run checker", name);
+  if (!ok) {
     let msg = `'${name}' should be valid ${typeInfo.type}`;
     if (typeInfo.params) {
       msg = `${msg} with additional restrictions: ${typeInfo._paramsJSON || typeInfo.params}`;
@@ -48,15 +42,7 @@ export function paramsChecker(ctx: ERest<any>, name: string, value: any, typeInf
     throw error.invalidParameter(msg);
   }
 
-  // 如果类型有 formatter 且开启了 format=true 则格式化参数
-  const needFormat = typeInfo.format || (type.isDefaultFormat && typeInfo.format === undefined);
-  if (type.formatter && needFormat) {
-    debug("param `%s` run format", name);
-    debug("befor format : %o", result);
-    result = type.formatter(result);
-    debug("after format : %o", result);
-  }
-  return result;
+  return value;
 }
 
 export function schemaChecker<T extends Record<string, any>>(

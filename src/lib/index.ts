@@ -4,9 +4,10 @@
  */
 
 import assert from "assert";
+import ValueTypeManager from "@tuzhanai/value-type-manager";
 import { core as debug } from "./debug";
-import { defaultErrors, defaultTypes } from "./default";
-import { ErrorManager, TypeManager } from "./manager";
+import { defaultErrors } from "./default";
+import { ErrorManager } from "./manager";
 import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
 import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType } from "./params";
 import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
@@ -102,7 +103,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
     invalidParameter: (msg: string) => Error;
     internalError: (msg: string) => Error;
   };
-  private typeManage: TypeManager;
+  private typeManage: ValueTypeManager;
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;
@@ -226,8 +227,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       all: getDocOpt("all", false),
     };
     // 参数类型管理
-    this.typeManage = new TypeManager();
-    defaultTypes.call(this, this.typeManage);
+    this.typeManage = new ValueTypeManager();
     // 错误管理
     this.errorManage = new ErrorManager();
     defaultErrors.call(this, this.errorManage);
