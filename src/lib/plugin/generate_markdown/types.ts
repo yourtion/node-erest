@@ -17,7 +17,7 @@ export default function typeDocs(data: IDocData) {
 
   for (const name in data.types) {
     const info = data.types[name];
-    if (info.isDefault) {
+    if (info.isBuiltin) {
       defaultTypes.push(info);
     } else {
       customTypes.push(info);

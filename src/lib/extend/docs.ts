@@ -53,14 +53,24 @@ export interface IDocData {
 
 export interface IDocTypes {
   name: string;
-  checker: string;
+  /** 检查方法 */
+  checker?: string;
+  /** 格式化方法 */
   formatter?: string;
+  /** 解析方法 */
   parser?: string;
+  /** 类型动态参数检查器 */
   paramsChecker?: string;
+  /** 说明信息 */
   description: string;
-  isDefault: boolean;
+  /** 是否为系统内置的类型 */
+  isBuiltin?: boolean;
+  /** 对应的TypeScript类型 */
+  tsType?: string;
+  /** 是否默认自动格式化 */
   isDefaultFormat?: boolean;
-  isParamsRequire: boolean;
+  /** 类型动态参数是否必须 */
+  isParamsRequired: boolean;
 }
 
 const docOutputFormat = (out: any) => out;
@@ -102,12 +112,14 @@ export default class IAPIDoc {
     const formatOutput = this.parent.api.docOutputForamt || docOutputFormat;
 
     // types
-    this.parent.type.forEach(item => {
-      const t = Object.assign({}, item) as any;
-      t.parser = t.parser && t.parser.toString();
-      t.checker = t.checker && t.checker.toString();
-      t.formatter = t.formatter && t.formatter.toString();
-      data.types[t.name] = t as IDocTypes;
+    this.parent.type.forEach((item, key) => {
+      const type = item.info;
+      const t = Object.assign({}, JSON.parse(JSON.stringify(type))) as IDocTypes;
+      t.name = key;
+      t.parser = type.parser && type.parser.toString();
+      t.checker = type.checker && type.checker.toString();
+      t.formatter = type.formatter && type.formatter.toString();
+      data.types[key] = t as IDocTypes;
     });
 
     for (const [k, schema] of this.parent.api.$apis.entries()) {
