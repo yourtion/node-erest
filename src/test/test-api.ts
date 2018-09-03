@@ -57,7 +57,7 @@ describe("API - more test", () => {
 
   it("API - apiChecker", () => {
     const checker = apiService.apiChecker();
-    expect(() => checker(api, {}, {}, {})).toThrow("missing required parameter 'p' is required!");
+    expect(() => checker(api, {}, {}, {})).toThrow("missing required parameter 'p'");
   });
 
   it("API - require a params", () => {

@@ -129,7 +129,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
         })
         .takeExample("Index-Post")
         .raw();
-      expect(ret).toBe("missing required parameter 'age' is required!");
+      expect(ret).toBe("missing required parameter 'age'");
     });
 
     it("TEST - Post missing params", async () => {
