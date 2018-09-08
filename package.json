@@ -36,7 +36,11 @@
   },
   "homepage": "https://github.com/yourtion/node-erest#readme",
   "dependencies": {
+<<<<<<< HEAD
     "@tuzhanai/value-type-manager": "^1.0.5",
+=======
+    "@tuzhanai/schema-manager": "^1.0.2",
+>>>>>>> 2ddcaecf73ef8b4a4fd78d033dadbdb2248cd678
     "@types/debug": "0.0.30",
     "@types/node": "^10.9.4",
     "@types/supertest": "^2.0.6",

@@ -329,7 +329,7 @@ export default class API<T = DEFAULT_HANDLER> {
     );
 
     // 初始化时参数类型检查
-    for (const [name, options] of this.options._allParams) {
+    for (const options of this.options._allParams.values()) {
       const typeName = options.type;
       const type = parent.type.get(typeName).info;
       assert(type && type.checker, `please register type ${typeName}`);
@@ -338,11 +338,6 @@ export default class API<T = DEFAULT_HANDLER> {
       }
       if (options.params) {
         assert(type!.paramsChecker!(options.params), `test type params failed`);
-        try {
-          options._paramsJSON = JSON.stringify(options.params);
-        } catch (err) {
-          throw new Error(`cannot JSON.stringify(options.params) for param ${name}`);
-        }
       }
     }
 

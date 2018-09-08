@@ -109,7 +109,7 @@ describe("Group - define and use route bindGroupToApp", () => {
 });
 
 if (nodeVersion() >= 8) {
-  const { Connect, Router } = require("@leizm/web");
+  const { Application, Router } = require("@leizm/web");
 
   function reqFnLeiWeb(ctx: any) {
     ctx.response.json("Hello, API Framework Index");
@@ -118,7 +118,7 @@ if (nodeVersion() >= 8) {
   describe("Group - simple @leizm/web", () => {
     const apiService = lib({ forceGroup: true, info: { basePath: "" } });
     const api = apiService.group("Index");
-    const app = new Connect();
+    const app = new Application();
     api
       .get("/")
       .title("Get")

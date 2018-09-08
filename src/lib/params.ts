@@ -15,7 +15,6 @@ export interface ISchemaType {
   default?: any;
   required?: boolean;
   params?: any;
-  _paramsJSON?: string;
 }
 
 const schemaDebug = create("params:schema");
@@ -37,7 +36,7 @@ export function paramsChecker(ctx: ERest<any>, name: string, input: any, typeInf
   if (!ok) {
     let msg = `'${name}' should be valid ${typeInfo.type}`;
     if (typeInfo.params) {
-      msg = `${msg} with additional restrictions: ${typeInfo._paramsJSON || typeInfo.params}`;
+      msg = `${msg} with additional restrictions: ${typeInfo.params}`;
     }
     throw error.invalidParameter(msg);
   }
@@ -51,36 +50,29 @@ export function schemaChecker<T extends Record<string, any>>(
   schema: Record<string, ISchemaType>,
   requiredOneOf: string[] = []
 ) {
-  const result: Record<string, any> = {};
+  // const result: Record<string, any> = {};
   const { error } = ctx.privateInfo;
-  for (const name in schema) {
-    let value = data[name];
-    const options = schema[name];
-    schemaDebug("check %s : %s with %o", name, value, options);
+  const { ok, value, message, invalidParamaters, missingParamaters, invalidParamaterTypes } = ctx.schema.create(schema).value(data);
 
-    if (typeof value === "undefined") {
-      if (options.default !== undefined) {
-        // 为未赋值参数添加默认值默认值
-        schemaDebug("param `%s` set default value : %o", name, options.default);
-        value = options.default;
-      } else {
-        if (options.required) throw error.missingParameter(`'${name}' is required!`);
-        // 其他情况忽略
-        continue;
+  if (!ok) {
+    if (missingParamaters && missingParamaters.length > 0) throw error.missingParameter(`'${missingParamaters[0]}'`);
+    if (invalidParamaters && invalidParamaters.length > 0) {
+      if(invalidParamaterTypes && invalidParamaterTypes.length === invalidParamaterTypes.length) {
+        throw error.invalidParameter(`'${invalidParamaters[0]}' should be valid ${invalidParamaterTypes[0]}`);
       }
+      throw error.invalidParameter(`'${invalidParamaters[0]}'`);
     }
-    result[name] = paramsChecker(ctx, name, value, options);
+    throw error.internalError(message);
   }
-
   // 可选参数检查
-  let ok = requiredOneOf.length < 1;
+  let req = requiredOneOf.length < 1;
   for (const name of requiredOneOf) {
-    ok = typeof result[name] !== "undefined";
+    req = typeof value[name] !== "undefined";
     schemaDebug("requiredOneOf : %s - %s", name, ok);
-    if (ok) break;
+    if (req) break;
   }
-  if (!ok) throw error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
-  return result;
+  if (!req) throw error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
+  return value;
 }
 
 /**
@@ -112,7 +104,7 @@ export function apiParamsCheck(
   if (schema.options.required.size > 0) {
     for (const name of schema.options.required) {
       apiDebug("required : %s", name);
-      if (!(name in newParams)) throw error.missingParameter(`'${name}' is required!`);
+      if (!(name in newParams)) throw error.missingParameter(`'${name}'`);
     }
   }
 

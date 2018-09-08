@@ -67,7 +67,7 @@ describe("Params - schema checker", () => {
   it("SchemaChecker - requied check throw", () => {
     const data = { a: "xxx" };
     const fn = () => schemaChecker(data, schema1);
-    expect(fn).toThrow("missing required parameter 'numP' is required!");
+    expect(fn).toThrow("missing required parameter 'numP'");
   });
 
   it("SchemaChecker - requiedOneOf check ok", () => {

@@ -4,7 +4,7 @@
  */
 
 import assert from "assert";
-import ValueTypeManager from "@tuzhanai/value-type-manager";
+import SchemaManage, {ValueTypeManager} from "@tuzhanai/schema-manager";
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
 import { ErrorManager } from "./manager";
@@ -103,7 +103,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
     invalidParameter: (msg: string) => Error;
     internalError: (msg: string) => Error;
   };
-  private typeManage: ValueTypeManager;
+  private typeManage: ValueTypeManager = new ValueTypeManager();
+  private schemaManage: SchemaManage = new SchemaManage();
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;
@@ -150,6 +151,13 @@ export default class ERest<T = DEFAULT_HANDLER> {
    */
   get type() {
     return this.typeManage;
+  }
+
+  /**
+   * 类型列表
+   */
+  get schema() {
+    return this.schemaManage;
   }
 
   constructor(options: IApiOption) {
@@ -226,8 +234,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
       json: getDocOpt("json", false),
       all: getDocOpt("all", false),
     };
-    // 参数类型管理
-    this.typeManage = new ValueTypeManager();
     // 错误管理
     this.errorManage = new ErrorManager();
     defaultErrors.call(this, this.errorManage);
