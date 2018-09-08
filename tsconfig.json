@@ -6,7 +6,7 @@
     "moduleResolution": "node",
     "declaration": true,
     "strict": true,
-    "target": "es6",
+    "target": "esnext",
     "esModuleInterop": true,
     "sourceMap": false,
     "allowUnusedLabels": false,
