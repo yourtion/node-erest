@@ -52,12 +52,14 @@ export function schemaChecker<T extends Record<string, any>>(
 ) {
   // const result: Record<string, any> = {};
   const { error } = ctx.privateInfo;
-  const { ok, value, message, invalidParamaters, missingParamaters, invalidParamaterTypes } = ctx.schema.create(schema).value(data);
+  const { ok, value, message, invalidParamaters, missingParamaters, invalidParamaterTypes } = ctx.schema
+    .create(schema)
+    .value(data);
 
   if (!ok) {
     if (missingParamaters && missingParamaters.length > 0) throw error.missingParameter(`'${missingParamaters[0]}'`);
     if (invalidParamaters && invalidParamaters.length > 0) {
-      if(invalidParamaterTypes && invalidParamaterTypes.length === invalidParamaterTypes.length) {
+      if (invalidParamaterTypes && invalidParamaterTypes.length === invalidParamaterTypes.length) {
         throw error.invalidParameter(`'${invalidParamaters[0]}' should be valid ${invalidParamaterTypes[0]}`);
       }
       throw error.invalidParameter(`'${invalidParamaters[0]}'`);

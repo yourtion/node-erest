@@ -4,7 +4,7 @@
  */
 
 import assert from "assert";
-import SchemaManage, {ValueTypeManager} from "@tuzhanai/schema-manager";
+import SchemaManage, { ValueTypeManager } from "@tuzhanai/schema-manager";
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
 import { ErrorManager } from "./manager";
