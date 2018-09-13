@@ -103,8 +103,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
     invalidParameter: (msg: string) => Error;
     internalError: (msg: string) => Error;
   };
-  private typeManage: ValueTypeManager = new ValueTypeManager();
   private schemaManage: SchemaManage = new SchemaManage();
+  private typeManage: ValueTypeManager = this.schemaManage.type;
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;

@@ -329,10 +329,13 @@ export default class API<T = DEFAULT_HANDLER> {
     );
 
     // 初始化时参数类型检查
-    for (const options of this.options._allParams.values()) {
+    for (const [name, options] of this.options._allParams.entries()) {
       const typeName = options.type;
       const type = parent.type.get(typeName).info;
+      if (options.required) this.options.required.add(name);
       assert(type && type.checker, `please register type ${typeName}`);
+      // FIXME: 临时屏蔽 type 不存在
+      // if(!type) continue;
       if (type!.isParamsRequired && options.params === undefined) {
         throw new Error(`${typeName} is require a params`);
       }
