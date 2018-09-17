@@ -11,6 +11,7 @@ import { ErrorManager } from "./manager";
 import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
 import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType } from "./params";
 import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
+import * as utils from "./utils";
 import IAPITest from "./extend/test";
 import IAPIDoc, { IDocWritter } from "./extend/docs";
 
@@ -93,6 +94,8 @@ export interface IDocOptions extends Record<string, any> {
  */
 export default class ERest<T = DEFAULT_HANDLER> {
   public shareTestData?: any;
+  public utils = utils;
+
   private apiInfo: IApiInfo<T>;
   private testAgent: IAPITest = {} as IAPITest;
   private app: any;

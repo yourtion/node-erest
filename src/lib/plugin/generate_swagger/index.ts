@@ -61,7 +61,7 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
   const paths = result.paths;
   const schemas = data.apis;
   for (const [key, schema] of Object.entries(schemas)) {
-    const newPath = key.split("_")[1].replace(/:(\w+)/, "{$1}");
+    const newPath = utils.getRealPath(key).replace(/:(\w+)/, "{$1}");
     if (!paths[newPath]) {
       paths[newPath] = {};
     }

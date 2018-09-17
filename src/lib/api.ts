@@ -6,7 +6,7 @@
 import assert from "assert";
 import pathToRegExp from "path-to-regexp";
 import { api as debug } from "./debug";
-import { getSchemaKey, SourceResult } from "./utils";
+import { getSchemaKey, SourceResult, getRealPath } from "./utils";
 import { ISchemaType } from "./params";
 import ERest from ".";
 
@@ -80,7 +80,7 @@ export default class API<T = DEFAULT_HANDLER> {
       sourceFile,
       method: method.toLowerCase() as SUPPORT_METHODS,
       path,
-      realPath: this.key.split(/_(.+)/)[1],
+      realPath: getRealPath(this.key),
       examples: [],
       required: new Set(),
       requiredOneOf: [],
