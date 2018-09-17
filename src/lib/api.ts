@@ -8,6 +8,7 @@ import pathToRegExp from "path-to-regexp";
 import { api as debug } from "./debug";
 import { getSchemaKey, SourceResult, getRealPath } from "./utils";
 import { ISchemaType } from "./params";
+import { SchemaType } from "@tuzhanai/schema-manager";
 import ERest from ".";
 
 export interface IExample {
@@ -29,7 +30,8 @@ export interface APICommon<T = DEFAULT_HANDLER> {
   title: string;
   description?: string;
   handler?: T;
-  response?: Record<string, ISchemaType>;
+  response?: ISchemaType | Record<string, ISchemaType>;
+  responseSchema?: SchemaType | ISchemaType;
 }
 
 export interface APIDefine<T> extends APICommon<T> {
@@ -54,6 +56,8 @@ export interface APIOption<T> extends Record<string, any> {
   requiredOneOf: string[][];
   _allParams: Map<string, ISchemaType>;
   tested: boolean;
+  response?: ISchemaType | Record<string, ISchemaType>;
+  responseSchema?: SchemaType | ISchemaType;
 }
 
 export default class API<T = DEFAULT_HANDLER> {
@@ -202,7 +206,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 输出结果对象
    */
-  public response(response: Record<string, ISchemaType>) {
+  public response(response: ISchemaType | Record<string, ISchemaType>) {
     assert(typeof response === "object", "`schema`必须是一个对象");
     this.options.response = response;
     return this;
@@ -338,6 +342,14 @@ export default class API<T = DEFAULT_HANDLER> {
       }
       if (options.params) {
         assert(type!.paramsChecker!(options.params), `test type params failed`);
+      }
+    }
+
+    if (this.options.response) {
+      if (typeof this.options.response.type === "string") {
+        this.options.responseSchema = this.options.response as ISchemaType;
+      } else {
+        this.options.responseSchema = parent.schema.create(this.options.response as any);
       }
     }
 

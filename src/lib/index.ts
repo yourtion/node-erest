@@ -4,17 +4,18 @@
  */
 
 import assert from "assert";
-import SchemaManage, { ValueTypeManager } from "@tuzhanai/schema-manager";
+import SchemaManage, { ValueTypeManager, SchemaType } from "@tuzhanai/schema-manager";
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
 import { ErrorManager } from "./manager";
 import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
-import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType } from "./params";
+import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType, responseChecker } from "./params";
 import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
 import * as utils from "./utils";
 import IAPITest from "./extend/test";
 import IAPIDoc, { IDocWritter } from "./extend/docs";
 
+export * from "@tuzhanai/schema-manager";
 export * from "./api";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
@@ -311,6 +312,12 @@ export default class ERest<T = DEFAULT_HANDLER> {
   public schemaChecker() {
     return (data: any, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
       schemaChecker(this, data, schema, requiredOneOf);
+  }
+
+  /** 返回结果检查 */
+  public responseChecker() {
+    return (data: any, schema: ISchemaType | SchemaType | Record<string, ISchemaType>) =>
+      responseChecker(this, data, schema);
   }
 
   /**

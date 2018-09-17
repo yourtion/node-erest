@@ -2,6 +2,7 @@ import { IDocData } from "../../extend/docs";
 import { APIOption, IExample } from "../../api";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
+import { ISchemaType } from "../../params";
 
 function paramsTable(item: APIOption<any>) {
   const paramsList: string[] = [];
@@ -67,7 +68,8 @@ function formatExample(str: string, data: Record<string, any>) {
     .join("\n");
 }
 
-function examples(exampleList: IExample[], response: Record<string, any>) {
+function examples(exampleList: IExample[], response?: ISchemaType | Record<string, ISchemaType>) {
+  if (!response || typeof response.type === "string") return exampleList.join("\n\n");
   return exampleList
     .map(item => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
