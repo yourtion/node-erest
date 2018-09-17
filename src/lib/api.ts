@@ -230,8 +230,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * Body 参数
    */
   public body(obj: Record<string, ISchemaType>) {
-    for (const key of Object.keys(obj)) {
-      const o = obj[key];
+    for (const [key, o] of Object.entries(obj)) {
       this.setParams(key, o, "body");
     }
     return this;
@@ -241,8 +240,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * Query 参数
    */
   public query(obj: Record<string, ISchemaType>) {
-    for (const key of Object.keys(obj)) {
-      const o = obj[key];
+    for (const [key, o] of Object.entries(obj)) {
       this.setParams(key, o, "query");
     }
     return this;
@@ -252,8 +250,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * Param 参数
    */
   public params(obj: Record<string, ISchemaType>) {
-    for (const key of Object.keys(obj)) {
-      const o = obj[key];
+    for (const [key, o] of Object.entries(obj)) {
       this.setParams(key, o, "params");
     }
     return this;

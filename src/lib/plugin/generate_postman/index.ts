@@ -57,16 +57,11 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
 
   const groups: any = {};
 
-  for (const g in data.group) {
-    groups[g] = {
-      id: g,
-      name: data.group[g],
-      items: [] as IPostManItem[],
-    };
+  for (const [g, name] of Object.entries(data.group)) {
+    groups[g] = { id: g, name, items: [] as IPostManItem[] };
   }
 
-  for (const key in data.apis) {
-    const item = data.apis[key];
+  for (const item of Object.values(data.apis)) {
     const req: IPostManItem = {
       name: item.title,
       request: {
@@ -79,12 +74,8 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
     groups[item.group].items.push(req);
   }
 
-  for (const g in groups) {
-    const gg = groups[g];
-    postman.item.push({
-      name: gg.name,
-      item: gg.items,
-    });
+  for (const gg of Object.values(groups) as any) {
+    postman.item.push({ name: gg.name, item: gg.items });
   }
 
   const filename = utils.getPath("postman.json", options.swagger);

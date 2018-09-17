@@ -96,8 +96,7 @@ export default function schemaDocs(data: IDocData) {
     groupTitles[name].push(title);
   }
 
-  for (const key of Object.keys(data.apis)) {
-    const item = data.apis[key];
+  for (const item of Object.values(data.apis)) {
     const tested = itemTFEmoji(item.tested);
     const tit = stringOrEmpty(item.title);
     const method = item.method.toUpperCase();
@@ -133,11 +132,8 @@ export default function schemaDocs(data: IDocData) {
   }
 
   const list: Array<{ name: string; content: string }> = [];
-  for (const name in group) {
-    list.push({
-      name,
-      content: group[name].join("\n\n"),
-    });
+  for (const [name, g] of Object.entries(group)) {
+    list.push({ name, content: g.join("\n\n") });
   }
 
   return { list, groupTitles };

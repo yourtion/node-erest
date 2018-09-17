@@ -210,9 +210,9 @@ export default class IAPIDoc {
     // 保存 all.json
     const data = this.data();
 
-    for (const key of Object.keys(data.apis)) {
+    for (const [key, api] of Object.entries(data.apis)) {
       data.apiInfo.count += 1;
-      if (data.apis[key].examples && data.apis[key].examples.length > 0) {
+      if (api.examples && api.examples.length > 0) {
         data.apiInfo.tested += 1;
       } else {
         data.apiInfo.untest.push(key);

@@ -53,16 +53,14 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
     paths: {},
   };
 
-  for (const k in data.group) {
-    result.tags.push({ name: k, description: data.group[k] });
+  for (const [k, g] of Object.entries(data.group)) {
+    result.tags.push({ name: k, description: g });
   }
   result.tags = result.tags.sort((a, b) => (a.name > b.name ? 1 : -1));
 
   const paths = result.paths;
   const schemas = data.apis;
-  for (const key in schemas) {
-    const schema = schemas[key];
-
+  for (const [key, schema] of Object.entries(schemas)) {
     const newPath = key.split("_")[1].replace(/:(\w+)/, "{$1}");
     if (!paths[newPath]) {
       paths[newPath] = {};
