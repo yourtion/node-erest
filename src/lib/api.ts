@@ -11,6 +11,8 @@ import { ISchemaType } from "./params";
 import { SchemaType } from "@tuzhanai/schema-manager";
 import ERest from ".";
 
+export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
+
 export interface IExample {
   name?: string | undefined;
   path?: string;
@@ -30,8 +32,7 @@ export interface APICommon<T = DEFAULT_HANDLER> {
   title: string;
   description?: string;
   handler?: T;
-  response?: ISchemaType | Record<string, ISchemaType>;
-  responseSchema?: SchemaType | ISchemaType;
+  response?: TYPE_RESPONSE;
 }
 
 export interface APIDefine<T> extends APICommon<T> {
@@ -56,7 +57,7 @@ export interface APIOption<T> extends Record<string, any> {
   requiredOneOf: string[][];
   _allParams: Map<string, ISchemaType>;
   tested: boolean;
-  response?: ISchemaType | Record<string, ISchemaType>;
+  response?: TYPE_RESPONSE;
   responseSchema?: SchemaType | ISchemaType;
 }
 
@@ -206,8 +207,8 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 输出结果对象
    */
-  public response(response: ISchemaType | Record<string, ISchemaType>) {
-    assert(typeof response === "object", "`schema`必须是一个对象");
+  public response(response: TYPE_RESPONSE) {
+    // assert(typeof response === "object", "`schema`必须是一个对象");
     this.options.response = response;
     return this;
   }
@@ -346,7 +347,11 @@ export default class API<T = DEFAULT_HANDLER> {
     }
 
     if (this.options.response) {
-      if (typeof this.options.response.type === "string") {
+      if (typeof this.options.response === "string") {
+        this.options.responseSchema = parent.schema.get(this.options.response);
+      } else if (this.options.response instanceof SchemaType) {
+        this.options.responseSchema = this.options.response;
+      } else if (typeof this.options.response.type === "string") {
         this.options.responseSchema = this.options.response as ISchemaType;
       } else {
         this.options.responseSchema = parent.schema.create(this.options.response as any);

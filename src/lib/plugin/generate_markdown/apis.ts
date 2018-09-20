@@ -1,8 +1,9 @@
 import { IDocData } from "../../extend/docs";
-import { APIOption, IExample } from "../../api";
+import { APIOption, IExample, TYPE_RESPONSE } from "../../api";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 import { ISchemaType } from "../../params";
+import { SchemaType } from "@tuzhanai/schema-manager";
 
 function paramsTable(item: APIOption<any>) {
   const paramsList: string[] = [];
@@ -68,8 +69,16 @@ function formatExample(str: string, data: Record<string, any>) {
     .join("\n");
 }
 
-function examples(exampleList: IExample[], response?: ISchemaType | Record<string, ISchemaType>) {
-  if (!response || typeof response.type === "string") return exampleList.join("\n\n");
+function examples(exampleList: IExample[], response?: TYPE_RESPONSE) {
+  // FIXME: 处理其他类型
+  if (
+    !response ||
+    typeof response === "string" ||
+    response instanceof SchemaType ||
+    typeof response.type === "string"
+  ) {
+    return exampleList.join("\n\n");
+  }
   return exampleList
     .map(item => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
