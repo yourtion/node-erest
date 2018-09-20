@@ -56,6 +56,7 @@ export interface APIOption<T> extends Record<string, any> {
   required: Set<string>;
   requiredOneOf: string[][];
   _allParams: Map<string, ISchemaType>;
+  mock?: any;
   tested: boolean;
   response?: TYPE_RESPONSE;
   responseSchema?: SchemaType | ISchemaType;
@@ -321,6 +322,11 @@ export default class API<T = DEFAULT_HANDLER> {
     return this;
   }
 
+  public mock(data?: any) {
+    this.checkInited();
+    this.options.mock = data || {};
+  }
+
   public init(parent: ERest<any>) {
     this.checkInited();
 
@@ -356,6 +362,10 @@ export default class API<T = DEFAULT_HANDLER> {
       } else {
         this.options.responseSchema = parent.schema.create(this.options.response as any);
       }
+    }
+
+    if (this.options.mock && parent.privateInfo.mockHandler && !this.options.handler) {
+      this.options.handler = parent.privateInfo.mockHandler(this.options.mock);
     }
 
     this.inited = true;

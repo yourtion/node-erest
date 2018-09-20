@@ -115,6 +115,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
   private forceGroup: boolean;
   private registAPI: (method: SUPPORT_METHODS, path: string, group?: string | undefined) => API<T>;
   private defineAPI: (options: APIDefine<T>, group?: string | undefined) => API<T>;
+  private mockHandler?: (data: any) => T;
 
   /**
    * 获取私有变量信息
@@ -126,6 +127,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       groups: this.groups,
       docsOptions: this.docsOptions,
       error: this.error,
+      mockHandler: this.mockHandler,
     };
   }
 
@@ -281,6 +283,11 @@ export default class ERest<T = DEFAULT_HANDLER> {
    */
   public setDocWritter(fn: IDocWritter) {
     this.apiInfo.docs!.setWritter(fn);
+  }
+
+  public setMockHandler(fn: (data: any) => T) {
+    console.log(fn);
+    this.mockHandler = fn;
   }
 
   /**
