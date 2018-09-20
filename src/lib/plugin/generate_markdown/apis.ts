@@ -1,9 +1,9 @@
 import { IDocData } from "../../extend/docs";
-import { APIOption, IExample, TYPE_RESPONSE } from "../../api";
+import { APIOption, IExample } from "../../api";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
-import { ISchemaType } from "../../params";
 import { SchemaType } from "@tuzhanai/schema-manager";
+import { ISchemaType } from "../../params";
 
 function paramsTable(item: APIOption<any>) {
   const paramsList: string[] = [];
@@ -69,24 +69,15 @@ function formatExample(str: string, data: Record<string, any>) {
     .join("\n");
 }
 
-function examples(exampleList: IExample[], response?: TYPE_RESPONSE) {
-  // FIXME: 处理其他类型
-  if (
-    !response ||
-    typeof response === "string" ||
-    response instanceof SchemaType ||
-    typeof response.type === "string"
-  ) {
-    return exampleList.join("\n\n");
-  }
+function examples(exampleList: IExample[], response?: SchemaType | ISchemaType) {
   return exampleList
     .map(item => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
       const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) + "\n" : "";
       const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
       let outString = jsonStringify(item.output!, 2);
-      if (response && Object.keys(response).length > 0) {
-        outString = formatExample(outString, response);
+      if(response && (response as any).fields) {
+        outString = formatExample(outString, (response as any).fields);
       }
       const output = `output = ${outString};`;
       return `${title}\n${header}${input}\n${output}`.trim();
@@ -134,7 +125,7 @@ export default function schemaDocs(data: IDocData) {
     if (item.examples.length > 0) {
       line.push("\n### 使用示例：\n");
       line.push("```javascript");
-      line.push(examples(item.examples, item.response));
+      line.push(examples(item.examples, item.responseSchema));
       line.push("\n```");
     }
 
