@@ -286,7 +286,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
   }
 
   public setMockHandler(fn: (data: any) => T) {
-    console.log(fn);
     this.mockHandler = fn;
   }
 

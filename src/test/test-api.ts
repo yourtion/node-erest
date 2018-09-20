@@ -32,6 +32,10 @@ describe("API - base", () => {
 
 describe("API - more test", () => {
   const apiService = lib();
+  apiService.setMockHandler(() => {
+    return () => {};
+  });
+  apiService.api.get("/b").mock();
   const api = apiService.api
     .get("/a")
     .params({
@@ -58,6 +62,12 @@ describe("API - more test", () => {
   it("API - apiChecker", () => {
     const checker = apiService.apiChecker();
     expect(() => checker(api, {}, {}, {})).toThrow("missing required parameter 'p'");
+  });
+
+  it("API - responseChecker", () => {
+    const checker = apiService.responseChecker();
+    const ret = checker(api, {});
+    expect(ret).toEqual({ ok: true, message: "success", value: {} });
   });
 
   it("API - require a params", () => {
