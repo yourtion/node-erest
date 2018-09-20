@@ -76,7 +76,7 @@ function examples(exampleList: IExample[], response?: SchemaType | ISchemaType) 
       const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) + "\n" : "";
       const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
       let outString = jsonStringify(item.output!, 2);
-      if(response && (response as any).fields) {
+      if (response && (response as any).fields) {
         outString = formatExample(outString, (response as any).fields);
       }
       const output = `output = ${outString};`;
