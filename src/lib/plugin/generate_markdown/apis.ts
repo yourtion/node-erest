@@ -48,6 +48,26 @@ function paramsTable(item: APIOption<any>) {
   return paramsList.join("\n");
 }
 
+function responseTable(response?: ISchemaType | Record<string, ISchemaType>) {
+  if (!response || typeof response.type === "string") return;
+  const paramsList: string[] = [];
+  paramsList.push(tableHeader(["参数名", "类型", "必填", "说明"]));
+  // 参数输出
+  for (const name in response) {
+    const info = (response as Record<string, ISchemaType>)[name];
+    const comment = info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
+    paramsList.push(
+      fieldString([stringOrEmpty(name, true), stringOrEmpty(info.type), itemTF(info.required), stringOrEmpty(comment)])
+    );
+  }
+
+  // 没有参数
+  if (paramsList.length === 1) {
+    return;
+  }
+  return paramsList.join("\n");
+}
+
 function formatExampleInput(inputData: Record<string, any>) {
   const ret = Object.assign({}, inputData);
   for (const name in ret) {
@@ -120,6 +140,11 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n### 参数：\n\n" + paramsDoc);
     } else {
       line.push("\n参数：无参数");
+    }
+
+    const responseDoc = responseTable(item.response);
+    if (responseDoc) {
+      line.push("\n### 返回结果：\n\n" + responseDoc);
     }
 
     if (item.examples.length > 0) {
