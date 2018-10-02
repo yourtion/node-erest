@@ -1,5 +1,5 @@
 import { IDocData } from "../../extend/docs";
-import { APIOption, IExample } from "../../api";
+import { APIOption, IExample, TYPE_RESPONSE } from "../../api";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 import { SchemaType } from "@tuzhanai/schema-manager";
@@ -48,8 +48,9 @@ function paramsTable(item: APIOption<any>) {
   return paramsList.join("\n");
 }
 
-function responseTable(response?: ISchemaType | Record<string, ISchemaType>) {
-  if (!response || typeof response.type === "string") return;
+function responseTable(response?: TYPE_RESPONSE) {
+  if (!response || typeof response === "string") return;
+  if (response instanceof SchemaType || typeof response.type === "string") return;
   const paramsList: string[] = [];
   paramsList.push(tableHeader(["参数名", "类型", "必填", "说明"]));
   // 参数输出
@@ -62,9 +63,8 @@ function responseTable(response?: ISchemaType | Record<string, ISchemaType>) {
   }
 
   // 没有参数
-  if (paramsList.length === 1) {
-    return;
-  }
+  if (paramsList.length === 1) return;
+
   return paramsList.join("\n");
 }
 
