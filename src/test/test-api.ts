@@ -1,4 +1,5 @@
 import lib from "./lib";
+import express from "express";
 import { build, TYPES } from "./helper";
 import { GROUPS, INFO } from "./lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";
@@ -28,6 +29,24 @@ describe("API - base", () => {
   it("API - register error empty", () => {
     apiService.errors.register("TEST", {});
   });
+});
+
+describe("API - Params wtih schema", () => {
+  const apiService = lib();
+  apiService.schema.register("a", {
+    a: build(TYPES.String, "str"),
+  });
+  apiService.api
+    .get("/")
+    .group("Index")
+    .query({
+      a: build("a", "Int", true),
+      b: build("a[]", "Int[]", true),
+    })
+    .register(() => {});
+  const router = express();
+  apiService.bindRouter(router, apiService.checkerExpress);
+  expect(apiService.schema.has("a")).toBeTruthy();
 });
 
 describe("API - more test", () => {
