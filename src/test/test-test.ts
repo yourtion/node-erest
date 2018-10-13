@@ -1,3 +1,4 @@
+import os from "os"
 import { createReadStream, writeFileSync } from "fs";
 import { resolve } from "path";
 
@@ -29,7 +30,7 @@ jsonApi.query(JsonSchema);
 jsonApi.requiredOneOf(["age", "type"]);
 apiService.bindRouter(router, apiService.checkerExpress);
 
-apiService.initTest(app, __dirname, "/tmp");
+apiService.initTest(app, __dirname, os.tmpdir());
 function format(data: any): [Error | null, any] {
   if (typeof data === "object") {
     if (data.success) {
@@ -240,7 +241,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
     });
 
     it("TEST - Gen docs", () => {
-      apiService.genDocs("/tmp/", false);
+      apiService.genDocs(os.tmpdir(), false);
     });
   });
 }
