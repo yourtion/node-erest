@@ -1,4 +1,4 @@
-import os from "os"
+import os from "os";
 import { createReadStream, writeFileSync } from "fs";
 import { resolve } from "path";
 
