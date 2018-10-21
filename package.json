@@ -1,10 +1,6 @@
 {
   "name": "erest",
-<<<<<<< HEAD
-  "version": "1.8.4",
-=======
   "version": "1.8.6",
->>>>>>> 2e07d513a144999ef7dfcf5121a296e94274c9bd
   "description": "Easy to build api server depend on lei-web and express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
