@@ -1,6 +1,10 @@
 {
   "name": "erest",
+<<<<<<< HEAD
   "version": "1.8.4",
+=======
+  "version": "1.8.6",
+>>>>>>> 2e07d513a144999ef7dfcf5121a296e94274c9bd
   "description": "Easy to build api server depend on lei-web and express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
@@ -16,7 +20,7 @@
     "clean": "rm -rf dist",
     "compile": "npm run clean && tsc && prettier --single-quote --write \"dist/**/*.{js,ts}\"",
     "prepublishOnly": "npm run format && npm run test:cov && cat ./coverage/lcov.info | coveralls && npm test",
-    "postpublish": "npm run tag"
+    "postpublish": "npm run tag && git push && git push --tags"
   },
   "repository": {
     "type": "git",
@@ -36,7 +40,7 @@
   },
   "homepage": "https://github.com/yourtion/node-erest#readme",
   "dependencies": {
-    "@tuzhanai/schema-manager": "^1.1.0",
+    "@tuzhanai/schema-manager": "^1.1.1",
     "@types/debug": "0.0.30",
     "debug": "^3.1.0",
     "path-to-regexp": "^2.4.0"

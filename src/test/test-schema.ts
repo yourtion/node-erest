@@ -1,10 +1,11 @@
+import os from "os";
 import { apiDelete, build, nameParams, TYPES } from "./helper";
 import lib from "./lib";
 
 const apiService = lib();
 const api = apiService.api;
 const deleteApi = apiDelete(api);
-apiService.genDocs("/tmp/");
+apiService.genDocs(os.tmpdir());
 
 test("Schema - init", () => {
   const schema = api.$apis.get("DELETE_/index/:name")!;
