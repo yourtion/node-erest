@@ -92,4 +92,11 @@ describe("API - more test", () => {
   it("API - require a params", () => {
     expect(() => api.init(apiService)).toThrow("ENUM is require a params");
   });
+
+  it("API - error mamager modify", () => {
+    apiService.errors.modify("PERMISSIONS_ERROR", { isShow: false });
+    const e = apiService.errors.get("PERMISSIONS_ERROR");
+    expect(e!.isShow).toEqual(false);
+    expect(e!.isDefault).toEqual(false);
+  });
 });

@@ -46,6 +46,19 @@ export class ErrorManager extends Manager<IError> {
     return this;
   }
 
+  /** 修改默认错误 */
+  public modify(name: string, data: Partial<IError>) {
+    assert(this.map.has(name), "error not exits: " + name);
+    const old = this.map.get(name);
+    assert(old!.isDefault, "only modify default error");
+
+    if (data.code) this.codes.add(data.code);
+    data.isDefault = false;
+    this.map.set(name, Object.assign(old, data));
+
+    return this;
+  }
+
   public import(errors: Array<Partial<IError>>) {
     for (const err of errors) {
       this.register(err.name!, err);
