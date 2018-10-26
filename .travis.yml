@@ -6,7 +6,7 @@ cache:
 
 os:
   - osx
-  - windows
+  # - windows
   - linux
 
 node_js:
