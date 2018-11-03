@@ -7,6 +7,7 @@
 import ERest from ".";
 import { create, params as debug } from "./debug";
 import API from "./api";
+import { SchemaType } from "@tuzhanai/schema-manager";
 
 export interface ISchemaType {
   type: string;
@@ -47,14 +48,13 @@ export function paramsChecker(ctx: ERest<any>, name: string, input: any, typeInf
 export function schemaChecker<T extends Record<string, any>>(
   ctx: ERest<any>,
   data: T,
-  schema: Record<string, ISchemaType>,
+  schema: SchemaType | Record<string, ISchemaType>,
   requiredOneOf: string[] = []
 ) {
   // const result: Record<string, any> = {};
   const { error } = ctx.privateInfo;
-  const { ok, value, message, invalidParamaters, missingParamaters, invalidParamaterTypes } = ctx.schema
-    .create(schema)
-    .value(data);
+  const schemaInfo = schema instanceof SchemaType ? schema : ctx.schema.create(schema);
+  const { ok, value, message, invalidParamaters, missingParamaters, invalidParamaterTypes } = schemaInfo.value(data);
 
   if (!ok) {
     if (missingParamaters && missingParamaters.length > 0) throw error.missingParameter(`'${missingParamaters[0]}'`);
@@ -75,6 +75,21 @@ export function schemaChecker<T extends Record<string, any>>(
   }
   if (!req) throw error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
   return value;
+}
+
+export function responseChecker<T extends Record<string, any>>(
+  ctx: ERest<any>,
+  data: T,
+  schema: ISchemaType | SchemaType | Record<string, ISchemaType>
+) {
+  if (schema instanceof SchemaType) {
+    return schema.value(data);
+  }
+  if (typeof schema.type === "string") {
+    return ctx.type.value(schema.type, data, schema.params);
+  }
+  const schemaInfo = ctx.schema.create(schema as Record<string, ISchemaType>);
+  return schemaInfo.value(data);
 }
 
 /**

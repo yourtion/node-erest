@@ -6,9 +6,12 @@
 import assert from "assert";
 import pathToRegExp from "path-to-regexp";
 import { api as debug } from "./debug";
-import { getSchemaKey, SourceResult } from "./utils";
+import { getSchemaKey, SourceResult, getRealPath } from "./utils";
 import { ISchemaType } from "./params";
+import { SchemaType, parseTypeName } from "@tuzhanai/schema-manager";
 import ERest from ".";
+
+export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
 
 export interface IExample {
   name?: string | undefined;
@@ -29,7 +32,7 @@ export interface APICommon<T = DEFAULT_HANDLER> {
   title: string;
   description?: string;
   handler?: T;
-  response?: Record<string, ISchemaType>;
+  response?: TYPE_RESPONSE;
 }
 
 export interface APIDefine<T> extends APICommon<T> {
@@ -53,7 +56,10 @@ export interface APIOption<T> extends Record<string, any> {
   required: Set<string>;
   requiredOneOf: string[][];
   _allParams: Map<string, ISchemaType>;
+  mock?: any;
   tested: boolean;
+  response?: TYPE_RESPONSE;
+  responseSchema?: SchemaType | ISchemaType;
 }
 
 export default class API<T = DEFAULT_HANDLER> {
@@ -80,7 +86,7 @@ export default class API<T = DEFAULT_HANDLER> {
       sourceFile,
       method: method.toLowerCase() as SUPPORT_METHODS,
       path,
-      realPath: this.key.split(/_(.+)/)[1],
+      realPath: getRealPath(this.key),
       examples: [],
       required: new Set(),
       requiredOneOf: [],
@@ -202,8 +208,8 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 输出结果对象
    */
-  public response(response: Record<string, ISchemaType>) {
-    assert(typeof response === "object", "`schema`必须是一个对象");
+  public response(response: TYPE_RESPONSE) {
+    // assert(typeof response === "object", "`schema`必须是一个对象");
     this.options.response = response;
     return this;
   }
@@ -230,8 +236,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * Body 参数
    */
   public body(obj: Record<string, ISchemaType>) {
-    for (const key of Object.keys(obj)) {
-      const o = obj[key];
+    for (const [key, o] of Object.entries(obj)) {
       this.setParams(key, o, "body");
     }
     return this;
@@ -241,8 +246,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * Query 参数
    */
   public query(obj: Record<string, ISchemaType>) {
-    for (const key of Object.keys(obj)) {
-      const o = obj[key];
+    for (const [key, o] of Object.entries(obj)) {
       this.setParams(key, o, "query");
     }
     return this;
@@ -252,8 +256,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * Param 参数
    */
   public params(obj: Record<string, ISchemaType>) {
-    for (const key of Object.keys(obj)) {
-      const o = obj[key];
+    for (const [key, o] of Object.entries(obj)) {
       this.setParams(key, o, "params");
     }
     return this;
@@ -319,6 +322,11 @@ export default class API<T = DEFAULT_HANDLER> {
     return this;
   }
 
+  public mock(data?: any) {
+    this.checkInited();
+    this.options.mock = data || {};
+  }
+
   public init(parent: ERest<any>) {
     this.checkInited();
 
@@ -329,16 +337,40 @@ export default class API<T = DEFAULT_HANDLER> {
     );
 
     // 初始化时参数类型检查
-    for (const options of this.options._allParams.values()) {
+    for (const [name, options] of this.options._allParams.entries()) {
       const typeName = options.type;
-      const type = parent.type.get(typeName).info;
-      assert(type && type.checker, `please register type ${typeName}`);
-      if (type!.isParamsRequired && options.params === undefined) {
-        throw new Error(`${typeName} is require a params`);
+      const type = parent.type.has(typeName) && parent.type.get(typeName).info;
+      if (type) {
+        // 基础类型
+        if (options.required) this.options.required.add(name);
+        assert(type && type.checker, `please register type ${typeName}`);
+        if (type.isParamsRequired && options.params === undefined) {
+          throw new Error(`${typeName} is require a params`);
+        }
+        if (options.params && type.paramsChecker) {
+          assert(type.paramsChecker(options.params), `test type params failed`);
+        }
+      } else {
+        // schema 类型
+        const schemaName = parseTypeName(typeName);
+        assert(parent.schema.has(schemaName.name), `please register scheam ${schemaName}`);
       }
-      if (options.params) {
-        assert(type!.paramsChecker!(options.params), `test type params failed`);
+    }
+
+    if (this.options.response) {
+      if (typeof this.options.response === "string") {
+        this.options.responseSchema = parent.schema.get(this.options.response);
+      } else if (this.options.response instanceof SchemaType) {
+        this.options.responseSchema = this.options.response;
+      } else if (typeof this.options.response.type === "string") {
+        this.options.responseSchema = this.options.response as ISchemaType;
+      } else {
+        this.options.responseSchema = parent.schema.create(this.options.response as any);
       }
+    }
+
+    if (this.options.mock && parent.privateInfo.mockHandler && !this.options.handler) {
+      this.options.handler = parent.privateInfo.mockHandler(this.options.mock);
     }
 
     this.inited = true;

@@ -1,7 +1,9 @@
 import { IDocData } from "../../extend/docs";
-import { APIOption, IExample } from "../../api";
+import { APIOption, IExample, TYPE_RESPONSE } from "../../api";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
+import { SchemaType } from "@tuzhanai/schema-manager";
+import { ISchemaType } from "../../params";
 
 function paramsTable(item: APIOption<any>) {
   const paramsList: string[] = [];
@@ -46,6 +48,26 @@ function paramsTable(item: APIOption<any>) {
   return paramsList.join("\n");
 }
 
+function responseTable(response?: TYPE_RESPONSE) {
+  if (!response || typeof response === "string") return;
+  if (response instanceof SchemaType || typeof response.type === "string") return;
+  const paramsList: string[] = [];
+  paramsList.push(tableHeader(["参数名", "类型", "必填", "说明"]));
+  // 参数输出
+  for (const name in response) {
+    const info = (response as Record<string, ISchemaType>)[name];
+    const comment = info.type === "ENUM" ? `${info.comment} (${info.params.join(",")})` : info.comment;
+    paramsList.push(
+      fieldString([stringOrEmpty(name, true), stringOrEmpty(info.type), itemTF(info.required), stringOrEmpty(comment)])
+    );
+  }
+
+  // 没有参数
+  if (paramsList.length === 1) return;
+
+  return paramsList.join("\n");
+}
+
 function formatExampleInput(inputData: Record<string, any>) {
   const ret = Object.assign({}, inputData);
   for (const name in ret) {
@@ -67,15 +89,15 @@ function formatExample(str: string, data: Record<string, any>) {
     .join("\n");
 }
 
-function examples(exampleList: IExample[], response: Record<string, any>) {
+function examples(exampleList: IExample[], response?: SchemaType | ISchemaType) {
   return exampleList
     .map(item => {
       const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
       const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) + "\n" : "";
       const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
       let outString = jsonStringify(item.output!, 2);
-      if (response && Object.keys(response).length > 0) {
-        outString = formatExample(outString, response);
+      if (response && (response as any).fields) {
+        outString = formatExample(outString, (response as any).fields);
       }
       const output = `output = ${outString};`;
       return `${title}\n${header}${input}\n${output}`.trim();
@@ -96,8 +118,7 @@ export default function schemaDocs(data: IDocData) {
     groupTitles[name].push(title);
   }
 
-  for (const key of Object.keys(data.apis)) {
-    const item = data.apis[key];
+  for (const item of Object.values(data.apis)) {
     const tested = itemTFEmoji(item.tested);
     const tit = stringOrEmpty(item.title);
     const method = item.method.toUpperCase();
@@ -121,10 +142,15 @@ export default function schemaDocs(data: IDocData) {
       line.push("\n参数：无参数");
     }
 
+    const responseDoc = responseTable(item.response);
+    if (responseDoc) {
+      line.push("\n### 返回结果：\n\n" + responseDoc);
+    }
+
     if (item.examples.length > 0) {
       line.push("\n### 使用示例：\n");
       line.push("```javascript");
-      line.push(examples(item.examples, item.response));
+      line.push(examples(item.examples, item.responseSchema));
       line.push("\n```");
     }
 
@@ -133,11 +159,8 @@ export default function schemaDocs(data: IDocData) {
   }
 
   const list: Array<{ name: string; content: string }> = [];
-  for (const name in group) {
-    list.push({
-      name,
-      content: group[name].join("\n\n"),
-    });
+  for (const [name, g] of Object.entries(group)) {
+    list.push({ name, content: g.join("\n\n") });
   }
 
   return { list, groupTitles };

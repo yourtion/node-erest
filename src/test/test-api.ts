@@ -1,4 +1,5 @@
 import lib from "./lib";
+import express from "express";
 import { build, TYPES } from "./helper";
 import { GROUPS, INFO } from "./lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";
@@ -30,8 +31,30 @@ describe("API - base", () => {
   });
 });
 
+describe("API - Params wtih schema", () => {
+  const apiService = lib();
+  apiService.schema.register("a", {
+    a: build(TYPES.String, "str"),
+  });
+  apiService.api
+    .get("/")
+    .group("Index")
+    .query({
+      a: build("a", "Int", true),
+      b: build("a[]", "Int[]", true),
+    })
+    .register(() => {});
+  const router = express();
+  apiService.bindRouter(router, apiService.checkerExpress);
+  expect(apiService.schema.has("a")).toBeTruthy();
+});
+
 describe("API - more test", () => {
   const apiService = lib();
+  apiService.setMockHandler(() => {
+    return () => {};
+  });
+  apiService.api.get("/b").mock();
   const api = apiService.api
     .get("/a")
     .params({
@@ -60,7 +83,20 @@ describe("API - more test", () => {
     expect(() => checker(api, {}, {}, {})).toThrow("missing required parameter 'p'");
   });
 
+  it("API - responseChecker", () => {
+    const checker = apiService.responseChecker();
+    const ret = checker(api, {});
+    expect(ret).toEqual({ ok: true, message: "success", value: {} });
+  });
+
   it("API - require a params", () => {
     expect(() => api.init(apiService)).toThrow("ENUM is require a params");
+  });
+
+  it("API - error mamager modify", () => {
+    apiService.errors.modify("PERMISSIONS_ERROR", { isShow: false });
+    const e = apiService.errors.get("PERMISSIONS_ERROR");
+    expect(e!.isShow).toEqual(false);
+    expect(e!.isDefault).toEqual(false);
   });
 });

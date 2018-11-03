@@ -14,6 +14,22 @@ interface IPostManRequest {
   url: string;
   method: "GET" | "POST" | "PUT" | "DELETE";
   header: IPostManHeader[];
+  body?: IPostManRequestBody;
+}
+
+interface IPostManRequestBody {
+  mode: "raw" | "urlencoded" | "formdata" | "file";
+  raw?: string;
+  urlencoded?: IPostManUrlEncodedParameter[];
+  formdat?: any[];
+  disabled?: boolean;
+}
+
+interface IPostManUrlEncodedParameter {
+  key: string;
+  value?: string;
+  disabled?: boolean;
+  description?: string;
 }
 
 interface IPostManFolders {
@@ -57,16 +73,11 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
 
   const groups: any = {};
 
-  for (const g in data.group) {
-    groups[g] = {
-      id: g,
-      name: data.group[g],
-      items: [] as IPostManItem[],
-    };
+  for (const [g, name] of Object.entries(data.group)) {
+    groups[g] = { id: g, name, items: [] as IPostManItem[] };
   }
 
-  for (const key in data.apis) {
-    const item = data.apis[key];
+  for (const item of Object.values(data.apis)) {
     const req: IPostManItem = {
       name: item.title,
       request: {
@@ -76,15 +87,23 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
       } as IPostManRequest,
     };
     req.request.header.push(getHeader());
+    if (item.method === "post" || item.method === "put") {
+      req.request.body = {
+        mode: "urlencoded",
+        urlencoded: [],
+      };
+      for (const sKey in item.body) {
+        req.request.body.urlencoded!.push({
+          key: sKey,
+          description: item.body[sKey].comment,
+        });
+      }
+    }
     groups[item.group].items.push(req);
   }
 
-  for (const g in groups) {
-    const gg = groups[g];
-    postman.item.push({
-      name: gg.name,
-      item: gg.items,
-    });
+  for (const gg of Object.values(groups) as any) {
+    postman.item.push({ name: gg.name, item: gg.items });
   }
 
   const filename = utils.getPath("postman.json", options.swagger);

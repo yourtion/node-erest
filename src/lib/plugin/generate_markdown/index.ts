@@ -47,13 +47,13 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
 
   const wikiPath = utils.getPath("wiki", options.wiki);
 
-  for (const item in data.group) {
-    const group = utils.camelCase2underscore(item);
-    indexDoc.push(`- [${data.group[item]} ( ${item} ) 相关文档](./${item.toLowerCase()}.md)`);
-    allInOneDoc.push(`- [${data.group[item]} ( ${item} ) 相关](#${item.toLowerCase()})`);
-    wikiDoc.push(`- [/${group} - ${data.group[item]}相关文档](${wikiPath}${item.toLowerCase()})`);
-    if (options.wiki && groupTitles[item]) {
-      wikiDoc.push(groupTitles[item].join("\n"));
+  for (const [name, title] of Object.entries(data.group)) {
+    const group = utils.camelCase2underscore(name);
+    indexDoc.push(`- [${title} ( ${name} ) 相关文档](./${name.toLowerCase()}.md)`);
+    allInOneDoc.push(`- [${title} ( ${name} ) 相关](#${name.toLowerCase()})`);
+    wikiDoc.push(`- [/${group} - ${title}相关文档](${wikiPath}${name.toLowerCase()})`);
+    if (options.wiki && groupTitles[name]) {
+      wikiDoc.push(groupTitles[name].join("\n"));
     }
   }
 

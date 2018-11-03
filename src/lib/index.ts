@@ -4,16 +4,18 @@
  */
 
 import assert from "assert";
-import SchemaManage, { ValueTypeManager } from "@tuzhanai/schema-manager";
+import SchemaManage, { ValueTypeManager, SchemaType } from "@tuzhanai/schema-manager";
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
 import { ErrorManager } from "./manager";
 import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
-import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType } from "./params";
+import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType, responseChecker } from "./params";
 import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
+import * as utils from "./utils";
 import IAPITest from "./extend/test";
 import IAPIDoc, { IDocWritter } from "./extend/docs";
 
+export * from "@tuzhanai/schema-manager";
 export * from "./api";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
@@ -93,6 +95,8 @@ export interface IDocOptions extends Record<string, any> {
  */
 export default class ERest<T = DEFAULT_HANDLER> {
   public shareTestData?: any;
+  public utils = utils;
+
   private apiInfo: IApiInfo<T>;
   private testAgent: IAPITest = {} as IAPITest;
   private app: any;
@@ -103,14 +107,15 @@ export default class ERest<T = DEFAULT_HANDLER> {
     invalidParameter: (msg: string) => Error;
     internalError: (msg: string) => Error;
   };
-  private typeManage: ValueTypeManager = new ValueTypeManager();
   private schemaManage: SchemaManage = new SchemaManage();
+  private typeManage: ValueTypeManager = this.schemaManage.type;
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;
   private forceGroup: boolean;
   private registAPI: (method: SUPPORT_METHODS, path: string, group?: string | undefined) => API<T>;
   private defineAPI: (options: APIDefine<T>, group?: string | undefined) => API<T>;
+  private mockHandler?: (data: any) => T;
 
   /**
    * 获取私有变量信息
@@ -122,6 +127,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       groups: this.groups,
       docsOptions: this.docsOptions,
       error: this.error,
+      mockHandler: this.mockHandler,
     };
   }
 
@@ -279,6 +285,10 @@ export default class ERest<T = DEFAULT_HANDLER> {
     this.apiInfo.docs!.setWritter(fn);
   }
 
+  public setMockHandler(fn: (data: any) => T) {
+    this.mockHandler = fn;
+  }
+
   /**
    * 设置全局 Before Hook
    */
@@ -308,6 +318,12 @@ export default class ERest<T = DEFAULT_HANDLER> {
   public schemaChecker() {
     return (data: any, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
       schemaChecker(this, data, schema, requiredOneOf);
+  }
+
+  /** 返回结果检查 */
+  public responseChecker() {
+    return (data: any, schema: ISchemaType | SchemaType | Record<string, ISchemaType>) =>
+      responseChecker(this, data, schema);
   }
 
   /**
