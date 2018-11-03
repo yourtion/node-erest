@@ -8,7 +8,7 @@ import pathToRegExp from "path-to-regexp";
 import { api as debug } from "./debug";
 import { getSchemaKey, SourceResult, getRealPath } from "./utils";
 import { ISchemaType } from "./params";
-import { SchemaType } from "@tuzhanai/schema-manager";
+import { SchemaType, parseTypeName } from "@tuzhanai/schema-manager";
 import ERest from ".";
 
 export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
@@ -339,16 +339,21 @@ export default class API<T = DEFAULT_HANDLER> {
     // 初始化时参数类型检查
     for (const [name, options] of this.options._allParams.entries()) {
       const typeName = options.type;
-      const type = parent.type.get(typeName).info;
-      if (options.required) this.options.required.add(name);
-      assert(type && type.checker, `please register type ${typeName}`);
-      // FIXME: 临时屏蔽 type 不存在
-      // if(!type) continue;
-      if (type!.isParamsRequired && options.params === undefined) {
-        throw new Error(`${typeName} is require a params`);
-      }
-      if (options.params) {
-        assert(type!.paramsChecker!(options.params), `test type params failed`);
+      const type = parent.type.has(typeName) && parent.type.get(typeName).info;
+      if (type) {
+        // 基础类型
+        if (options.required) this.options.required.add(name);
+        assert(type && type.checker, `please register type ${typeName}`);
+        if (type.isParamsRequired && options.params === undefined) {
+          throw new Error(`${typeName} is require a params`);
+        }
+        if (options.params && type.paramsChecker) {
+          assert(type.paramsChecker(options.params), `test type params failed`);
+        }
+      } else {
+        // schema 类型
+        const schemaName = parseTypeName(typeName);
+        assert(parent.schema.has(schemaName.name), `please register scheam ${schemaName}`);
       }
     }
 
