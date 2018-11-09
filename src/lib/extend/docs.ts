@@ -16,7 +16,7 @@ import generateSwagger from "../plugin/generate_swagger";
 import generatePostman from "../plugin/generate_postman";
 import { getPath, jsonStringify } from "../utils";
 import { APIOption } from "../api";
-import SchemaManager from "@tuzhanai/schema-manager";
+import SchemaManager, { ValueTypeManager } from "@tuzhanai/schema-manager";
 
 export type IDocWritter = (path: string, data: any) => void;
 export type IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) => void;
@@ -46,6 +46,7 @@ export interface IDocData {
   types: Record<string, IDocTypes>;
   apis: Record<string, APIOption<any>>;
   schema: SchemaManager;
+  type: ValueTypeManager;
   apiInfo: {
     count: number;
     tested: number;
@@ -103,6 +104,7 @@ export default class IAPIDoc {
       info: this.info,
       errors: this.parent.errors,
       schema: this.parent.schema,
+      type: this.parent.type,
       group: this.groups,
       types: {} as Record<string, IDocTypes>,
       apis: {} as Record<string, APIOption<any>>,
