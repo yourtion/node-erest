@@ -12,6 +12,7 @@ import errorDocs from "./errors";
 import apiDocs from "./apis";
 import typeDocs from "./types";
 import { trimSpaces } from "./utils";
+import schemaDocs from "./schema";
 
 function filePath(dir: string, name: string) {
   const filename = name === "Home" ? name : name.toLowerCase();
@@ -29,10 +30,12 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
 
   const typeDoc = trimSpaces(typeDocs(data));
   const errorDoc = trimSpaces(errorDocs(data));
+  const schemaDoc = trimSpaces(schemaDocs(data));
 
   if (options.wiki) {
     writter(filePath(dir, "types"), typeDoc);
     writter(filePath(dir, "errors"), errorDoc);
+    writter(filePath(dir, "schema"), schemaDoc);
   }
 
   const { list, groupTitles } = apiDocs(data);
