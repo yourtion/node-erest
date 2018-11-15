@@ -4,6 +4,8 @@ addons:
   sonarcloud:
     organization: "yourtion-github"
 script:
+  - npm run test:cov
+  - npm run test
   - sonar-scanner
 
 cache:
