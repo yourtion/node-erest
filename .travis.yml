@@ -3,6 +3,8 @@ language: node_js
 addons:
   sonarcloud:
     organization: "yourtion-github"
+script:
+  - sonar-scanner
 
 cache:
   directories:
