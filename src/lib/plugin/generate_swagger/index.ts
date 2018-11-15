@@ -56,7 +56,7 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
   for (const [k, g] of Object.entries(data.group)) {
     result.tags.push({ name: k, description: g });
   }
-  result.tags = result.tags.sort((a, b) => (a.name > b.name ? 1 : -1));
+  result.tags.sort((a, b) => (a.name > b.name ? 1 : -1));
 
   const paths = result.paths;
   const schemas = data.apis;

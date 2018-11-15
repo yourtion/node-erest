@@ -1,5 +1,9 @@
 language: node_js
 
+addons:
+  sonarcloud:
+    organization: "yourtion-github"
+
 cache:
   directories:
     - node_modules
