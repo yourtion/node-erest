@@ -156,7 +156,7 @@ export default function apiDocs(data: IDocData) {
     }
 
     const title = `  - ${method} \`${item.path}\` - ${tit}`;
-    add(item.group!, line.join("\n"), title);
+    add(item.group, line.join("\n"), title);
   }
 
   const list: Array<{ name: string; content: string }> = [];

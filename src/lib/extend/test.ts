@@ -71,7 +71,7 @@ export default class IAPITest {
         }
         const a = new TestAgent(method, path, s.key, s.options.sourceFile, this.parent);
 
-        a.setAgent((agent as any)[method](path));
+        a.setAgent((agent)[method](path));
         return a.agent();
       };
     };

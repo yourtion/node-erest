@@ -95,7 +95,7 @@ export default class API<T = DEFAULT_HANDLER> {
       query: {} as Record<string, ISchemaType>,
       body: {} as Record<string, ISchemaType>,
       params: {} as Record<string, ISchemaType>,
-      _allParams: new Map() as Map<string, ISchemaType>,
+      _allParams: new Map<string, ISchemaType>(),
       group: group || "",
       tested: false,
     };
@@ -343,7 +343,6 @@ export default class API<T = DEFAULT_HANDLER> {
       if (type) {
         // 基础类型
         if (options.required) this.options.required.add(name);
-        assert(type && type.checker, `please register type ${typeName}`);
         if (type.isParamsRequired && options.params === undefined) {
           throw new Error(`${typeName} is require a params`);
         }

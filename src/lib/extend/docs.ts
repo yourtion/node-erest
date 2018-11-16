@@ -124,7 +124,7 @@ export default class IAPIDoc {
       t.parser = type.parser && type.parser.toString();
       t.checker = type.checker && type.checker.toString();
       t.formatter = type.formatter && type.formatter.toString();
-      data.types[key] = t as IDocTypes;
+      data.types[key] = t;
     });
 
     for (const [k, schema] of this.parent.api.$apis.entries()) {
