@@ -217,7 +217,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 输入参数
    */
-  private setParams(name: string, options: ISchemaType, place: string) {
+  private setParam(name: string, options: ISchemaType, place: string) {
     this.checkInited();
 
     assert(typeof name === "string", "`name`必须是字符串类型");
@@ -233,12 +233,19 @@ export default class API<T = DEFAULT_HANDLER> {
   }
 
   /**
+   * 输入参数
+   */
+  private setParams(place: string, obj: Record<string, ISchemaType>) {
+    for (const [key, o] of Object.entries(obj)) {
+      this.setParam(key, o, place);
+    }
+  }
+
+  /**
    * Body 参数
    */
   public body(obj: Record<string, ISchemaType>) {
-    for (const [key, o] of Object.entries(obj)) {
-      this.setParams(key, o, "body");
-    }
+    this.setParams("body", obj);
     return this;
   }
 
@@ -246,9 +253,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * Query 参数
    */
   public query(obj: Record<string, ISchemaType>) {
-    for (const [key, o] of Object.entries(obj)) {
-      this.setParams(key, o, "query");
-    }
+    this.setParams("query", obj);
     return this;
   }
 
@@ -256,9 +261,7 @@ export default class API<T = DEFAULT_HANDLER> {
    * Param 参数
    */
   public params(obj: Record<string, ISchemaType>) {
-    for (const [key, o] of Object.entries(obj)) {
-      this.setParams(key, o, "params");
-    }
+    this.setParams("params", obj);
     return this;
   }
 
