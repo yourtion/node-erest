@@ -44,7 +44,8 @@ export interface APIDefine<T> extends APICommon<T> {
   requiredOneOf?: string[];
   before?: Array<T>;
   middlewares?: Array<T>;
-  handler: T;
+  handler?: T;
+  mock?: Record<string, any>;
 }
 
 export interface APIOption<T> extends Record<string, any> {
@@ -56,7 +57,7 @@ export interface APIOption<T> extends Record<string, any> {
   required: Set<string>;
   requiredOneOf: string[][];
   _allParams: Map<string, ISchemaType>;
-  mock?: any;
+  mock?: Record<string, any>;
   tested: boolean;
   response?: TYPE_RESPONSE;
   responseSchema?: SchemaType | ISchemaType;
@@ -140,7 +141,12 @@ export default class API<T = DEFAULT_HANDLER> {
     if (options.before && options.before.length > 0) {
       schema.before(...options.before);
     }
-    schema.register(options.handler);
+    if (options.handler) {
+      schema.register(options.handler);
+    }
+    if (options.mock) {
+      schema.mock(options.mock);
+    }
     return schema;
   }
 
@@ -325,7 +331,7 @@ export default class API<T = DEFAULT_HANDLER> {
     return this;
   }
 
-  public mock(data?: any) {
+  public mock(data?: Record<string, any>) {
     this.checkInited();
     this.options.mock = data || {};
   }
