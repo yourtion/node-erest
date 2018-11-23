@@ -37,6 +37,7 @@ const DOC = [
   "required",
   "requiredOneOf",
   "tested",
+  "responseSchema",
 ];
 
 export interface IDocData {

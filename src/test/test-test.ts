@@ -16,7 +16,7 @@ const apiService = lib();
 const api = apiService.api;
 apiAll(api);
 apiJson(api);
-apiJson(api, "/json3");
+apiJson(api, "/json3").response({});
 const jsonApi = apiJson(api, "/json2");
 jsonApi.description("测试JSON用");
 const JsonSchema = {
@@ -28,6 +28,10 @@ const JsonSchema = {
 jsonApi.response(JsonSchema);
 jsonApi.query(JsonSchema);
 jsonApi.requiredOneOf(["age", "type"]);
+
+apiService.schema.register("JsonSchema", JsonSchema);
+apiJson(api, "/json4").query({ a: build("JsonSchema[]", "JsonSchema Array") });
+
 apiService.bindRouter(router, apiService.checkerExpress);
 
 apiService.initTest(app, __dirname, os.tmpdir());
@@ -196,6 +200,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
           age: share.age,
           $a: "a",
         })
+        .headers({ hello: "world" })
         .takeExample("Index-JSON")
         .success();
       expect(ret).toEqual({ age: 22, num: 10 });
@@ -242,6 +247,12 @@ for (const agent of [apiService.test.session(), apiService.test]) {
 
     it("TEST - Gen docs", () => {
       apiService.genDocs(os.tmpdir(), false);
+    });
+
+    it("TEST - add Type", () => {
+      apiService.type.register("Any2", {
+        checker: v => v,
+      });
     });
   });
 }
