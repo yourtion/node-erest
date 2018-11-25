@@ -72,7 +72,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 构造函数
    */
-  constructor(method: SUPPORT_METHODS, path: string, sourceFile: SourceResult, group?: string) {
+  constructor(method: SUPPORT_METHODS, path: string, sourceFile: SourceResult, group?: string, prefix?: string) {
     assert(typeof method === "string", "`method`必须是字符串类型");
     assert(
       SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
@@ -81,7 +81,7 @@ export default class API<T = DEFAULT_HANDLER> {
     assert(typeof path === "string", "`path`必须是字符串类型");
     assert(path[0] === "/", '`path`必须以"/"开头');
 
-    this.key = getSchemaKey(method, path, group);
+    this.key = getSchemaKey(method, path, group, prefix);
 
     this.options = {
       sourceFile,
@@ -107,8 +107,8 @@ export default class API<T = DEFAULT_HANDLER> {
     debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
 
-  public static define<T>(options: APIDefine<T>, sourceFile: SourceResult, group?: string) {
-    const schema = new API<T>(options.method, options.path, sourceFile, group);
+  public static define<T>(options: APIDefine<T>, sourceFile: SourceResult, group?: string, prefix?: string) {
+    const schema = new API<T>(options.method, options.path, sourceFile, group, prefix);
     schema.title(options.title);
     const g = group || options.group;
     if (g) {

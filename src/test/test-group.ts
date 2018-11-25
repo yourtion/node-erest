@@ -11,8 +11,10 @@ const globalBefore = hook("globalBefore");
 const globalAfter = hook("globalAfter");
 const beforHook = hook("beforHook");
 const middleware = hook("middleware");
-
+const subBefore = hook("subBefore");
+const subMidd = hook("subMidd");
 const ORDER = ["globalBefore", "beforHook", "apiParamsChecker", "middleware", "reqFn"];
+const ORDER_SUB = ["globalBefore", "subBefore", "beforHook", "apiParamsChecker", "subMidd", "middleware", "reqFn"];
 
 test("Group - bindRouter error when forceGroup", () => {
   const apiService = lib({ forceGroup: true });
@@ -133,3 +135,55 @@ if (nodeVersion() >= 8) {
     });
   });
 }
+
+describe("Group - advance group", () => {
+  const apiService = lib({
+    forceGroup: true,
+    groups: {
+      Index: "首页",
+      Index2: { name: "首页2" },
+      Sub: { name: "子路由", prefix: "/h5" },
+    },
+  });
+  const api = apiService.group("Sub");
+  api.before(subBefore);
+  api.middleware(subMidd);
+  const app = express();
+  const router = express.Router();
+  app.use("/api", router);
+  apiService.beforeHooks(globalBefore);
+  apiService.afterHooks(globalAfter);
+
+  api.define({
+    method: "patch",
+    path: "/index",
+    title: "Patch",
+    description: "test patch",
+    response: {},
+    body: {},
+    params: {},
+    required: [],
+    requiredOneOf: [],
+    before: [beforHook],
+    middlewares: [middleware],
+    handler: reqFn,
+  });
+  apiService.bindRouterToApp(router, express.Router, apiService.checkerExpress);
+
+  it("TEST - routerStack order", () => {
+    const appRoute = app._router.stack[2].handle;
+    const apiRoute = appRoute.stack[0].handle;
+    const routerStack = apiRoute.stack[0].route.stack;
+
+    expect(routerStack.length).toBe(ORDER_SUB.length);
+    const hooksName = routerStack.map((r: any) => r.name);
+    expect(hooksName).toEqual(ORDER_SUB);
+  });
+
+  it("TEST - Get success", async () => {
+    apiService.initTest(app);
+
+    const ret = await apiService.test.patch("/api/h5/sub/index").success();
+    expect(ret).toBe("Hello, API Framework Index");
+  });
+});

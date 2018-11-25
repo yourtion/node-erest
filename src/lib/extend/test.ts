@@ -92,7 +92,7 @@ export default class IAPITest {
    */
   private findSchema(method: SUPPORT_METHODS, path: string) {
     // 如果定义了 API 的 basePath，需要在测试时替换掉
-    const routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
+    let routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
 
     const key = getSchemaKey(method, routerPath);
     debug(method, path, key);

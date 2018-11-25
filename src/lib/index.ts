@@ -67,7 +67,7 @@ export interface IApiOption {
   missingParameterError?: (msg: string) => Error;
   invalidParameterError?: (msg: string) => Error;
   internalError?: (msg: string) => Error;
-  groups?: Record<string, string>;
+  groups?: Record<string, string | IGruopInfoOpt>;
   forceGroup?: boolean;
   docs?: IDocOptions;
 }
@@ -88,6 +88,16 @@ export interface IDocOptions extends Record<string, any> {
   json?: string | boolean;
   /** 生成 all-in-one.md */
   all?: string | boolean;
+}
+
+export interface IGruopInfoOpt {
+  name: string;
+  prefix?: string;
+}
+
+interface IGruopInfo<T> extends IGruopInfoOpt {
+  middleware: T[];
+  before: T[];
 }
 
 /**
@@ -112,9 +122,15 @@ export default class ERest<T = DEFAULT_HANDLER> {
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;
+  private groupInfo: Record<string, IGruopInfo<T>>;
   private forceGroup: boolean;
-  private registAPI: (method: SUPPORT_METHODS, path: string, group?: string | undefined) => API<T>;
-  private defineAPI: (options: APIDefine<T>, group?: string | undefined) => API<T>;
+  private registAPI: (
+    method: SUPPORT_METHODS,
+    path: string,
+    group?: string | undefined,
+    prefix?: string | undefined
+  ) => API<T>;
+  private defineAPI: (options: APIDefine<T>, group?: string | undefined, prefix?: string | undefined) => API<T>;
   private mockHandler?: (data: any) => T;
 
   /**
@@ -125,6 +141,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       app: this.app,
       info: this.info,
       groups: this.groups,
+      groupInfo: this.groupInfo,
       docsOptions: this.docsOptions,
       error: this.error,
       mockHandler: this.mockHandler,
@@ -178,17 +195,24 @@ export default class ERest<T = DEFAULT_HANDLER> {
     this.config = {
       path: options.path || process.cwd(),
     };
-    this.groups = options.groups || {};
+    this.groups = {};
+    this.groupInfo = {};
+    for (const g of Object.keys(options.groups || {})) {
+      const gInfo = options.groups![g];
+      this.groups[g] = typeof gInfo === "string" ? gInfo : gInfo.name;
+      const gI = typeof gInfo === "string" ? { name: gInfo } : gInfo;
+      this.groupInfo[g] = Object.assign({ middleware: [], before: [] }, gI);
+    }
 
     // API注册方法
-    this.registAPI = (method: SUPPORT_METHODS, path: string, group?: string) => {
+    this.registAPI = (method: SUPPORT_METHODS, path: string, group?: string, prefix?: string) => {
       if (this.forceGroup) {
         assert(group, "使用 forceGroup 但是没有通过 group 注册");
         assert(group! in this.groups, `请先配置 ${group} 类型`);
       } else {
         assert(!group, "请开启 forceGroup 再使用 group 功能");
       }
-      const s = new API<T>(method, path, getCallerSourceLine(this.config.path), group);
+      const s = new API<T>(method, path, getCallerSourceLine(this.config.path), group, prefix);
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
@@ -201,8 +225,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
       return s;
     };
     // define注册方法
-    this.defineAPI = (opt: APIDefine<T>, group?: string) => {
-      const s = API.define(opt, getCallerSourceLine(this.config.path), group);
+    this.defineAPI = (opt: APIDefine<T>, group?: string, prefix?: string) => {
+      const s = API.define(opt, getCallerSourceLine(this.config.path), group, prefix);
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
@@ -339,13 +363,17 @@ export default class ERest<T = DEFAULT_HANDLER> {
    */
   public group(name: string): IGruop<T> {
     debug("using group: %s", name);
+    // assert(this.groupInfo[name], `请先配置 ${name} 分组`);
+    const prefix = (this.groupInfo[name] || {}).prefix;
     const group = {
-      get: (path: string) => this.registAPI("get", path, name),
-      post: (path: string) => this.registAPI("post", path, name),
-      put: (path: string) => this.registAPI("put", path, name),
-      delete: (path: string) => this.registAPI("delete", path, name),
-      patch: (path: string) => this.registAPI("patch", path, name),
-      define: (opt: APIDefine<T>) => this.defineAPI(opt, name),
+      get: (path: string) => this.registAPI("get", path, name, prefix),
+      post: (path: string) => this.registAPI("post", path, name, prefix),
+      put: (path: string) => this.registAPI("put", path, name, prefix),
+      delete: (path: string) => this.registAPI("delete", path, name, prefix),
+      patch: (path: string) => this.registAPI("patch", path, name, prefix),
+      define: (opt: APIDefine<T>) => this.defineAPI(opt, name, prefix),
+      before: (fn: T) => this.groupInfo[name].before.push(fn),
+      middleware: (fn: T) => this.groupInfo[name].middleware.push(fn),
     };
     return group;
   }
@@ -420,22 +448,30 @@ export default class ERest<T = DEFAULT_HANDLER> {
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
       schema.init(this);
       const group = camelCase2underscore(schema.options.group || "");
+      const groupInfo = this.groupInfo[schema.options.group];
       debug("bindGroupToApp: %s - %s", key, group);
-      if (!routes.get(group)) {
-        routes.set(group, new Router());
+      let route = routes.get(group) && routes.get(group).route;
+      if (!route) {
+        route = new Router();
+        routes.set(group, { route, info: groupInfo || {} });
       }
-      routes.get(group)[schema.options.method].bind(routes.get(group))(
+
+      route[schema.options.method].bind(route)(
         schema.options.path,
         ...this.apiInfo.beforeHooks,
+        ...groupInfo.before,
         ...schema.options.beforeHooks,
         checker(this, schema),
+        ...groupInfo.middleware,
         ...schema.options.middlewares,
         schema.options.handler
       );
     }
     for (const [key, value] of routes.entries()) {
       debug("bindGroupToApp - %s", key);
-      app.use("/" + key, value);
+      const groupInfo = value.info;
+      const p = groupInfo.prefix || "";
+      app.use(p + "/" + key, value.route);
     }
   }
 }
