@@ -9,12 +9,19 @@ import { coreError as debug } from "../debug";
 import { Manager } from "./manager";
 
 export interface IError {
+  /** 错误名称 */
   name: string;
+  /** 错误状态码 */
   status: number;
+  /** 错误码 */
   code: number;
+  /** 错误描述 */
   description: string;
+  /** 是否为默认错误 */
   isDefault: boolean;
+  /** 出现错误时是否输出到前端 */
   isShow: boolean;
+  /** 出现错误时是否打印日志 */
   isLog: boolean;
 }
 

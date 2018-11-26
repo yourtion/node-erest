@@ -94,7 +94,7 @@ describe("API - more test", () => {
   });
 
   it("API - error mamager modify", () => {
-    apiService.errors.modify("PERMISSIONS_ERROR", { isShow: false });
+    apiService.errors.modify("PERMISSIONS_ERROR", { code: -999, isShow: false });
     const e = apiService.errors.get("PERMISSIONS_ERROR");
     expect(e!.isShow).toEqual(false);
     expect(e!.isDefault).toEqual(false);
