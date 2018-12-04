@@ -39,15 +39,15 @@ export function getSchemaKey(method: string, path: string, group?: string, prefi
   return `${method.toUpperCase()}_${p.replace(/\/\//g, "/").replace(/\/$/, "") || "/"}`;
 }
 
-/** * 返回安全的JSON字符串 */
+/** 返回安全的JSON字符串 */
 export function jsonStringify(data: object, space: string | number) {
-  const seen: any[] = [];
+  // const seen: any[] = [];
   return JSON.stringify(
     data,
     (_, val) => {
       if (!val || typeof val !== "object") return val;
-      if (seen.indexOf(val) !== -1) return "[Circular]";
-      seen.push(val);
+      // if (seen.indexOf(val) !== -1) return "[Circular]";
+      // seen.push(val);
       return val;
     },
     space
