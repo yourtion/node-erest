@@ -88,6 +88,7 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
   });
 
   const template = `
+    // ${data.info.title} ${data.genTime}
     import axios from 'axios';
     const BASE = "${baseURL}";
 

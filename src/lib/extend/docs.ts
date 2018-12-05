@@ -43,6 +43,7 @@ const DOC = [
 
 export interface IDocData {
   info: IApiOptionInfo;
+  genTime: string;
   errors: ErrorManager;
   group: Record<string, string>;
   types: Record<string, IDocTypes>;
@@ -100,8 +101,10 @@ export default class IAPIDoc {
   /** 获取文档数据 */
   public data() {
     debug("data");
+    const now = new Date();
     const data: IDocData = {
       info: this.info,
+      genTime: `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
       errors: this.parent.errors,
       schema: this.parent.schema,
       type: this.parent.type,
