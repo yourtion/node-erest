@@ -86,6 +86,8 @@ export interface IDocOptions extends Record<string, any> {
   postman?: string | boolean;
   /** 生成 docs.json */
   json?: string | boolean;
+  /** 生成 jssdk.js 基于（axios） */
+  axios?: string | boolean;
   /** 生成 all-in-one.md */
   all?: string | boolean;
 }
@@ -262,6 +264,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       swagger: getDocOpt("swagger", false),
       postman: getDocOpt("postman", false),
       json: getDocOpt("json", false),
+      axios: getDocOpt("axios", false),
       all: getDocOpt("all", false),
     };
     // 错误管理

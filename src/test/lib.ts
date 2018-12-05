@@ -36,6 +36,7 @@ export default (options = {}) => {
           swagger: true,
           postman: true,
           json: true,
+          axios: true,
           all: true,
         },
       },

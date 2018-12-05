@@ -17,6 +17,7 @@ import generatePostman from "../plugin/generate_postman";
 import { getPath, jsonStringify } from "../utils";
 import { APIOption } from "../api";
 import SchemaManager, { ValueTypeManager } from "@tuzhanai/schema-manager";
+import generateAsiox from "../plugin/generate_axios";
 
 export type IDocWritter = (path: string, data: any) => void;
 export type IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) => void;
@@ -96,9 +97,7 @@ export default class IAPIDoc {
     this.docsOptions = docsOptions;
   }
 
-  /**
-   * 获取文档数据
-   */
+  /** 获取文档数据 */
   public data() {
     debug("data");
     const data: IDocData = {
@@ -149,9 +148,7 @@ export default class IAPIDoc {
     this.writer = writer;
   }
 
-  /**
-   * 生成文档
-   */
+  /** 生成文档 */
   public genDocs() {
     debug("genDocs");
     this.markdown();
@@ -164,39 +161,34 @@ export default class IAPIDoc {
     if (this.docsOptions.json) {
       this.json();
     }
+    if (this.docsOptions.axios) {
+      this.axios();
+    }
     return this;
   }
 
-  /**
-   * 生成 Markdown 文档
-   */
+  /** 生成 Markdown 文档 */
   public markdown() {
     debug("markdown");
     this.plugins.push(generateMarkdown);
     return this;
   }
 
-  /**
-   * 生成 Swagger 文档
-   */
+  /** 生成 Swagger 文档 */
   public swagger() {
     debug("swagger");
     this.plugins.push(generateSwagger);
     return this;
   }
 
-  /**
-   * 生成 Postman 文档
-   */
+  /** 生成 Postman 文档 */
   public postman() {
     debug("postman");
     this.plugins.push(generatePostman);
     return this;
   }
 
-  /**
-   * 生成 JSON 文档
-   */
+  /** 生成 JSON 文档 */
   public json() {
     debug("json");
     const generateJson = (data: any, dir: string, options: IDocOptions) => {
@@ -207,9 +199,14 @@ export default class IAPIDoc {
     return this;
   }
 
-  /**
-   * 存储文档
-   */
+  /** 生成 axios SDK */
+  public axios() {
+    debug("swagger");
+    this.plugins.push(generateAsiox);
+    return this;
+  }
+
+  /** 存储文档 */
   public save(dir: string) {
     assert(typeof dir === "string" && dir.length > 0, `文档存储目录"${dir}"格式不正确：必须是字符串类型`);
 
@@ -235,9 +232,7 @@ export default class IAPIDoc {
     return this;
   }
 
-  /**
-   * 当进程退出时存储文档
-   */
+  /** 当进程退出时存储文档 */
   public saveOnExit(dir: string) {
     debug("saveOnExit: %s", dir);
     process.on("exit", () => this.save(dir));
