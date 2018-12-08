@@ -1,25 +1,29 @@
+import { IApiInfo } from "../lib";
+
 /**
- * 删除对象中的 undefined
+ * 辅助函数
  */
+
+/** 删除对象中的 undefined */
 function removeUndefined(object: Record<string, any>) {
   Object.keys(object).forEach(key => object[key] === undefined && delete object[key]);
   return object;
 }
 
+/** 方法重命名 */
 function renameFunction(name: string, fn: any) {
   return new Function(`return function (call) { return function ${name}() { return call(this, arguments) }; };`)()(
     Function.apply.bind(fn)
   );
 }
 
+/** 获取 Node.js 版本 */
 export function nodeVersion() {
   const v = process.version.match(/^v(\d+)/);
   return (v && Number(v[1])) || 0;
 }
 
-/**
- * 类型枚举
- */
+/** 类型枚举 */
 export const TYPES = Object.freeze({
   Boolean: "Boolean",
   Date: "Date",
@@ -52,19 +56,21 @@ export const TYPES = Object.freeze({
  * 参数构造
  *
  * @param {String} type 参数类型
- * @param {any} comment 参数说明
- * @param {any} required 是否必填
- * @param {any} defaultValue 默认值
- * @return {Object}
+ * @param comment 参数说明
+ * @param required 是否必填
+ * @param defaultValue 默认值
  */
 export function build(type: string, comment: string, required?: boolean, defaultValue?: any, params?: any) {
   return removeUndefined({ type, comment, required, default: defaultValue, params }) as any;
 }
 
+/** 名字 */
 export const nameParams = build(TYPES.String, "Your name", true);
+/** 年龄 */
 export const ageParams = build(TYPES.Integer, "Your age", false);
 
-export function apiGet(api: any) {
+/** `GET /`（返回："Hello, API Framework Index"） */
+export function apiGet(api: IApiInfo<any>) {
   return api
     .get("/")
     .group("Index")
@@ -74,7 +80,8 @@ export function apiGet(api: any) {
     });
 }
 
-export function apiGet2(api: any) {
+/** `GET /index`（返回："Get ${query.name}"） */
+export function apiGet2(api: IApiInfo<any>) {
   return api
     .get("/index")
     .group("Index")
@@ -85,7 +92,8 @@ export function apiGet2(api: any) {
     });
 }
 
-export function apiPost(api: any) {
+/** `POST /index`（返回："Post ${query.name}:${body.age}"） */
+export function apiPost(api: IApiInfo<any>) {
   return api
     .post("/index")
     .group("Index")
@@ -98,7 +106,8 @@ export function apiPost(api: any) {
     });
 }
 
-export function apiPut(api: any) {
+/** `PUT /index`（返回："Put ${body.age}"） */
+export function apiPut(api: IApiInfo<any>) {
   return api
     .put("/index")
     .group("Index")
@@ -109,7 +118,8 @@ export function apiPut(api: any) {
     });
 }
 
-export function apiDelete(api: any) {
+/** `DELETE /index/:name`（返回："Delete ${params.name}"） */
+export function apiDelete(api: IApiInfo<any>) {
   return api
     .delete("/index/:name")
     .group("Index")
@@ -120,7 +130,8 @@ export function apiDelete(api: any) {
     });
 }
 
-export function apiPatch(api: any) {
+/** `PATCH /index`（返回："Patch"） */
+export function apiPatch(api: IApiInfo<any>) {
   return api
     .patch("/index")
     .group("Index")
@@ -130,7 +141,13 @@ export function apiPatch(api: any) {
     });
 }
 
-export function apiJson(api: any, path = "/json") {
+/**
+ * 生成 json 返回
+ *
+ * - 默认返回 `{ success: true, result: req.$params, headers: req.headers }`
+ * - 当没有 age 或者 age<18 时返回 `{ success: false }`
+ */
+export function apiJson(api: IApiInfo<any>, path = "/json") {
   function json(req: any, res: any) {
     if (!req.$params.age || req.$params.age < 18) {
       return res.json({ success: false });
@@ -147,7 +164,8 @@ export function apiJson(api: any, path = "/json") {
   });
 }
 
-export function apiAll(api: any) {
+/** 返回所有定义的API（Get、Get2、Post、Delete、Put、Patch） */
+export function apiAll(api: IApiInfo<any>) {
   apiGet(api);
   apiGet2(api);
   apiPost(api);
@@ -156,6 +174,7 @@ export function apiAll(api: any) {
   apiPatch(api);
 }
 
+/** 生成 Express 的 hook */
 export function hook(name: string, value: any = 1) {
   return renameFunction(name, (req: any, res: any, next: any) => {
     req["$" + name] = value;
