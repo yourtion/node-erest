@@ -8,11 +8,11 @@ describe("ERest - 基础测试", () => {
   const apiService = lib();
 
   test("ERest - 信息初始化", () => {
-    const apiInfo = apiService.privateInfo.info;
-    expect(apiInfo.title).toBe(INFO.title);
-    expect(apiInfo.description).toBe(INFO.description);
-    expect(apiInfo.version).toBe(INFO.version);
-    expect(apiInfo.host).toBe(INFO.host);
+    const libInfo = apiService.privateInfo.info;
+    expect(libInfo.title).toBe(INFO.title);
+    expect(libInfo.description).toBe(INFO.description);
+    expect(libInfo.version).toBe(INFO.version);
+    expect(libInfo.host).toBe(INFO.host);
   });
 
   test("ERest - 分组信息", () => {
