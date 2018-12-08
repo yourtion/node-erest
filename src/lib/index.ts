@@ -450,13 +450,13 @@ export default class ERest<T = DEFAULT_HANDLER> {
     const routes = new Map();
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
       schema.init(this);
-      const group = camelCase2underscore(schema.options.group || "");
-      const groupInfo = this.groupInfo[schema.options.group];
-      debug("bindGroupToApp: %s - %s", key, group);
-      let route = routes.get(group) && routes.get(group).route;
+      const groupInfo = this.groupInfo[schema.options.group] || {};
+      const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
+      debug("bindGroupToApp: %s - %s", key, prefix);
+      let route = routes.get(prefix);
       if (!route) {
         route = new Router();
-        routes.set(group, { route, info: groupInfo || {} });
+        routes.set(prefix, route);
       }
 
       route[schema.options.method].bind(route)(
@@ -472,9 +472,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
     }
     for (const [key, value] of routes.entries()) {
       debug("bindGroupToApp - %s", key);
-      const groupInfo = value.info;
-      const p = groupInfo.prefix || "";
-      app.use(p + "/" + key, value.route);
+      const k = key[0] === "/" ? key : "/" + key;
+      app.use(k, value);
     }
   }
 }

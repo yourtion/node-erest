@@ -142,7 +142,7 @@ describe("Group - advance group", () => {
     groups: {
       Index: "首页",
       Index2: { name: "首页2" },
-      Sub: { name: "子路由", prefix: "/h5" },
+      Sub: { name: "子路由", prefix: "/h5/sub" },
     },
   });
   const api = apiService.group("Sub");

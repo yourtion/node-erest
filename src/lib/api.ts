@@ -80,8 +80,9 @@ export default class API<T = DEFAULT_HANDLER> {
     );
     assert(typeof path === "string", "`path`必须是字符串类型");
     assert(path[0] === "/", '`path`必须以"/"开头');
+    if (prefix) assert(prefix[0] === "/", '`prefix`必须以"/"开头');
 
-    this.key = getSchemaKey(method, path, group, prefix);
+    this.key = getSchemaKey(method, path, prefix || group);
 
     this.options = {
       sourceFile,

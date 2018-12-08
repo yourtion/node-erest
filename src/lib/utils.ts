@@ -33,10 +33,9 @@ export function getCallerSourceLine(dir: string): SourceResult {
 }
 
 /** 获取API的Key */
-export function getSchemaKey(method: string, path: string, group?: string, prefix?: string): string {
-  const pf = prefix ? prefix + "/" : "";
-  const p = group ? "/" + pf + camelCase2underscore(group) + path : path;
-  return `${method.toUpperCase()}_${p.replace(/\/\//g, "/").replace(/\/$/, "") || "/"}`;
+export function getSchemaKey(method: string, path: string, prefix?: string): string {
+  const pf = prefix ? (prefix.indexOf("/") === 0 ? prefix : "/" + camelCase2underscore(prefix)) : "/";
+  return `${method.toUpperCase()}_${(pf + path).replace(/\/\//g, "/").replace(/\/$/, "") || "/"}`;
 }
 
 /** 返回安全的JSON字符串 */
