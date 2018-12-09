@@ -1,10 +1,6 @@
 import os from "os";
-import { createReadStream, writeFileSync, unlink, mkdir } from "fs";
+import { createReadStream } from "fs";
 import { resolve } from "path";
-import { promisify } from "util";
-
-const unlinkAsync = promisify(unlink);
-const mkdirAsync = promisify(mkdir);
 
 import express from "express";
 
@@ -62,9 +58,10 @@ function format(data: any): [Error | null, any] {
 }
 apiService.setFormatOutput(format);
 
+const DOC_DATA = new Map();
 // 配置文档输出方法
 function writter(path: string, data: any) {
-  return writeFileSync(path, data);
+  return DOC_DATA.set(path, data);
 }
 apiService.setDocWritter(writter);
 
@@ -257,13 +254,13 @@ for (const agent of [apiService.test.session(), apiService.test]) {
 }
 
 describe("Doc - 文档生成", () => {
-  const dir = resolve(os.tmpdir(), "erest-test");
   beforeAll(async () => {
-    unlinkAsync(dir).catch(() => {});
-    mkdirAsync(dir).catch(() => {});
+    // 添加自定义类型用于文档生成
+    apiService.type.register("Any2", { checker: v => v });
   });
 
   test("Gen docs", () => {
-    apiService.genDocs(dir, false);
+    apiService.genDocs("/", false);
+    expect(DOC_DATA.size).toEqual(10)
   });
 });
