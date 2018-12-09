@@ -3,14 +3,14 @@ import lib from "./lib";
 
 import * as express from "express";
 
-test("Router - bind empty", () => {
+test("Router - 绑定空路由", () => {
   const apiService = lib();
   const router = express.Router();
   apiService.bindRouter(router, apiService.checkerExpress);
   expect(router.stack.length).toBe(0);
 });
 
-test("Router - bind", () => {
+test("Router - 绑定路由成功", () => {
   const apiService = lib();
   const api = apiService.api;
   const router = express.Router();
@@ -19,7 +19,7 @@ test("Router - bind", () => {
   expect(router.stack.length).toBe(6);
 });
 
-test("Router - api after init error", () => {
+test("Router - API 绑定后不允许修改", () => {
   const apiService = lib();
   const api = apiService.api;
   const router = express.Router();
@@ -27,7 +27,7 @@ test("Router - api after init error", () => {
   getApi.title("aaa");
   getApi.query({
     num: build(TYPES.Number, "Number", true, 10, { max: 10, min: 0 }),
-    type: build(TYPES.ENUM, "类型", true, undefined, ["a", "b"]),
+    type: build(TYPES.ENUM, "ENUM", true, undefined, ["a", "b"]),
   });
 
   apiService.bindRouter(router, apiService.checkerExpress);
@@ -35,7 +35,7 @@ test("Router - api after init error", () => {
   expect(fn).toThrow();
 });
 
-test("Router - hooks", () => {
+test("Router - Hook测试", () => {
   const apiService = lib();
   const api = apiService.api;
   const router = express.Router();
@@ -65,7 +65,7 @@ test("Router - hooks", () => {
   expect(hooksName).toEqual(ORDER);
 });
 
-test("Router - duplicate router path error", () => {
+test("Router - 不能绑定同路径路由", () => {
   const apiService = lib();
   const api = apiService.api;
   apiGet(api);

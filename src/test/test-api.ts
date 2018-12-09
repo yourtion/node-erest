@@ -7,7 +7,7 @@ const api = apiService.api;
 const deleteApi = apiDelete(api);
 apiService.genDocs(os.tmpdir());
 
-test("API - init", () => {
+test("API - 初始化", () => {
   const apiInfo = api.$apis.get("DELETE_/index/:name")!;
   expect(apiInfo.key).toBe("DELETE_/index/:name");
   expect(apiInfo.options.method).toBe("delete");
@@ -19,7 +19,7 @@ test("API - init", () => {
   expect(apiInfo.options.handler!.name).toBe("del");
 });
 
-test("API - modify", () => {
+test("API - 更新信息", () => {
   deleteApi.title("newTitle");
   deleteApi.description("Yourtion");
   const example = {
@@ -32,6 +32,7 @@ test("API - modify", () => {
   deleteApi.query({
     numP2: build(TYPES.Number, "Number", true, 10, { max: 10, min: 0 }),
   });
+
   const apiInfo = api.$apis.get("DELETE_/index/:name")!;
   expect(apiInfo.options.title).toBe("newTitle");
   expect(apiInfo.options.description).toBe("Yourtion");
