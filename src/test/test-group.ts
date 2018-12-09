@@ -1,10 +1,15 @@
-import { hook, nodeVersion } from "./helper";
+import express from "express";
+import { Application, Router, Context } from "@leizm/web";
+
+import { hook } from "./helper";
 import lib from "./lib";
 
-import express from "express";
-
-function reqFn(req: any, res: any) {
+function reqFn(req: express.Request, res: express.Response) {
   res.json("Hello, API Framework Index");
+}
+
+function reqFnLeiWeb(ctx: Context) {
+  ctx.response.json("Hello, API Framework Index");
 }
 
 const globalBefore = hook("globalBefore");
@@ -13,17 +18,18 @@ const beforHook = hook("beforHook");
 const middleware = hook("middleware");
 const subBefore = hook("subBefore");
 const subMidd = hook("subMidd");
+
 const ORDER = ["globalBefore", "beforHook", "apiParamsChecker", "middleware", "reqFn"];
 const ORDER_SUB = ["globalBefore", "subBefore", "beforHook", "apiParamsChecker", "subMidd", "middleware", "reqFn"];
 
-test("Group - bindRouter error when forceGroup", () => {
+test("Group - 开启forceGroup必须使用bindGroupToApp", () => {
   const apiService = lib({ forceGroup: true });
   const router = express.Router();
   const fn = () => apiService.bindRouter(router, apiService.checkerExpress);
   expect(fn).toThrow("internal error 使用了 forceGroup，请使用bindGroupToApp");
 });
 
-test("Group - bindGroupToApp error when not forceGroup", () => {
+test("Group - 没有开启forceGroup必须使用bindRouter", () => {
   const apiService = lib();
   apiService.group("test");
   const app = express();
@@ -31,7 +37,7 @@ test("Group - bindGroupToApp error when not forceGroup", () => {
   expect(fn).toThrow("internal error 没有开启 forceGroup，请使用bindRouter");
 });
 
-describe("Group - bindGroupToApp", () => {
+describe("Group - 绑定分组路由到App上", () => {
   const apiService = lib({ forceGroup: true, info: { basePath: "" } });
   const api = apiService.group("Index");
   const app = express();
@@ -50,7 +56,7 @@ describe("Group - bindGroupToApp", () => {
   api.patch("/").register(reqFn);
   apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress);
 
-  it("TEST - routerStack order", () => {
+  test("routerStack顺序", () => {
     const appRoute = app._router.stack[2].handle;
     const routerStack = appRoute.stack[0].route.stack;
 
@@ -59,7 +65,7 @@ describe("Group - bindGroupToApp", () => {
     expect(hooksName).toEqual(ORDER);
   });
 
-  it("TEST - Get success", async () => {
+  test("Get请求成功", async () => {
     apiService.initTest(app);
 
     const { text: ret } = await apiService.test.get("/index").raw();
@@ -67,7 +73,7 @@ describe("Group - bindGroupToApp", () => {
   });
 });
 
-describe("Group - define and use route bindGroupToApp", () => {
+describe("Group - 使用define定义路由", () => {
   const apiService = lib({ forceGroup: true });
   const api = apiService.group("Index");
   const app = express();
@@ -92,7 +98,7 @@ describe("Group - define and use route bindGroupToApp", () => {
   });
   apiService.bindRouterToApp(router, express.Router, apiService.checkerExpress);
 
-  it("TEST - routerStack order", () => {
+  test("routerStack顺序", () => {
     const appRoute = app._router.stack[2].handle;
     const apiRoute = appRoute.stack[0].handle;
     const routerStack = apiRoute.stack[0].route.stack;
@@ -102,7 +108,7 @@ describe("Group - define and use route bindGroupToApp", () => {
     expect(hooksName).toEqual(ORDER);
   });
 
-  it("TEST - Get success", async () => {
+  test("Get请求成功", async () => {
     apiService.initTest(app);
 
     const ret = await apiService.test.patch("/api/index").success();
@@ -110,33 +116,25 @@ describe("Group - define and use route bindGroupToApp", () => {
   });
 });
 
-if (nodeVersion() >= 8) {
-  const { Application, Router } = require("@leizm/web");
+describe("Group - 使用@leizm/web框架", () => {
+  const apiService = lib({ forceGroup: true, info: { basePath: "" } });
+  const api = apiService.group("Index");
+  const app = new Application();
+  api
+    .get("/")
+    .title("Get")
+    .register(reqFnLeiWeb);
+  apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb);
 
-  function reqFnLeiWeb(ctx: any) {
-    ctx.response.json("Hello, API Framework Index");
-  }
+  test("Get请求成功", async () => {
+    apiService.initTest(app.server);
 
-  describe("Group - simple @leizm/web", () => {
-    const apiService = lib({ forceGroup: true, info: { basePath: "" } });
-    const api = apiService.group("Index");
-    const app = new Application();
-    api
-      .get("/")
-      .title("Get")
-      .register(reqFnLeiWeb);
-    apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb);
-
-    it("TEST - Get success", async () => {
-      apiService.initTest(app.server);
-
-      const { text: ret } = await apiService.test.get("/index/").raw();
-      expect(ret).toBe(`"Hello, API Framework Index"`);
-    });
+    const { text: ret } = await apiService.test.get("/index/").raw();
+    expect(ret).toBe(`"Hello, API Framework Index"`);
   });
-}
+});
 
-describe("Group - advance group", () => {
+describe("Group - 高级分组配置", () => {
   const apiService = lib({
     forceGroup: true,
     groups: {
@@ -170,7 +168,7 @@ describe("Group - advance group", () => {
   });
   apiService.bindRouterToApp(router, express.Router, apiService.checkerExpress);
 
-  it("TEST - routerStack order", () => {
+  test("routerStack顺序", () => {
     const appRoute = app._router.stack[2].handle;
     const apiRoute = appRoute.stack[0].handle;
     const routerStack = apiRoute.stack[0].route.stack;
@@ -180,7 +178,7 @@ describe("Group - advance group", () => {
     expect(hooksName).toEqual(ORDER_SUB);
   });
 
-  it("TEST - Get success", async () => {
+  test("Get请求成功", async () => {
     apiService.initTest(app);
 
     const ret = await apiService.test.patch("/api/h5/sub/index").success();

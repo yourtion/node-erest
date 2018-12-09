@@ -36,24 +36,33 @@ describe("ERest - 基础测试", () => {
 describe("ERest - schema 注册与使用", () => {
   const apiService = lib();
 
-  // 注册一个名字为`a`的 schema
-  apiService.schema.register("a", {
-    a: build(TYPES.String, "str"),
+  test("add Type", () => {
+    apiService.type.register("Any2", {
+      checker: v => v,
+    });
+    expect(apiService.type.has("Any2")).toBeTruthy();
   });
 
-  apiService.api
-    .get("/")
-    .group("Index")
-    .query({
-      a: build("a", "Object-a", true),
-      // 使用 a 类型对象的数组
-      b: build("a[]", "Object-a Array", true),
-    })
-    .register(() => {});
+  test("add Schema", () => {
+    // 注册一个名字为`a`的 schema
+    apiService.schema.register("a", {
+      a: build(TYPES.String, "str"),
+    });
 
-  const router = express();
-  apiService.bindRouter(router, apiService.checkerExpress);
-  expect(apiService.schema.has("a")).toBeTruthy();
+    apiService.api
+      .get("/")
+      .group("Index")
+      .query({
+        a: build("a", "Object-a", true),
+        // 使用 a 类型对象的数组
+        b: build("a[]", "Object-a Array", true),
+      })
+      .register(() => {});
+
+    const router = express();
+    apiService.bindRouter(router, apiService.checkerExpress);
+    expect(apiService.schema.has("a")).toBeTruthy();
+  });
 });
 
 describe("ERest - 更多测试（完善覆盖率）", () => {

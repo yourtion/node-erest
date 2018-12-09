@@ -1,17 +1,24 @@
 import os from "os";
-import { createReadStream, writeFileSync } from "fs";
+import { createReadStream, writeFileSync, unlink, mkdir } from "fs";
 import { resolve } from "path";
+import { promisify } from "util";
+
+const unlinkAsync = promisify(unlink);
+const mkdirAsync = promisify(mkdir);
+
+import express from "express";
 
 import { apiAll, apiJson, build, TYPES } from "./helper";
 import lib from "./lib";
 
-import express from "express";
-
+// 初始化 Express
 const app = express();
 const router = express.Router();
 router.use(express.json());
 router.use(express.urlencoded({ extended: true }));
+app.use("/api", router);
 
+// 初始化 ERest
 const apiService = lib();
 const api = apiService.api;
 apiAll(api);
@@ -32,9 +39,18 @@ jsonApi.requiredOneOf(["age", "type"]);
 apiService.schema.register("JsonSchema", JsonSchema);
 apiJson(api, "/json4").query({ a: build("JsonSchema[]", "JsonSchema Array") });
 
+// 绑定路由并开始测试
 apiService.bindRouter(router, apiService.checkerExpress);
+// 绑定路由后再加载错误处理中间件
+router.use((err: any, req: any, res: any, next: any) => {
+  if (err) return res.end(err.message);
+  next();
+});
 
+// 初始化测试
 apiService.initTest(app, __dirname, os.tmpdir());
+
+// 添加测试格式化函数
 function format(data: any): [Error | null, any] {
   if (typeof data === "object") {
     if (data.success) {
@@ -44,9 +60,9 @@ function format(data: any): [Error | null, any] {
   }
   return [null, data];
 }
-
 apiService.setFormatOutput(format);
 
+// 配置文档输出方法
 function writter(path: string, data: any) {
   return writeFileSync(path, data);
 }
@@ -57,20 +73,13 @@ const share = {
   age: 22,
   ageStr: "abc",
 };
-router.use((err: any, req: any, res: any, next: any) => {
-  if (err) {
-    return res.end(err.message);
-  }
-  next();
-});
-app.use("/api", router);
-apiService.initTest(app);
 
+// 使用 session 和 apiService.test 进行测试
 for (const agent of [apiService.test.session(), apiService.test]) {
   const info = agent === apiService.test ? "No session" : "Session";
 
-  describe("TEST - " + info, () => {
-    it("TEST - Get success", async () => {
+  describe(`TEST - ${info}`, () => {
+    test("Get success", async () => {
       const { text: ret } = await agent
         .get("/api/index")
         .input({
@@ -81,7 +90,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe(`Get ${share.name}`);
     });
 
-    it("TEST - Post success", async () => {
+    test("Post success", async () => {
       const { text: ret } = await agent
         .post("/api/index")
         .query({
@@ -95,7 +104,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe(`Post ${share.name}:${share.age}`);
     });
 
-    it("TEST - Put success", async () => {
+    test("Put success", async () => {
       const { text: ret } = await agent
         .put("/api/index")
         .input({
@@ -106,7 +115,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe(`Put ${share.age}`);
     });
 
-    it("TEST - Delete success", async () => {
+    test("Delete success", async () => {
       const { text: ret } = await agent
         .delete("/api/index/" + share.name)
         .takeExample("Index-Delete")
@@ -114,7 +123,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe(`Delete ${share.name}`);
     });
 
-    it("TEST - Patch success", async () => {
+    test("Patch success", async () => {
       const { text: ret } = await agent
         .patch("/api/index")
         .takeExample("Index-Patch")
@@ -122,7 +131,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe(`Patch`);
     });
 
-    it("TEST - Post missing params", async () => {
+    test("Post missing params", async () => {
       const { text: ret } = await agent
         .post("/api/index")
         .query({
@@ -137,7 +146,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe("missing required parameter 'age'");
     });
 
-    it("TEST - Post missing params", async () => {
+    test("Post missing params", async () => {
       const { text: ret } = await agent
         .put("/api/index")
         .input({
@@ -148,7 +157,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
     });
 
-    it("TEST - JSON FormatOutput error", async () => {
+    test("JSON FormatOutput error", async () => {
       const ret = await agent
         .get("/api/json")
         .input({
@@ -159,7 +168,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe("error");
     });
 
-    it("TEST - JSON FormatOutput success", async () => {
+    test("JSON FormatOutput success", async () => {
       const ret = await agent
         .get("/api/json")
         .input({
@@ -170,7 +179,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toEqual({ age: share.age });
     });
 
-    it("TEST - Header success", async () => {
+    test("Header success", async () => {
       const { body } = await agent
         .get("/api/json")
         .headers({
@@ -185,7 +194,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(body.headers.test).toEqual("true");
     });
 
-    it("TEST - API requiredOneOf error", async () => {
+    test("API requiredOneOf error", async () => {
       const ret = await agent
         .get("/api/json2")
         .takeExample("Index-JSON")
@@ -193,7 +202,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toBe("error");
     });
 
-    it("TEST - API default value", async () => {
+    test("API default value", async () => {
       const ret = await agent
         .get("/api/json2")
         .input({
@@ -206,7 +215,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       expect(ret).toEqual({ age: 22, num: 10 });
     });
 
-    it("success when error", async () => {
+    test("success when error", async () => {
       try {
         const ret = await agent.get("/api/json2").success();
         expect(ret).toBeUndefined();
@@ -215,7 +224,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       }
     });
 
-    it("error when success", async () => {
+    test("error when success", async () => {
       try {
         const ret = await agent
           .get("/api/json")
@@ -227,7 +236,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       }
     });
 
-    it("unregister api session", async () => {
+    test("unregister api session", async () => {
       try {
         const ret = await agent.get("/api/qqq").error();
         expect(ret).toBeUndefined();
@@ -236,7 +245,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
       }
     });
 
-    it("unregister api seeion", async () => {
+    test("unregister api seeion", async () => {
       try {
         const ret = await apiService.test.get("/api/qqq").error();
         expect(ret).toBeUndefined();
@@ -244,15 +253,17 @@ for (const agent of [apiService.test.session(), apiService.test]) {
         expect(err.message).toContain("尝试请求未注册的API");
       }
     });
-
-    it("TEST - Gen docs", () => {
-      apiService.genDocs(os.tmpdir(), false);
-    });
-
-    it("TEST - add Type", () => {
-      apiService.type.register("Any2", {
-        checker: v => v,
-      });
-    });
   });
 }
+
+describe("Doc - 文档生成", () => {
+  const dir = resolve(os.tmpdir(), "erest-test");
+  beforeAll(async () => {
+    unlinkAsync(dir).catch(() => {});
+    mkdirAsync(dir).catch(() => {});
+  });
+
+  test("Gen docs", () => {
+    apiService.genDocs(dir, false);
+  });
+});

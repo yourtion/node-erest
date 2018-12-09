@@ -1,7 +1,7 @@
+import express from "express";
+
 import { apiAll, apiGet, apiPost, build, hook, TYPES } from "./helper";
 import lib from "./lib";
-
-import * as express from "express";
 
 test("Router - 绑定空路由", () => {
   const apiService = lib();
