@@ -261,6 +261,6 @@ describe("Doc - 文档生成", () => {
 
   test("Gen docs", () => {
     apiService.genDocs("/", false);
-    expect(DOC_DATA.size).toEqual(10)
+    expect(DOC_DATA.size).toEqual(10);
   });
 });
