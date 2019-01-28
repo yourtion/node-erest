@@ -40,7 +40,7 @@
     "@types/supertest": "^2.0.6",
     "@types/debug": "0.0.31",
     "debug": "^4.0.0",
-    "path-to-regexp": "^2.4.0"
+    "path-to-regexp": "^3.0.0"
   },
   "peerDependencies": {
     "@types/node": "*"
