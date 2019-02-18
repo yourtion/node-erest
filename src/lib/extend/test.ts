@@ -12,22 +12,24 @@ import { getCallerSourceLine, getSchemaKey, ISupportMethds } from "../utils";
 import { SuperTest } from "supertest";
 import { SUPPORT_METHODS } from "../api";
 
+/** 测试Agent */
 export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
 
 export interface ITestSession extends IAgent {
+  /** 原始SuperTestAgent */
   readonly $agent: SuperTest<any>;
 }
 
 export default class IAPITest {
-  private parent: ERest<any>;
+  private erest: ERest<any>;
   private info: IApiOptionInfo;
   private app: any;
   private testPath: string;
   private supertest?: any;
 
-  constructor(apiService: ERest<any>, path: string) {
-    this.parent = apiService;
-    const { info, app } = this.parent.privateInfo;
+  constructor(erestIns: ERest<any>, path: string) {
+    this.erest = erestIns;
+    const { info, app } = this.erest.privateInfo;
     this.info = info;
     this.app = app;
     this.testPath = path;
@@ -35,62 +37,55 @@ export default class IAPITest {
   }
 
   get get() {
-    return this.regTest("get");
+    return this.buildTest("get");
   }
 
   get post() {
-    return this.regTest("post");
+    return this.buildTest("post");
   }
 
   get put() {
-    return this.regTest("put");
+    return this.buildTest("put");
   }
 
   get delete() {
-    return this.regTest("delete");
+    return this.buildTest("delete");
   }
 
   get patch() {
-    return this.regTest("patch");
+    return this.buildTest("patch");
   }
 
-  /**
-   * 创建测试会话
-   */
-  public session() {
-    assert(this.app, "请先调用 setApp() 设置 exprss 实例");
+  /** 创建测试会话 */
+  public session(): ITestSession {
+    assert(this.app, "请先调用 setApp() 设置 app 实例");
     assert(this.supertest, "请先安装 supertest");
+
     const agent = this.supertest.agent(this.app);
 
-    const regSession = (method: SUPPORT_METHODS) => {
+    const buildSession = (method: SUPPORT_METHODS) => {
       return (path: string) => {
-        const s = this.findSchema(method, path);
+        const s = this.findApi(method, path);
+        if (!s || !s.key) throw new Error(`尝试请求未注册的API：${method} ${path}`);
 
-        if (!s || !s.key) {
-          throw new Error(`尝试请求未注册的API：${method} ${path}`);
-        }
-        const a = new TestAgent(method, path, s.key, s.options.sourceFile, this.parent);
-
+        const a = new TestAgent(method, path, s.key, s.options.sourceFile, this.erest);
         a.setAgent(agent[method](path));
         return a.agent();
       };
     };
-    const ss: ITestSession = {
-      $agent: agent,
-      get: regSession("get"),
-      post: regSession("post"),
-      put: regSession("put"),
-      delete: regSession("delete"),
-      patch: regSession("patch"),
-    };
 
-    return ss;
+    return {
+      $agent: agent,
+      get: buildSession("get"),
+      post: buildSession("post"),
+      put: buildSession("put"),
+      delete: buildSession("delete"),
+      patch: buildSession("patch"),
+    };
   }
 
-  /**
-   * 根据请求方法和请求路径查找对应的schema
-   */
-  private findSchema(method: SUPPORT_METHODS, path: string) {
+  /** 根据请求方法和请求路径查找对应的API */
+  private findApi(method: SUPPORT_METHODS, path: string) {
     // 如果定义了 API 的 basePath，需要在测试时替换掉
     let routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
 
@@ -98,25 +93,26 @@ export default class IAPITest {
     debug(method, path, key);
 
     // 检查path无变量情况
-    if (this.parent.api.$apis.get(key)) {
-      return this.parent.api.$apis.get(key);
+    if (this.erest.api.$apis.get(key)) {
+      return this.erest.api.$apis.get(key);
     }
     // 检查path有变量情况
-    for (const s of this.parent.api.$apis.values()) {
+    for (const s of this.erest.api.$apis.values()) {
       if (s.pathTest(method, routerPath)) return s;
     }
     return;
   }
 
-  private regTest(method: SUPPORT_METHODS) {
+  /** 生成测试方法 */
+  private buildTest(method: SUPPORT_METHODS) {
     return (path: string) => {
-      const s = this.findSchema(method, path);
+      const s = this.findApi(method, path);
       if (!s || !s.key) {
         throw new Error(`尝试请求未注册的API：${method} ${path}`);
       }
-      const a = new TestAgent(method, path, s.key, getCallerSourceLine(this.testPath), this.parent);
+      const a = new TestAgent(method, path, s.key, getCallerSourceLine(this.testPath), this.erest);
 
-      assert(this.app, "请先调用 setApp() 设置 exprss 实例");
+      assert(this.app, "请先调用 setApp() 设置 app 实例");
       a.initAgent(this.app);
       return a.agent();
     };

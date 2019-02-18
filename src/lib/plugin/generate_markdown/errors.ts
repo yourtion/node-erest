@@ -14,7 +14,7 @@ function errorString(item: IError) {
 
 export default function errorDocs(data: IDocData) {
   const errors: IError[] = [];
-  data.errors.forEach((value: any) => {
+  data.errorManager.forEach((value: any) => {
     errors.push(value);
   });
 

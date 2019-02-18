@@ -4,7 +4,7 @@ import { SchemaType, ISchemaTypeFields, ISchemaTypeFieldInfo } from "@tuzhanai/s
 
 export default function schemaDocs(data: IDocData) {
   function parseType(type: string) {
-    return !type || data.type.has(type)
+    return !type || data.typeManager.has(type)
       ? stringOrEmpty(type)
       : `[${type}](#${type.replace("[]", "").toLocaleLowerCase()})`;
   }

@@ -19,7 +19,7 @@ export default function apiDocs(data: IDocData) {
   }
 
   function parseType(type: string) {
-    return !type || data.type.has(type)
+    return !type || data.typeManager.has(type)
       ? stringOrEmpty(type)
       : `[${type}](./schema#${type.replace("[]", "").toLocaleLowerCase()})`;
   }

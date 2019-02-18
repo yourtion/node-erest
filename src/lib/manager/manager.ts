@@ -5,16 +5,12 @@
 export class Manager<T = any> {
   protected map: Map<string, T> = new Map();
 
-  /**
-   * 获取
-   */
+  /** 获取 */
   public get(name: string) {
     return this.map.get(name);
   }
 
-  /**
-   * 遍历
-   */
+  /** 遍历 */
   public forEach(iter: (value: T, key: string, map: Map<string, T>) => void) {
     return this.map.forEach(iter);
   }
