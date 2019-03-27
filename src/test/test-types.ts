@@ -76,6 +76,9 @@ test.each([
 });
 
 test.each([
+  // HACK: 临时修正Typings错误
+  ["Any", null, { type: "Any" }, null],
+
   ["Number", -2, { type: "Number", params: { min: 0 } }],
   ["Number", 200, { type: "Number", params: { max: 10 } }],
   ["Number", "-1", { type: "Number", params: { min: 0, max: 10 } }],
@@ -83,6 +86,11 @@ test.each([
   ["Integer", "Yourtion", { type: "ENUM", params: ["Hello", "World"] }],
   ["ENUM", "Yourtion", { type: "ENUM", params: ["Hello", "World"] }],
 ])("TYPES - %s (%s) toThrow", (type, value, params) => {
-  const fn = () => paramsChecker(type, value, params);
-  expect(fn).toThrow();
+  // console.log(value, expected);
+  if (type === "Any" && value === null) {
+    // HACK: 临时修正Typings错误
+    expect(value).toEqual(null);
+  } else {
+    expect(() => paramsChecker(type, value, params)).toThrow();
+  }
 });
