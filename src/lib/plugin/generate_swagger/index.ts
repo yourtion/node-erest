@@ -33,9 +33,7 @@ interface ISwaggerResultParams {
   format?: string;
 }
 
-export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
-  debug("generateSwagger: %s - %o", dir, options);
-
+export function buildSwagger(data: IDocData) {
   const url = new URL(`${data.info.host || ""}${data.info.basePath || ""}`);
 
   const result: ISwaggerResult = {
@@ -147,6 +145,12 @@ export default function generateSwagger(data: IDocData, dir: string, options: ID
       });
     }
   }
+}
+
+export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
+  debug("generateSwagger: %s - %o", dir, options);
+
+  const result = buildSwagger(data);
 
   const filename = utils.getPath("swagger.json", options.swagger);
 

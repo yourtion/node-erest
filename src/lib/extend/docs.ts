@@ -221,7 +221,7 @@ export default class IAPIDoc {
 
   /** 生成 axios SDK */
   public axios() {
-    debug("swagger");
+    debug("axios");
     this.plugins.push(generateAsiox);
     return this;
   }
