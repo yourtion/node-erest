@@ -98,6 +98,11 @@ const docOutputFormat = (out: any) => out;
 /** 默认文档输出函数（直接写文件） */
 const docWriteSync: IDocWritter = (path: string, data: any) => fs.writeFileSync(path, data);
 
+function generateJosn(data: IDocData, dir: string, options: IDocOptions, writer: IDocWritter) {
+  const filename = getPath("doc.json", options.json);
+  writer(path.resolve(dir, filename), jsonStringify(data, 2));
+}
+
 export default class IAPIDoc {
   private erest: ERest<any>;
   private info: IApiOptionInfo;
@@ -171,59 +176,25 @@ export default class IAPIDoc {
   /** 生成文档 */
   public genDocs() {
     debug("genDocs");
-    this.markdown();
+    this.registerPlugin("markdown", generateMarkdown);
     if (this.docsOptions.swagger) {
-      this.swagger();
+      this.registerPlugin("swagger", generateSwagger);
     }
     if (this.docsOptions.postman) {
-      this.postman();
+      this.registerPlugin("postman", generatePostman);
     }
     if (this.docsOptions.json) {
-      this.json();
+      this.registerPlugin("json", generateJosn);
     }
     if (this.docsOptions.axios) {
-      this.axios();
+      this.registerPlugin("axios", generateAsiox);
     }
     return this;
   }
 
-  /** 生成 Markdown 文档 */
-  public markdown() {
-    debug("markdown");
-    this.plugins.push(generateMarkdown);
-    return this;
-  }
-
-  /** 生成 Swagger 文档 */
-  public swagger() {
-    debug("swagger");
-    this.plugins.push(generateSwagger);
-    return this;
-  }
-
-  /** 生成 Postman 文档 */
-  public postman() {
-    debug("postman");
-    this.plugins.push(generatePostman);
-    return this;
-  }
-
-  /** 生成 JSON 文档 */
-  public json() {
-    debug("json");
-    const generateJson = (data: any, dir: string, options: IDocOptions) => {
-      const filename = getPath("doc.json", options.json);
-      this.writer(path.resolve(dir, filename), jsonStringify(data, 2));
-    };
-    this.plugins.push(generateJson);
-    return this;
-  }
-
-  /** 生成 axios SDK */
-  public axios() {
-    debug("axios");
-    this.plugins.push(generateAsiox);
-    return this;
+  public registerPlugin(name: string, plugin: IDocGeneratePlugin) {
+    debug(name);
+    this.plugins.push(plugin);
   }
 
   /** 保存文档 */

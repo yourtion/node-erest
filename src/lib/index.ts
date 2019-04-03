@@ -13,7 +13,7 @@ import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType, responseChec
 import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
 import * as utils from "./utils";
 import IAPITest from "./extend/test";
-import IAPIDoc, { IDocWritter } from "./extend/docs";
+import IAPIDoc, { IDocWritter, IDocGeneratePlugin } from "./extend/docs";
 
 export * from "@tuzhanai/schema-manager";
 export * from "./api";
@@ -316,6 +316,13 @@ export default class ERest<T = DEFAULT_HANDLER> {
 
   public setMockHandler(fn: (data: any) => T) {
     this.mockHandler = fn;
+  }
+
+  /**
+   * 注册文档生成组件
+   */
+  public addDocPlugin(name: string, plugin: IDocGeneratePlugin) {
+    this.apiInfo.docs!.registerPlugin(name, plugin);
   }
 
   /**
