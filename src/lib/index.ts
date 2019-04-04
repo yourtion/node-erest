@@ -326,6 +326,16 @@ export default class ERest<T = DEFAULT_HANDLER> {
   }
 
   /**
+   * 获取Swagger信息
+   */
+  public buildSwagger() {
+    if (!this.api.docs) {
+      this.api.docs = new IAPIDoc(this);
+    }
+    return this.api.docs.getSwaggerInfo();
+  }
+
+  /**
    * 设置全局 Before Hook
    */
   public beforeHooks(fn: T) {

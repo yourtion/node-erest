@@ -145,6 +145,7 @@ export function buildSwagger(data: IDocData) {
       });
     }
   }
+  return result;
 }
 
 export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {

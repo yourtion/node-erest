@@ -263,4 +263,9 @@ describe("Doc - 文档生成", () => {
     apiService.genDocs("/", false);
     expect(DOC_DATA.size).toEqual(10);
   });
+
+  test("getSwaggerInfo", () => {
+    const data = apiService.buildSwagger();
+    expect(data).toBeInstanceOf(Object);
+  });
 });

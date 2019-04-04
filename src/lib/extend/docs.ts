@@ -12,7 +12,7 @@ import ERest, { IApiOptionInfo } from "..";
 import { IDocOptions } from "..";
 import { ErrorManager } from "../manager";
 import generateMarkdown from "../plugin/generate_markdown";
-import generateSwagger from "../plugin/generate_swagger";
+import generateSwagger, { buildSwagger } from "../plugin/generate_swagger";
 import generatePostman from "../plugin/generate_postman";
 import { getPath, jsonStringify } from "../utils";
 import { APIOption } from "../api";
@@ -110,6 +110,7 @@ export default class IAPIDoc {
   private docsOptions: IDocOptions;
   private plugins: IDocGeneratePlugin[] = [];
   private writer: IDocWritter = docWriteSync;
+  private docDataCache: IDocData | null = null;
 
   constructor(erestIns: ERest<any>) {
     this.erest = erestIns;
@@ -121,6 +122,7 @@ export default class IAPIDoc {
 
   /** 获取文档数据 */
   public buildDocData() {
+    if (this.docDataCache) return this.docDataCache;
     debug("data");
     const now = new Date();
     const data: IDocData = {
@@ -165,6 +167,7 @@ export default class IAPIDoc {
       }
     }
 
+    this.docDataCache = data;
     return data;
   }
 
@@ -190,6 +193,10 @@ export default class IAPIDoc {
       this.registerPlugin("axios", generateAsiox);
     }
     return this;
+  }
+
+  public getSwaggerInfo() {
+    return buildSwagger(this.buildDocData());
   }
 
   public registerPlugin(name: string, plugin: IDocGeneratePlugin) {
