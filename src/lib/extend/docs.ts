@@ -196,7 +196,7 @@ export default class IAPIDoc {
   }
 
   public getSwaggerInfo() {
-    return buildSwagger(this.buildDocData());
+    return buildSwagger(this.buildDocData()) as any;
   }
 
   public registerPlugin(name: string, plugin: IDocGeneratePlugin) {

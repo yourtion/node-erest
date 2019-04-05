@@ -264,6 +264,13 @@ describe("Doc - 文档生成", () => {
     expect(DOC_DATA.size).toEqual(10);
   });
 
+  test("Docs plugin", () => {
+    const mockPlugin = jest.fn((data, dir, options, writter) => {});
+    apiService.addDocPlugin("test", mockPlugin);
+    apiService.genDocs("/", false);
+    expect(mockPlugin.mock.calls.length).toBe(1);
+  });
+
   test("getSwaggerInfo", () => {
     const data = apiService.buildSwagger();
     expect(data).toBeInstanceOf(Object);
