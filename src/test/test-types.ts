@@ -71,7 +71,7 @@ test.each([
   ["Base64", "WW91cnRpb24=", { type: "Base64" }, "WW91cnRpb24="],
   ["URL", "http://github.com/yourtion", { type: "URL" }, "http://github.com/yourtion"],
   ["ENUM", "Hello", { type: "ENUM", params: ["Hello", "World"] }, "Hello"],
-])("TYPES - %s (%s) success", (type, value, params, expected) => {
+] as any[])("TYPES - %s (%s) success", (type, value, params, expected) => {
   expect(paramsChecker(type, value, params)).toEqual(expected);
 });
 
@@ -85,7 +85,7 @@ test.each([
   ["Integer", "-1.0", { type: "Integer" }],
   ["Integer", "Yourtion", { type: "ENUM", params: ["Hello", "World"] }],
   ["ENUM", "Yourtion", { type: "ENUM", params: ["Hello", "World"] }],
-])("TYPES - %s (%s) toThrow", (type, value, params) => {
+] as any[])("TYPES - %s (%s) toThrow", (type, value, params) => {
   // console.log(value, expected);
   if (type === "Any" && value === null) {
     // HACK: 临时修正Typings错误
