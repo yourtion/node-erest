@@ -76,6 +76,8 @@ export interface IApiOption {
 
 /** 文档生成信息 */
 export interface IDocOptions extends Record<string, any> {
+  /** 生成Markdown */
+  markdown?: string | boolean;
   /** 生成wiki */
   wiki?: string | boolean;
   /** 生成 Index.md */
@@ -260,6 +262,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       return options.docs && options.docs[key] !== undefined ? options.docs[key] : def;
     };
     this.docsOptions = {
+      markdown: getDocOpt("markdown", true),
       wiki: getDocOpt("wiki", "./"),
       index: getDocOpt("index", false),
       home: getDocOpt("home", true),

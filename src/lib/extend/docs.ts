@@ -179,7 +179,9 @@ export default class IAPIDoc {
   /** 生成文档 */
   public genDocs() {
     debug("genDocs");
-    this.registerPlugin("markdown", generateMarkdown);
+    if (this.docsOptions.markdown) {
+      this.registerPlugin("markdown", generateMarkdown);
+    }
     if (this.docsOptions.swagger) {
       this.registerPlugin("swagger", generateSwagger);
     }
