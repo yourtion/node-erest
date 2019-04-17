@@ -28,8 +28,8 @@ export type genSchema<T> = Readonly<ISupportMethds<(path: string) => API<T>>>;
 /** 组方法 */
 export interface IGruop<T> extends Record<string, any>, genSchema<T> {
   define: (opt: APIDefine<T>) => API<T>;
-  before: (fn: T) => IGruop<T>;
-  middleware: (fn: T) => IGruop<T>;
+  before: (...fn: T[]) => IGruop<T>;
+  middleware: (...fn: T[]) => IGruop<T>;
 }
 
 /** API接口定义 */
@@ -397,11 +397,11 @@ export default class ERest<T = DEFAULT_HANDLER> {
       delete: (path: string) => this.registAPI("delete", path, name, prefix),
       patch: (path: string) => this.registAPI("patch", path, name, prefix),
       define: (opt: APIDefine<T>) => this.defineAPI(opt, name, prefix),
-      before: (...fn: T[]) => {
+      before: (...fn: Array<T>) => {
         this.groupInfo[name].before.push(...fn);
         return group;
       },
-      middleware: (...fn: T[]) => {
+      middleware: (...fn: Array<T>) => {
         this.groupInfo[name].middleware.push(...fn);
         return group;
       },
