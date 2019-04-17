@@ -397,12 +397,12 @@ export default class ERest<T = DEFAULT_HANDLER> {
       delete: (path: string) => this.registAPI("delete", path, name, prefix),
       patch: (path: string) => this.registAPI("patch", path, name, prefix),
       define: (opt: APIDefine<T>) => this.defineAPI(opt, name, prefix),
-      before: (fn: T) => {
-        this.groupInfo[name].before.push(fn);
+      before: (...fn: T[]) => {
+        this.groupInfo[name].before.push(...fn);
         return group;
       },
-      middleware: (fn: T) => {
-        this.groupInfo[name].middleware.push(fn);
+      middleware: (...fn: T[]) => {
+        this.groupInfo[name].middleware.push(...fn);
         return group;
       },
     };
