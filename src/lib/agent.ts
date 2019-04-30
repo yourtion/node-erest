@@ -149,6 +149,7 @@ export class TestAgent {
     if (this.options.takeExample) {
       this.options.erest.api.$apis.get(this.key)!.example({
         name: this.options.agentTestName,
+        path: (this.options.agent as any).req.path,
         headers: this.options.agentHeader,
         input: this.options.agentInput || {},
         output: this.options.agentOutput,
