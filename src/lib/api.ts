@@ -4,7 +4,7 @@
  */
 
 import assert from "assert";
-import pathToRegExp from "path-to-regexp";
+import { pathToRegexp } from "path-to-regexp";
 import { api as debug } from "./debug";
 import { getSchemaKey, SourceResult, getRealPath } from "./utils";
 import { ISchemaType } from "./params";
@@ -102,7 +102,7 @@ export default class API<T = DEFAULT_HANDLER> {
       tested: false,
     };
 
-    this.pathTestRegExp = pathToRegExp(this.options.realPath);
+    this.pathTestRegExp = pathToRegexp(this.options.realPath);
     this.inited = false;
 
     debug("new: %s %s from %s", method, path, sourceFile.absolute);
