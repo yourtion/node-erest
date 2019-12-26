@@ -226,7 +226,13 @@ export default class IAPIDoc {
 
     // 根据插件生成文档
     for (const fn of this.plugins) {
-      fn(data, dir, this.docsOptions, this.writer);
+      debug("build doc: %s", fn);
+      // 防止文档生成插件报错
+      try {
+        fn(data, dir, this.docsOptions, this.writer);
+      } catch (error) {
+        console.error(error);
+      }
     }
 
     return this;
