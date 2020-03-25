@@ -13,9 +13,10 @@
     "test:cov": "npm run test:lib -- --coverage",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "prettier --write \"src/**/*.ts\"",
+    "format-dist": "prettier --single-quote --write \"dist/**/*.{js,ts}\"",
     "clean": "rm -rf dist",
-    "compile": "tsc && prettier --single-quote --write \"dist/**/*.{js,ts}\"",
-    "prepublishOnly": "npm run format && npm run clean && npm run test:cov && cat ./coverage/lcov.info | coveralls && npm test",
+    "compile": "npm run clean && tsc",
+    "prepublishOnly": "npm run format && npm run test:cov && cat ./coverage/lcov.info | coveralls && npm test && npm format-dist",
     "postpublish": "npm run tag && git push && git push --tags"
   },
   "repository": {
@@ -46,17 +47,17 @@
     "@types/node": "*"
   },
   "devDependencies": {
-    "@leizm/web": "^2.5.1",
-    "@types/express": "^4.17.1",
-    "@types/jest": "^24.0.18",
-    "coveralls": "^3.0.6",
+    "@leizm/web": "^2.7.0",
+    "@types/express": "^4.17.3",
+    "@types/jest": "^25.1.4",
+    "coveralls": "^3.0.11",
     "express": "^4.17.1",
-    "jest": "^24.9.0",
-    "prettier": "^1.18.2",
+    "jest": "^25.1.0",
+    "prettier": "^2.0.2",
     "supertest": "^4.0.2",
-    "ts-jest": "^24.1.0",
-    "ts-node": "^8.4.1",
-    "typescript": "^3.6.3"
+    "ts-jest": "^25.2.1",
+    "ts-node": "^8.8.1",
+    "typescript": "^3.8.3"
   },
   "jest": {
     "transform": {
