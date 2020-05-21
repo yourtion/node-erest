@@ -66,7 +66,7 @@ export function getRealPath(key: string) {
 /** 驼峰线转下划 */
 export function camelCase2underscore(str: string): string {
   return str
-    .replace(/^\S/, s => s.toLowerCase())
+    .replace(/^\S/, (s) => s.toLowerCase())
     .replace(/([A-Z])/g, "_$1")
     .toLowerCase();
 }

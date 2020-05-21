@@ -104,7 +104,7 @@ export class TestAgent {
   public headers(data: Record<string, any>) {
     this.debug("headers: %j", data);
     this.options.agentHeader = data;
-    Object.keys(data).forEach(k => this.options.agent!.set(k, data[k]));
+    Object.keys(data).forEach((k) => this.options.agent!.set(k, data[k]));
     return this;
   }
 
@@ -160,7 +160,7 @@ export class TestAgent {
   /** 获取输出结果 */
   private output(raw = false, save = false) {
     this.options.erest.api.$apis.get(this.key)!.options.tested = true;
-    return this.options.agent!.then(res => {
+    return this.options.agent!.then((res) => {
       this.options.agentOutput = res.body;
       if (raw) return res;
       const formatOutputReverse = this.options.erest.api.formatOutputReverse || defaultFormatOutput;
@@ -174,7 +174,7 @@ export class TestAgent {
   /** 期望输出成功结果 */
   public success() {
     this.debug("success");
-    return this.output(false, true).catch(err => {
+    return this.output(false, true).catch((err) => {
       throw new Error(`${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`);
     });
   }
@@ -183,10 +183,10 @@ export class TestAgent {
   public error() {
     this.debug("error");
     return this.output()
-      .then(ret => {
+      .then((ret) => {
         throw new Error(`${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`);
       })
-      .catch(err => {
+      .catch((err) => {
         this.saveExample();
         return err;
       });

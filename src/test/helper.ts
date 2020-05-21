@@ -6,7 +6,7 @@ import { IApiInfo } from "../lib";
 
 /** 删除对象中的 undefined */
 function removeUndefined(object: Record<string, any>) {
-  Object.keys(object).forEach(key => object[key] === undefined && delete object[key]);
+  Object.keys(object).forEach((key) => object[key] === undefined && delete object[key]);
   return object;
 }
 

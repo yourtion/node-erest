@@ -44,12 +44,7 @@ describe("Group - 绑定分组路由到App上", () => {
   apiService.beforeHooks(globalBefore);
   apiService.afterHooks(globalAfter);
 
-  api
-    .get("/")
-    .title("Get")
-    .before(beforHook)
-    .middlewares(middleware)
-    .register(reqFn);
+  api.get("/").title("Get").before(beforHook).middlewares(middleware).register(reqFn);
   api.post("/").register(reqFn);
   api.put("/").register(reqFn);
   api.delete("/").register(reqFn);
@@ -120,10 +115,7 @@ describe("Group - 使用@leizm/web框架", () => {
   const apiService = lib({ forceGroup: true, info: { basePath: "" } });
   const api = apiService.group("Index");
   const app = new Application();
-  api
-    .get("/")
-    .title("Get")
-    .register(reqFnLeiWeb);
+  api.get("/").title("Get").register(reqFnLeiWeb);
   apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb);
 
   test("Get请求成功", async () => {

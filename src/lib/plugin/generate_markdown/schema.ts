@@ -37,7 +37,7 @@ export default function schemaDocs(data: IDocData) {
 
   const schemaList: string[] = [];
   schemaList.push("# 数据类型");
-  data.schema.forEach(value => {
+  data.schema.forEach((value) => {
     schemaList.push(schemaInfo(value));
   });
   return schemaList.join("\n");

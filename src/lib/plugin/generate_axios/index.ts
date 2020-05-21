@@ -9,7 +9,7 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
   debug("generateAsiox: %s - %o", dir, options);
 
   function slashToCamel(name: string) {
-    return name.replace(/\/[a-z]/g, match => {
+    return name.replace(/\/[a-z]/g, (match) => {
       return match.slice(1).toUpperCase();
     });
   }
@@ -45,7 +45,7 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
   function getPathParams(req: APIOption<any>) {
     if (req.params) {
       let params = Object.keys(req.params)
-        .map(key => `${key},`)
+        .map((key) => `${key},`)
         .join("");
       return params;
     }
@@ -70,7 +70,7 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
   const baseURL = data.info.host! + data.info.basePath;
 
   const { apis } = data;
-  const request = Object.keys(apis).map(key => {
+  const request = Object.keys(apis).map((key) => {
     let req = apis[key];
     let reqSendData = getReqSendData(req);
     if (reqSendData) {

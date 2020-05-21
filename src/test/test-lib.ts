@@ -38,7 +38,7 @@ describe("ERest - schema 注册与使用", () => {
 
   test("add Type", () => {
     apiService.type.register("Any2", {
-      checker: v => v,
+      checker: (v) => v,
     });
     expect(apiService.type.has("Any2")).toBeTruthy();
   });

@@ -95,7 +95,7 @@ export default function apiDocs(data: IDocData) {
   function formatExample(str: string, data: Record<string, any>) {
     return str
       .split("\n")
-      .map(s => {
+      .map((s) => {
         const r = s.match(/"(.*)"\:/);
         if (r && r[1] && data[r[1]] && data[r[1]].comment) {
           return s + " \t// " + data[r[1]].comment;
@@ -107,7 +107,7 @@ export default function apiDocs(data: IDocData) {
 
   function examples(exampleList: IExample[], response?: SchemaType | ISchemaType) {
     return exampleList
-      .map(item => {
+      .map((item) => {
         const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
         const header = item.headers ? "\nheaders = " + jsonStringify(item.headers, 2) + "\n" : "";
         const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;

@@ -164,7 +164,7 @@ export function buildSwagger(data: IDocData) {
 
     // sc[schema.method].responses[200].example = example.output;
     if (api.method === "post" && api.body) {
-      const required = api.required && [...api.required].filter(it => Object.keys(bodySchema).indexOf(it) > -1);
+      const required = api.required && [...api.required].filter((it) => Object.keys(bodySchema).indexOf(it) > -1);
       sc[api.method].parameters.push({
         in: "body",
         name: "body",

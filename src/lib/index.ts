@@ -222,8 +222,9 @@ export default class ERest<T = DEFAULT_HANDLER> {
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
-        `尝试注册API：${s.key}（所在文件：${s.options.sourceFile.absolute}）失败，因为该API已在文件${s2 &&
-          s2.options.sourceFile.absolute}中注册过`
+        `尝试注册API：${s.key}（所在文件：${s.options.sourceFile.absolute}）失败，因为该API已在文件${
+          s2 && s2.options.sourceFile.absolute
+        }中注册过`
       );
 
       this.apiInfo.$apis.set(s.key, s);
@@ -236,8 +237,9 @@ export default class ERest<T = DEFAULT_HANDLER> {
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
-        `尝试注册API：${s.key}（所在文件：${s.options.sourceFile.absolute}）失败，因为该API已在文件${s2 &&
-          s2.options.sourceFile.absolute}中注册过`
+        `尝试注册API：${s.key}（所在文件：${s.options.sourceFile.absolute}）失败，因为该API已在文件${
+          s2 && s2.options.sourceFile.absolute
+        }中注册过`
       );
 
       this.apiInfo.$apis.set(s.key, s);

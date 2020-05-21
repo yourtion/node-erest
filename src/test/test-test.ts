@@ -121,10 +121,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
     });
 
     test("Patch success", async () => {
-      const { text: ret } = await agent
-        .patch("/api/index")
-        .takeExample("Index-Patch")
-        .raw();
+      const { text: ret } = await agent.patch("/api/index").takeExample("Index-Patch").raw();
       expect(ret).toBe(`Patch`);
     });
 
@@ -192,10 +189,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
     });
 
     test("API requiredOneOf error", async () => {
-      const ret = await agent
-        .get("/api/json2")
-        .takeExample("Index-JSON")
-        .error();
+      const ret = await agent.get("/api/json2").takeExample("Index-JSON").error();
       expect(ret).toBe("error");
     });
 
@@ -223,10 +217,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
 
     test("error when success", async () => {
       try {
-        const ret = await agent
-          .get("/api/json")
-          .input({ age: share.age })
-          .error();
+        const ret = await agent.get("/api/json").input({ age: share.age }).error();
         expect(ret).toBeUndefined();
       } catch (err) {
         expect(err.message).toContain("期望API输出失败结果，但实际输出成功结果");
@@ -256,7 +247,7 @@ for (const agent of [apiService.test.session(), apiService.test]) {
 describe("Doc - 文档生成", () => {
   beforeAll(async () => {
     // 添加自定义类型用于文档生成
-    apiService.type.register("Any2", { checker: v => v });
+    apiService.type.register("Any2", { checker: (v) => v });
   });
 
   test("Gen docs", () => {
