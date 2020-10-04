@@ -69,7 +69,7 @@ export interface IApiOption {
   missingParameterError?: (msg: string) => Error;
   invalidParameterError?: (msg: string) => Error;
   internalError?: (msg: string) => Error;
-  groups?: Record<string, string | IGruopInfoOpt>;
+  groups?: Record<string, string | IGroupInfoOpt>;
   forceGroup?: boolean;
   docs?: IDocOptions;
 }
@@ -96,12 +96,12 @@ export interface IDocOptions extends Record<string, any> {
   all?: string | boolean;
 }
 
-export interface IGruopInfoOpt {
+export interface IGroupInfoOpt {
   name: string;
   prefix?: string;
 }
 
-interface IGruopInfo<T> extends IGruopInfoOpt {
+interface IGroupInfo<T> extends IGroupInfoOpt {
   middleware: T[];
   before: T[];
 }
@@ -128,7 +128,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;
-  private groupInfo: Record<string, IGruopInfo<T>>;
+  private groupInfo: Record<string, IGroupInfo<T>>;
   private forceGroup: boolean;
   private registAPI: (
     method: SUPPORT_METHODS,
@@ -388,10 +388,15 @@ export default class ERest<T = DEFAULT_HANDLER> {
   /**
    * 获取分组API实例
    */
-  public group(name: string): IGruop<T> {
-    debug("using group: %s", name);
+  public group(name: string, info?: IGroupInfoOpt): IGruop<T>;
+  public group(name: string, desc?: string): IGruop<T>;
+  public group(name: string, infoOrDesc?: IGroupInfoOpt | string): IGruop<T> {
+    debug("using group: %s, desc: %j", name, infoOrDesc);
     // assert(this.groupInfo[name], `请先配置 ${name} 分组`);
-    const prefix = (this.groupInfo[name] || {}).prefix;
+    const info = !infoOrDesc || typeof infoOrDesc === "string" ? { name: infoOrDesc, prefix: "" } : infoOrDesc;
+    this.groups[name] = this.groups[name] || info.name || "";
+    this.groupInfo[name] = this.groupInfo[name] || { ...info, middleware: [], before: [] };
+    const prefix = this.groupInfo[name].prefix;
     const group = {
       get: (path: string) => this.registAPI("get", path, name, prefix),
       post: (path: string) => this.registAPI("post", path, name, prefix),
