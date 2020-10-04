@@ -241,6 +241,17 @@ for (const agent of [apiService.test.session(), apiService.test]) {
         expect(err.message).toContain("尝试请求未注册的API");
       }
     });
+
+    test("Header params success", async () => {
+      const { text: ret } = await agent
+        .get("/api/header")
+        .headers({
+          name: share.name,
+        })
+        .takeExample("Index-Header")
+        .raw();
+      expect(ret).toBe(`Get ${share.name}`);
+    });
   });
 }
 

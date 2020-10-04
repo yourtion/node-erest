@@ -37,6 +37,7 @@ export interface APICommon<T = DEFAULT_HANDLER> {
 
 export interface APIDefine<T> extends APICommon<T> {
   group?: string;
+  headers?: Record<string, ISchemaType>;
   query?: Record<string, ISchemaType>;
   body?: Record<string, ISchemaType>;
   params?: Record<string, ISchemaType>;
@@ -97,6 +98,7 @@ export default class API<T = DEFAULT_HANDLER> {
       query: {} as Record<string, ISchemaType>,
       body: {} as Record<string, ISchemaType>,
       params: {} as Record<string, ISchemaType>,
+      headers: {} as Record<string, ISchemaType>,
       _allParams: new Map<string, ISchemaType>(),
       group: group || "",
       tested: false,
@@ -129,6 +131,9 @@ export default class API<T = DEFAULT_HANDLER> {
     }
     if (options.params) {
       schema.params(options.params);
+    }
+    if (options.headers) {
+      schema.headers(options.headers);
     }
     if (options.required) {
       schema.required(options.required);
@@ -228,7 +233,10 @@ export default class API<T = DEFAULT_HANDLER> {
     this.checkInited();
 
     assert(typeof name === "string", "`name`必须是字符串类型");
-    assert(place && ["query", "body", "params"].indexOf(place) > -1, '`place` 必须是 "query" "body", "param"');
+    assert(
+      place && ["query", "body", "params", "headers"].indexOf(place) > -1,
+      '`place` 必须是 "query" "body", "params", "headers"'
+    );
     assert(name.indexOf(" ") === -1, "`name`不能包含空格");
     assert(name[0] !== "$", '`name`不能以"$"开头');
     assert(!(name in this.options._allParams), `参数 ${name} 已存在`);
@@ -269,6 +277,11 @@ export default class API<T = DEFAULT_HANDLER> {
    */
   public params(obj: Record<string, ISchemaType>) {
     this.setParams("params", obj);
+    return this;
+  }
+
+  public headers(obj: Record<string, ISchemaType>) {
+    this.setParams("headers", obj);
     return this;
   }
 
@@ -362,7 +375,7 @@ export default class API<T = DEFAULT_HANDLER> {
       } else {
         // schema 类型
         const schemaName = parseTypeName(typeName);
-        assert(parent.schema.has(schemaName.name), `please register scheam ${schemaName}`);
+        assert(parent.schema.has(schemaName.name), `please register schema ${schemaName}`);
       }
     }
 

@@ -152,7 +152,7 @@ export function buildSwagger(data: IDocData) {
           delete obj.in;
           delete obj.name;
           delete obj.required;
-          bodySchema[sKey] =  obj;
+          bodySchema[sKey] = obj;
           if (api.required.has(sKey) && Array.isArray(bodySchema.required)) {
             bodySchema.required.push(sKey);
           }

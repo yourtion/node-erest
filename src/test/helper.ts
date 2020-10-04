@@ -172,6 +172,7 @@ export function apiAll(api: IApiInfo<any>) {
   apiDelete(api);
   apiPut(api);
   apiPatch(api);
+  apiHeader(api);
 }
 
 /** 生成 Express 的 hook */
@@ -180,4 +181,16 @@ export function hook(name: string, value: any = 1) {
     req["$" + name] = value;
     next();
   });
+}
+
+/** `GET /header`（返回："Get ${header.name}"） */
+export function apiHeader(api: IApiInfo<any>) {
+  return api
+    .get("/header")
+    .group("Index")
+    .headers({ name: nameParams })
+    .title("Header")
+    .register((req: any, res: any) => {
+      res.end(`Get ${req.$params.name}`);
+    });
 }

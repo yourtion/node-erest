@@ -28,7 +28,7 @@ export default function apiDocs(data: IDocData) {
     const paramsList: string[] = [];
     paramsList.push(tableHeader(["参数名", "位置", "类型", "格式化", "必填", "说明"]));
     // 参数输出
-    for (const place of ["params", "query", "body"]) {
+    for (const place of ["params", "query", "body", "headers"]) {
       for (const name in item[place]) {
         const info = item[place][name];
         let required = item.required.has(name) ? "是" : "否";

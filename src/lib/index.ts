@@ -436,14 +436,21 @@ export default class ERest<T = DEFAULT_HANDLER> {
 
   public checkerLeiWeb<K>(ereat: ERest<T>, schema: API): (ctx: K) => void {
     return function apiParamsChecker(ctx: any) {
-      ctx.request.$params = apiParamsCheck(ereat, schema, ctx.request.params, ctx.request.query, ctx.request.body);
+      ctx.request.$params = apiParamsCheck(
+        ereat,
+        schema,
+        ctx.request.params,
+        ctx.request.query,
+        ctx.request.body,
+        ctx.request.headers
+      );
       ctx.next();
     };
   }
 
   public checkerExpress<U, V, W>(ereat: ERest<T>, schema: API): (req: U, res: V, next: W) => void {
     return function apiParamsChecker(req: any, res: any, next: any) {
-      req.$params = apiParamsCheck(ereat, schema, req.params, req.query, req.body);
+      req.$params = apiParamsCheck(ereat, schema, req.params, req.query, req.body, req.headers);
       next();
     };
   }

@@ -16,7 +16,7 @@ test("Router - 绑定路由成功", () => {
   const router = express.Router();
   apiAll(api);
   apiService.bindRouter(router, apiService.checkerExpress);
-  expect(router.stack.length).toBe(6);
+  expect(router.stack.length).toBe(7);
 });
 
 test("Router - API 绑定后不允许修改", () => {

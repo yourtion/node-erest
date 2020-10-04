@@ -42,6 +42,7 @@ const DOC_FIELD = [
   "requiredOneOf",
   "tested",
   "responseSchema",
+  "headers",
 ];
 
 /** 文档数据 */
