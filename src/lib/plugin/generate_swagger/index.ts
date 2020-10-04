@@ -30,11 +30,11 @@ interface ISwaggerResult {
 }
 
 interface ISwaggerResultParams {
-  name: string;
-  in: string;
+  name?: string;
+  in?: string;
   description: string;
-  type: string;
-  required: string[] | boolean;
+  type?: string;
+  required?: string[] | boolean;
   example?: any;
   enum?: string[];
   items?: any;
@@ -152,7 +152,7 @@ export function buildSwagger(data: IDocData) {
           delete obj.in;
           delete obj.name;
           delete obj.required;
-          bodySchema[sKey] = obj;
+          bodySchema[sKey] =  obj;
           if (api.required.has(sKey) && Array.isArray(bodySchema.required)) {
             bodySchema.required.push(sKey);
           }
