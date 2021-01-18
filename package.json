@@ -54,7 +54,7 @@
     "express": "^4.17.1",
     "jest": "^26.4.2",
     "prettier": "^2.1.2",
-    "supertest": "^5.0.0",
+    "supertest": "^6.1.1",
     "ts-jest": "^26.4.1",
     "ts-node": "^9.0.0",
     "typescript": "^4.0.3"
