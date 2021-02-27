@@ -1,15 +1,16 @@
 {
   "name": "erest",
   "version": "1.11.7",
-  "description": "Easy to build api server depend on lei-web and express.",
+  "description": "Easy to build api server depend on @leizm/web and express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
   "files": [
     "dist/lib"
   ],
   "scripts": {
+    "dev": "export ISLIB=1 && jest --verbose --watch",
     "test": "npm run compile && jest",
-    "test:lib": "export ISLIB=1 && jest",
+    "test:lib": "export ISLIB=1 && jest --logHeapUsage",
     "test:cov": "npm run test:lib -- --coverage",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "prettier --write \"src/**/*.ts\"",

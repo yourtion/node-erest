@@ -72,188 +72,187 @@ const share = {
 };
 
 // 使用 session 和 apiService.test 进行测试
-for (const agent of [apiService.test.session(), apiService.test]) {
-  const info = agent === apiService.test ? "No session" : "Session";
-
-  describe(`TEST - ${info}`, () => {
-    test("Get success", async () => {
-      const { text: ret } = await agent
-        .get("/api/index")
-        .input({
-          name: share.name,
-        })
-        .takeExample("Index-Get")
-        .raw();
-      expect(ret).toBe(`Get ${share.name}`);
-    });
-
-    test("Post success", async () => {
-      const { text: ret } = await agent
-        .post("/api/index")
-        .query({
-          name: share.name,
-        })
-        .input({
-          age: share.age,
-        })
-        .takeExample("Index-Post")
-        .raw();
-      expect(ret).toBe(`Post ${share.name}:${share.age}`);
-    });
-
-    test("Put success", async () => {
-      const { text: ret } = await agent
-        .put("/api/index")
-        .input({
-          age: share.age,
-        })
-        .takeExample("Index-Put")
-        .raw();
-      expect(ret).toBe(`Put ${share.age}`);
-    });
-
-    test("Delete success", async () => {
-      const { text: ret } = await agent
-        .delete("/api/index/" + share.name)
-        .takeExample("Index-Delete")
-        .raw();
-      expect(ret).toBe(`Delete ${share.name}`);
-    });
-
-    test("Patch success", async () => {
-      const { text: ret } = await agent.patch("/api/index").takeExample("Index-Patch").raw();
-      expect(ret).toBe(`Patch`);
-    });
-
-    test("Post missing params", async () => {
-      const { text: ret } = await agent
-        .post("/api/index")
-        .query({
-          name: "a",
-        })
-        .attach({
-          field: 666,
-          file: createReadStream(resolve(__dirname, "./lib.ts")),
-        })
-        .takeExample("Index-Post")
-        .raw();
-      expect(ret).toBe("missing required parameter 'age'");
-    });
-
-    test("Post missing params", async () => {
-      const { text: ret } = await agent
-        .put("/api/index")
-        .input({
-          age: share.ageStr,
-        })
-        .takeExample("Index-Post")
-        .raw();
-      expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
-    });
-
-    test("JSON FormatOutput error", async () => {
-      const ret = await agent
-        .get("/api/json")
-        .input({
-          age: 10,
-        })
-        .takeExample("Index-JSON")
-        .error();
-      expect(ret).toBe("error");
-    });
-
-    test("JSON FormatOutput success", async () => {
-      const ret = await agent
-        .get("/api/json")
-        .input({
-          age: share.age,
-        })
-        .takeExample("Index-JSON")
-        .success();
-      expect(ret).toEqual({ age: share.age });
-    });
-
-    test("Header success", async () => {
-      const { body } = await agent
-        .get("/api/json")
-        .headers({
-          test: true,
-        })
-        .input({
-          age: share.age,
-        })
-        .takeExample("Index-Header")
-        .raw();
-      expect(body.result).toEqual({ age: share.age });
-      expect(body.headers.test).toEqual("true");
-    });
-
-    test("API requiredOneOf error", async () => {
-      const ret = await agent.get("/api/json2").takeExample("Index-JSON").error();
-      expect(ret).toBe("error");
-    });
-
-    test("API default value", async () => {
-      const ret = await agent
-        .get("/api/json2")
-        .input({
-          age: share.age,
-          $a: "a",
-        })
-        .headers({ hello: "world" })
-        .takeExample("Index-JSON")
-        .success();
-      expect(ret).toEqual({ age: 22, num: 10 });
-    });
-
-    test("success when error", async () => {
-      try {
-        const ret = await agent.get("/api/json2").success();
-        expect(ret).toBeUndefined();
-      } catch (err) {
-        expect(err.message).toContain("期望API输出成功结果，但实际输出失败结果");
-      }
-    });
-
-    test("error when success", async () => {
-      try {
-        const ret = await agent.get("/api/json").input({ age: share.age }).error();
-        expect(ret).toBeUndefined();
-      } catch (err) {
-        expect(err.message).toContain("期望API输出失败结果，但实际输出成功结果");
-      }
-    });
-
-    test("unregister api session", async () => {
-      try {
-        const ret = await agent.get("/api/qqq").error();
-        expect(ret).toBeUndefined();
-      } catch (err) {
-        expect(err.message).toContain("尝试请求未注册的API");
-      }
-    });
-
-    test("unregister api seeion", async () => {
-      try {
-        const ret = await apiService.test.get("/api/qqq").error();
-        expect(ret).toBeUndefined();
-      } catch (err) {
-        expect(err.message).toContain("尝试请求未注册的API");
-      }
-    });
-
-    test("Header params success", async () => {
-      const { text: ret } = await agent
-        .get("/api/header")
-        .headers({
-          name: share.name,
-        })
-        .takeExample("Index-Header")
-        .raw();
-      expect(ret).toBe(`Get ${share.name}`);
-    });
+describe.each([
+  ["Express Session", apiService.test.session()],
+  ["Express No Session", apiService.test],
+])("TEST - %s", (_, agent) => {
+  test("Get success", async () => {
+    const { text: ret } = await agent
+      .get("/api/index")
+      .input({
+        name: share.name,
+      })
+      .takeExample("Index-Get")
+      .raw();
+    expect(ret).toBe(`Get ${share.name}`);
   });
-}
+
+  test("Post success", async () => {
+    const { text: ret } = await agent
+      .post("/api/index")
+      .query({
+        name: share.name,
+      })
+      .input({
+        age: share.age,
+      })
+      .takeExample("Index-Post")
+      .raw();
+    expect(ret).toBe(`Post ${share.name}:${share.age}`);
+  });
+
+  test("Put success", async () => {
+    const { text: ret } = await agent
+      .put("/api/index")
+      .input({
+        age: share.age,
+      })
+      .takeExample("Index-Put")
+      .raw();
+    expect(ret).toBe(`Put ${share.age}`);
+  });
+
+  test("Delete success", async () => {
+    const { text: ret } = await agent
+      .delete("/api/index/" + share.name)
+      .takeExample("Index-Delete")
+      .raw();
+    expect(ret).toBe(`Delete ${share.name}`);
+  });
+
+  test("Patch success", async () => {
+    const { text: ret } = await agent.patch("/api/index").takeExample("Index-Patch").raw();
+    expect(ret).toBe(`Patch`);
+  });
+
+  test("Post missing params", async () => {
+    const { text: ret } = await agent
+      .post("/api/index")
+      .query({
+        name: "a",
+      })
+      .attach({
+        field: 666,
+        file: createReadStream(resolve(__dirname, "./lib.ts")),
+      })
+      .takeExample("Index-Post")
+      .raw();
+    expect(ret).toBe("missing required parameter 'age'");
+  });
+
+  test("Post missing params", async () => {
+    const { text: ret } = await agent
+      .put("/api/index")
+      .input({
+        age: share.ageStr,
+      })
+      .takeExample("Index-Post")
+      .raw();
+    expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
+  });
+
+  test("JSON FormatOutput error", async () => {
+    const ret = await agent
+      .get("/api/json")
+      .input({
+        age: 10,
+      })
+      .takeExample("Index-JSON")
+      .error();
+    expect(ret).toBe("error");
+  });
+
+  test("JSON FormatOutput success", async () => {
+    const ret = await agent
+      .get("/api/json")
+      .input({
+        age: share.age,
+      })
+      .takeExample("Index-JSON")
+      .success();
+    expect(ret).toEqual({ age: share.age });
+  });
+
+  test("Header success", async () => {
+    const { body } = await agent
+      .get("/api/json")
+      .headers({
+        test: true,
+      })
+      .input({
+        age: share.age,
+      })
+      .takeExample("Index-Header")
+      .raw();
+    expect(body.result).toEqual({ age: share.age });
+    expect(body.headers.test).toEqual("true");
+  });
+
+  test("API requiredOneOf error", async () => {
+    const ret = await agent.get("/api/json2").takeExample("Index-JSON").error();
+    expect(ret).toBe("error");
+  });
+
+  test("API default value", async () => {
+    const ret = await agent
+      .get("/api/json2")
+      .input({
+        age: share.age,
+        $a: "a",
+      })
+      .headers({ hello: "world" })
+      .takeExample("Index-JSON")
+      .success();
+    expect(ret).toEqual({ age: 22, num: 10 });
+  });
+
+  test("success when error", async () => {
+    try {
+      const ret = await agent.get("/api/json2").success();
+      expect(ret).toBeUndefined();
+    } catch (err) {
+      expect(err.message).toContain("期望API输出成功结果，但实际输出失败结果");
+    }
+  });
+
+  test("error when success", async () => {
+    try {
+      const ret = await agent.get("/api/json").input({ age: share.age }).error();
+      expect(ret).toBeUndefined();
+    } catch (err) {
+      expect(err.message).toContain("期望API输出失败结果，但实际输出成功结果");
+    }
+  });
+
+  test("unregister api session", async () => {
+    try {
+      const ret = await agent.get("/api/qqq").error();
+      expect(ret).toBeUndefined();
+    } catch (err) {
+      expect(err.message).toContain("尝试请求未注册的API");
+    }
+  });
+
+  test("unregister api seeion", async () => {
+    try {
+      const ret = await apiService.test.get("/api/qqq").error();
+      expect(ret).toBeUndefined();
+    } catch (err) {
+      expect(err.message).toContain("尝试请求未注册的API");
+    }
+  });
+
+  test("Header params success", async () => {
+    const { text: ret } = await agent
+      .get("/api/header")
+      .headers({
+        name: share.name,
+      })
+      .takeExample("Index-Header")
+      .raw();
+    expect(ret).toBe(`Get ${share.name}`);
+  });
+});
 
 describe("Doc - 文档生成", () => {
   beforeAll(async () => {

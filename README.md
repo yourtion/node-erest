@@ -5,6 +5,7 @@
 [![node version][node-image]][node-url]
 [![npm download][download-image]][download-url]
 [![npm license][license-image]][download-url]
+[![DeepScan grade](https://deepscan.io/api/projects/2707/branches/19046/badge/grade.svg)](https://deepscan.io/dashboard#view=project&pid=2707&bid=19046)
 
 [npm-image]: https://img.shields.io/npm/v/erest.svg?style=flat-square
 [npm-url]: https://npmjs.org/package/erest
@@ -22,12 +23,9 @@
 
 # node-erest
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/yourtion/node-erest.svg)](https://greenkeeper.io/)
-[![DeepScan grade](https://deepscan.io/api/projects/2707/branches/19046/badge/grade.svg)](https://deepscan.io/dashboard#view=project&pid=2707&bid=19046)
+Easy to build api server depend on express and @leizm/web.
 
-Easy to build api server depend on express.
-
-Easy to write, easy to test, easy to generate document.
+Easy to write, easy to test, easy to generate document. (generator-erest)[https://github.com/yourtion/node-generator-erest]
 
 ## Install
 
@@ -41,7 +39,7 @@ $ npm install erest --save
 $ npm install generator-erest -g
 # Express
 $ yo erest:express
-# erest
+# @leizm/web
 $ yo erest:lei-web
 ```
 
