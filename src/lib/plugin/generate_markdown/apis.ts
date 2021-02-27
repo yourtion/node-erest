@@ -21,7 +21,7 @@ export default function apiDocs(data: IDocData) {
   function parseType(type: string) {
     return !type || data.typeManager.has(type)
       ? stringOrEmpty(type)
-      : `[${type}](./schema#${type.replace("[]", "").toLocaleLowerCase()})`;
+      : `[${type}](/schema#${type.replace("[]", "").toLocaleLowerCase()})`;
   }
 
   function paramsTable(item: APIOption<any>) {
@@ -64,7 +64,7 @@ export default function apiDocs(data: IDocData) {
   function responseTable(response?: TYPE_RESPONSE) {
     if (!response) return;
     if (typeof response === "string") {
-      return `[${response}](./schema#${response.replace("[]", "").toLocaleLowerCase()})`;
+      return `[${response}](/schema#${response.replace("[]", "").toLocaleLowerCase()})`;
     }
     // FIXME: 处理更多返回类型
     if (response instanceof SchemaType || typeof response.type === "string") return;

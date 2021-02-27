@@ -13,7 +13,7 @@ test.each([
   ["Boolean", "true", { type: "Boolean", format: false }, "true"],
 
   // Date
-  ["Date", "2017-05-01", { type: "Date" }, "2017-05-01"],
+  ["Date", "2017-05-01", { type: "Date" }, new Date("2017-05-01")],
   ["Date", date, { type: "Date" }, date],
 
   // String
@@ -52,7 +52,7 @@ test.each([
   // Nullable
   ["NullableString", "1", { type: "NullableString" }, "1"],
   ["NullableString", null, { type: "NullableString" }, null],
-  ["NullableInteger", "1", { type: "NullableInteger" }, "1"],
+  ["NullableInteger", "1", { type: "NullableInteger" }, 1],
   ["NullableInteger", "1", { type: "NullableInteger", format: true }, 1],
   ["NullableInteger", 1, { type: "NullableInteger" }, 1],
   ["NullableInteger", null, { type: "NullableInteger" }, null],

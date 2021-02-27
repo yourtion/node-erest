@@ -128,6 +128,7 @@ export default class IAPIDoc {
     const now = new Date();
     const data: IDocData = {
       info: this.info,
+      // FIXME: 对日期格式需要优化
       genTime: `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
       errorManager: this.erest.errors,
       schema: this.erest.schema,

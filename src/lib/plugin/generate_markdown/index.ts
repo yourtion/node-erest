@@ -44,7 +44,11 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
   indexDoc.push(data.info.description + "\n");
   indexDoc.push(`测试服务器： ${data.info.host}${data.info.basePath}\n`);
   indexDoc.push(`生成时间： ${data.genTime}\n`);
+  // FIXME: 需要根据配置输出文件名
   if (options.axios) indexDoc.push("JS-SDK（ 基于 axios ）：[jssdk.js](./jssdk.js)\n");
+  if (options.postman) indexDoc.push("Postman 文件：[postman.json](./postman.json)\n");
+  if (options.swagger) indexDoc.push("Swagger 文件：[swagger.json](./swagger.json)\n");
+  if (options.json) indexDoc.push(`JSON 描述文件：[doc.json](./doc.json)\n`);
 
   indexDoc.push("文档列表：\n");
   const allInOneDoc = indexDoc.slice(0, indexDoc.length);
