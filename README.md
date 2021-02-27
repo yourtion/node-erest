@@ -23,9 +23,13 @@
 
 # node-erest
 
-Easy to build api server depend on express and @leizm/web.
+通过简单的方式构建一个优秀的 API 服务（基于 express、@leizm/web 等）。
 
-Easy to write, easy to test, easy to generate document. (generator-erest)[https://github.com/yourtion/node-generator-erest]
+一个优秀的 API 必须要有优秀的文档、较完整的测试，同时便于开发部署与联调。在文档方面，最大的问题在于，随着 API 的发展需要找人同步更新文档。有个更好的方案是不脱离代码自更新文档。
+
+通过 ERest，你可以在定义 API 的同时，完成参数模型的定义、API格式的定义，同时生成便于写 API 测试的脚手架，像调用本地方法一样写 API 测试，并自动完成 API 文档的生成（包括示例数据），同时生成 Swagger、Postman、基于 axios 的 js-sdk（更多功能支持自定义）。
+
+使用 (generator-erest)[https://github.com/yourtion/node-generator-erest] 帮助你快速生成一个 API 项目框架。
 
 ## Install
 
