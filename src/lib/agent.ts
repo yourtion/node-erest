@@ -55,7 +55,7 @@ export class TestAgent {
    */
   constructor(method: SUPPORT_METHODS, path: string, key: string, sourceFile: SourceResult, erestIns: any) {
     assert(typeof method === "string", "`method` must be string");
-    assert(SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1, "`method` must be one of " + SUPPORT_METHOD);
+    assert(SUPPORT_METHOD.indexOf(method.toLowerCase() as SUPPORT_METHODS) !== -1, "`method` must be one of " + SUPPORT_METHOD);
     assert(typeof path === "string", "`path` must be string");
     assert(path[0] === "/", '`path` must be start with "/"');
     this.options = {
