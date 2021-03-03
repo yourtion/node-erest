@@ -22,9 +22,8 @@ export interface IExample {
 }
 
 export type DEFAULT_HANDLER = (...args: any[]) => any;
-export type SUPPORT_METHODS = "get" | "post" | "put" | "delete" | "patch";
-
-export const SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"];
+export const SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"] as const;
+export type SUPPORT_METHODS = typeof SUPPORT_METHOD[number];
 
 export interface APICommon<T = DEFAULT_HANDLER> {
   method: SUPPORT_METHODS;
@@ -76,7 +75,7 @@ export default class API<T = DEFAULT_HANDLER> {
   constructor(method: SUPPORT_METHODS, path: string, sourceFile: SourceResult, group?: string, prefix?: string) {
     assert(typeof method === "string", "`method`必须是字符串类型");
     assert(
-      SUPPORT_METHOD.indexOf(method.toLowerCase()) !== -1,
+      SUPPORT_METHOD.indexOf(method.toLowerCase() as SUPPORT_METHODS) !== -1,
       "`method`必须是以下请求方法中的一个：" + SUPPORT_METHOD
     );
     assert(typeof path === "string", "`path`必须是字符串类型");
