@@ -211,7 +211,7 @@ describe.each([
       const ret = await agent.get("/api/json2").success();
       expect(ret).toBeUndefined();
     } catch (err) {
-      expect(err.message).toContain("期望API输出成功结果，但实际输出失败结果");
+      expect((err as Error).message).toContain("期望API输出成功结果，但实际输出失败结果");
     }
   });
 
@@ -220,7 +220,7 @@ describe.each([
       const ret = await agent.get("/api/json").input({ age: share.age }).error();
       expect(ret).toBeUndefined();
     } catch (err) {
-      expect(err.message).toContain("期望API输出失败结果，但实际输出成功结果");
+      expect((err as Error).message).toContain("期望API输出失败结果，但实际输出成功结果");
     }
   });
 
@@ -229,7 +229,7 @@ describe.each([
       const ret = await agent.get("/api/qqq").error();
       expect(ret).toBeUndefined();
     } catch (err) {
-      expect(err.message).toContain("尝试请求未注册的API");
+      expect((err as Error).message).toContain("尝试请求未注册的API");
     }
   });
 
@@ -238,7 +238,7 @@ describe.each([
       const ret = await apiService.test.get("/api/qqq").error();
       expect(ret).toBeUndefined();
     } catch (err) {
-      expect(err.message).toContain("尝试请求未注册的API");
+      expect((err as Error).message).toContain("尝试请求未注册的API");
     }
   });
 
