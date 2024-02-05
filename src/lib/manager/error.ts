@@ -53,7 +53,7 @@ export class ErrorManager extends Manager<IError> {
 
     if (data.code) this.codes.add(data.code);
     data.isDefault = false;
-    this.map.set(name, Object.assign(old, data));
+    this.map.set(name, Object.assign(old!, data));
 
     return this;
   }
