@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>ISchemaType | erest</title>
+	<title>IExample | erest</title>
 	<meta name="description" content="Documentation for erest">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,13 +56,13 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="../modules/_params_.html">&quot;params&quot;</a>
+					<a href="../modules/_api_.html">&quot;api&quot;</a>
 				</li>
 				<li>
-					<a href="_params_.ischematype.html">ISchemaType</a>
+					<a href="_api_.iexample.html">IExample</a>
 				</li>
 			</ul>
-			<h1>Interface ISchemaType</h1>
+			<h1>Interface IExample</h1>
 		</div>
 	</div>
 </header>
@@ -73,7 +73,7 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">ISchemaType</span>
+						<span class="target">IExample</span>
 					</li>
 				</ul>
 			</section>
@@ -84,12 +84,11 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_params_.ischematype.html#comment" class="tsd-kind-icon">comment</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_params_.ischematype.html#default" class="tsd-kind-icon">default</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_params_.ischematype.html#format" class="tsd-kind-icon">format</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_params_.ischematype.html#params" class="tsd-kind-icon">params</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_params_.ischematype.html#required" class="tsd-kind-icon">required</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_params_.ischematype.html#type" class="tsd-kind-icon">type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_api_.iexample.html#headers" class="tsd-kind-icon">headers</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_api_.iexample.html#input" class="tsd-kind-icon">input</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_api_.iexample.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_api_.iexample.html#output" class="tsd-kind-icon">output</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_api_.iexample.html#path" class="tsd-kind-icon">path</a></li>
 							</ul>
 						</section>
 					</div>
@@ -98,62 +97,52 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="comment" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> comment</h3>
-					<div class="tsd-signature tsd-kind-icon">comment<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
+					<a name="headers" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> headers</h3>
+					<div class="tsd-signature tsd-kind-icon">headers<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/params.ts#L14">params.ts:14</a></li>
+							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/api.ts#L19">api.ts:19</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="default" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> default</h3>
-					<div class="tsd-signature tsd-kind-icon">default<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<a name="input" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> input</h3>
+					<div class="tsd-signature tsd-kind-icon">input<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/params.ts#L16">params.ts:16</a></li>
+							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/api.ts#L20">api.ts:20</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="format" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> format</h3>
-					<div class="tsd-signature tsd-kind-icon">format<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+					<a name="name" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> name</h3>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/params.ts#L15">params.ts:15</a></li>
+							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/api.ts#L17">api.ts:17</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="params" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> params</h3>
-					<div class="tsd-signature tsd-kind-icon">params<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<a name="output" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> output</h3>
+					<div class="tsd-signature tsd-kind-icon">output<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/params.ts#L18">params.ts:18</a></li>
+							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/api.ts#L21">api.ts:21</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="required" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> required</h3>
-					<div class="tsd-signature tsd-kind-icon">required<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+					<a name="path" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> path</h3>
+					<div class="tsd-signature tsd-kind-icon">path<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/params.ts#L17">params.ts:17</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="type" class="tsd-anchor"></a>
-					<h3>type</h3>
-					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/params.ts#L13">params.ts:13</a></li>
+							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/api.ts#L18">api.ts:18</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -168,7 +157,7 @@
 					<li class=" tsd-kind-module">
 						<a href="../modules/_agent_.html">&quot;agent&quot;</a>
 					</li>
-					<li class=" tsd-kind-module">
+					<li class="current tsd-kind-module">
 						<a href="../modules/_api_.html">&quot;api&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
@@ -198,7 +187,7 @@
 					<li class=" tsd-kind-module">
 						<a href="../modules/_manager_manager_.html">&quot;manager/manager&quot;</a>
 					</li>
-					<li class="current tsd-kind-module">
+					<li class=" tsd-kind-module">
 						<a href="../modules/_params_.html">&quot;params&quot;</a>
 					</li>
 					<li class=" tsd-kind-module">
@@ -235,50 +224,53 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-class tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="../classes/_api_.api.html" class="tsd-kind-icon">API</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="_api_.apicommon.html" class="tsd-kind-icon">APICommon</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="_api_.apidefine.html" class="tsd-kind-icon">APIDefine</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
+						<a href="_api_.apioption.html" class="tsd-kind-icon">APIOption</a>
+					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-module">
-						<a href="_params_.ischematype.html" class="tsd-kind-icon">ISchema<wbr>Type</a>
+						<a href="_api_.iexample.html" class="tsd-kind-icon">IExample</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_params_.ischematype.html#comment" class="tsd-kind-icon">comment</a>
+								<a href="_api_.iexample.html#headers" class="tsd-kind-icon">headers</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_params_.ischematype.html#default" class="tsd-kind-icon">default</a>
+								<a href="_api_.iexample.html#input" class="tsd-kind-icon">input</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_params_.ischematype.html#format" class="tsd-kind-icon">format</a>
+								<a href="_api_.iexample.html#name" class="tsd-kind-icon">name</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_params_.ischematype.html#params" class="tsd-kind-icon">params</a>
+								<a href="_api_.iexample.html#output" class="tsd-kind-icon">output</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_params_.ischematype.html#required" class="tsd-kind-icon">required</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_params_.ischematype.html#type" class="tsd-kind-icon">type</a>
+								<a href="_api_.iexample.html#path" class="tsd-kind-icon">path</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
-					<li class=" tsd-kind-variable tsd-parent-kind-module tsd-is-not-exported">
-						<a href="../modules/_params_.html#apidebug" class="tsd-kind-icon">api<wbr>Debug</a>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
+						<a href="../modules/_api_.html#default_handler" class="tsd-kind-icon">DEFAULT_<wbr>HANDLER</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-parent-kind-module tsd-is-not-exported">
-						<a href="../modules/_params_.html#schemadebug" class="tsd-kind-icon">schema<wbr>Debug</a>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
+						<a href="../modules/_api_.html#support_methods" class="tsd-kind-icon">SUPPORT_<wbr>METHODS</a>
 					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-module">
-						<a href="../modules/_params_.html#apiparamscheck" class="tsd-kind-icon">api<wbr>Params<wbr>Check</a>
+					<li class=" tsd-kind-type-alias tsd-parent-kind-module">
+						<a href="../modules/_api_.html#type_response" class="tsd-kind-icon">TYPE_<wbr>RESPONSE</a>
 					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-module">
-						<a href="../modules/_params_.html#paramschecker" class="tsd-kind-icon">params<wbr>Checker</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
-						<a href="../modules/_params_.html#responsechecker" class="tsd-kind-icon">response<wbr>Checker</a>
-					</li>
-					<li class=" tsd-kind-function tsd-parent-kind-module tsd-has-type-parameter">
-						<a href="../modules/_params_.html#schemachecker" class="tsd-kind-icon">schema<wbr>Checker</a>
+					<li class=" tsd-kind-variable tsd-parent-kind-module">
+						<a href="../modules/_api_.html#support_method" class="tsd-kind-icon">SUPPORT_<wbr>METHOD</a>
 					</li>
 				</ul>
 			</nav>

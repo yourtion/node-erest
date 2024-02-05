@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>IApiInfo | erest</title>
+	<title>IGroupInfoOpt | erest</title>
 	<meta name="description" content="Documentation for erest">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -59,42 +59,24 @@
 					<a href="../modules/_index_.html">&quot;index&quot;</a>
 				</li>
 				<li>
-					<a href="_index_.iapiinfo.html">IApiInfo</a>
+					<a href="_index_.igroupinfoopt.html">IGroupInfoOpt</a>
 				</li>
 			</ul>
-			<h1>Interface IApiInfo&lt;T&gt;</h1>
+			<h1>Interface IGroupInfoOpt</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<section class="tsd-panel tsd-comment">
-				<div class="tsd-comment tsd-typography">
-					<div class="lead">
-						<p>API接口定义</p>
-					</div>
-				</div>
-			</section>
-			<section class="tsd-panel tsd-type-parameters">
-				<h3>Type parameters</h3>
-				<ul class="tsd-type-parameters">
-					<li>
-						<h4>T</h4>
-					</li>
-				</ul>
-			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="tsd-signature-symbol">{}</span>
-					</li>
-					<li>
-						<span class="tsd-signature-symbol">{}</span>
+						<span class="target">IGroupInfoOpt</span>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">IApiInfo</span>
+								<a href="_index_.igroupinfo.html" class="tsd-signature-type">IGroupInfo</a>
 							</li>
 						</ul>
 					</li>
@@ -107,13 +89,8 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.iapiinfo.html#_apis" class="tsd-kind-icon">$apis</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.iapiinfo.html#afterhooks" class="tsd-kind-icon">after<wbr>Hooks</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.iapiinfo.html#beforehooks" class="tsd-kind-icon">before<wbr>Hooks</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.iapiinfo.html#define" class="tsd-kind-icon">define</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.iapiinfo.html#docoutputforamt" class="tsd-kind-icon">doc<wbr>Output<wbr>Foramt</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.iapiinfo.html#docs" class="tsd-kind-icon">docs</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.iapiinfo.html#formatoutputreverse" class="tsd-kind-icon">format<wbr>Output<wbr>Reverse</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.igroupinfoopt.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_index_.igroupinfoopt.html#prefix" class="tsd-kind-icon">prefix</a></li>
 							</ul>
 						</section>
 					</div>
@@ -122,93 +99,22 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="_apis" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagReadonly">Readonly</span> $apis</h3>
-					<div class="tsd-signature tsd-kind-icon">$apis<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Map</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><a href="../classes/_api_.api.html" class="tsd-signature-type">API</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<a name="name" class="tsd-anchor"></a>
+					<h3>name</h3>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L37">index.ts:37</a></li>
+							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L100">index.ts:100</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="afterhooks" class="tsd-anchor"></a>
-					<h3>after<wbr>Hooks</h3>
-					<div class="tsd-signature tsd-kind-icon">after<wbr>Hooks<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<a name="prefix" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> prefix</h3>
+					<div class="tsd-signature tsd-kind-icon">prefix<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L40">index.ts:40</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="beforehooks" class="tsd-anchor"></a>
-					<h3>before<wbr>Hooks</h3>
-					<div class="tsd-signature tsd-kind-icon">before<wbr>Hooks<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L39">index.ts:39</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="define" class="tsd-anchor"></a>
-					<h3>define</h3>
-					<div class="tsd-signature tsd-kind-icon">define<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span>opt<span class="tsd-signature-symbol">: </span><a href="_api_.apidefine.html" class="tsd-signature-type">APIDefine</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><a href="../classes/_api_.api.html" class="tsd-signature-type">API</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L38">index.ts:38</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-type-declaration">
-						<h4>Type declaration</h4>
-						<ul class="tsd-parameters">
-							<li class="tsd-parameter-signature">
-								<ul class="tsd-signatures tsd-kind-type-literal tsd-parent-kind-property">
-									<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span>opt<span class="tsd-signature-symbol">: </span><a href="_api_.apidefine.html" class="tsd-signature-type">APIDefine</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/_api_.api.html" class="tsd-signature-type">API</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></li>
-								</ul>
-								<ul class="tsd-descriptions">
-									<li class="tsd-description">
-										<h4 class="tsd-parameters-title">Parameters</h4>
-										<ul class="tsd-parameters">
-											<li>
-												<h5>opt: <a href="_api_.apidefine.html" class="tsd-signature-type">APIDefine</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h5>
-											</li>
-										</ul>
-										<h4 class="tsd-returns-title">Returns <a href="../classes/_api_.api.html" class="tsd-signature-type">API</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">T</span><span class="tsd-signature-symbol">&gt;</span></h4>
-									</li>
-								</ul>
-							</li>
-						</ul>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="docoutputforamt" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> doc<wbr>Output<wbr>Foramt</h3>
-					<div class="tsd-signature tsd-kind-icon">doc<wbr>Output<wbr>Foramt<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span>out<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L43">index.ts:43</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="docs" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> docs</h3>
-					<div class="tsd-signature tsd-kind-icon">docs<span class="tsd-signature-symbol">:</span> <a href="../classes/_extend_docs_.iapidoc.html" class="tsd-signature-type">IAPIDoc</a></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L41">index.ts:41</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="formatoutputreverse" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> format<wbr>Output<wbr>Reverse</h3>
-					<div class="tsd-signature tsd-kind-icon">format<wbr>Output<wbr>Reverse<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span>out<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">Error</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">)</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L42">index.ts:42</a></li>
+							<li>Defined in <a href="https://github.com/yourtion/node-erest/blob/7b9abae/src/lib/index.ts#L101">index.ts:101</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -374,36 +280,9 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-is-not-exported">
 						<a href="_index_.iapiconfig.html" class="tsd-kind-icon">IAPIConfig</a>
 					</li>
-				</ul>
-				<ul class="current">
-					<li class="current tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
+					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
 						<a href="_index_.iapiinfo.html" class="tsd-kind-icon">IApi<wbr>Info</a>
-						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_index_.iapiinfo.html#_apis" class="tsd-kind-icon">$apis</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_index_.iapiinfo.html#afterhooks" class="tsd-kind-icon">after<wbr>Hooks</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_index_.iapiinfo.html#beforehooks" class="tsd-kind-icon">before<wbr>Hooks</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_index_.iapiinfo.html#define" class="tsd-kind-icon">define</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_index_.iapiinfo.html#docoutputforamt" class="tsd-kind-icon">doc<wbr>Output<wbr>Foramt</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_index_.iapiinfo.html#docs" class="tsd-kind-icon">docs</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_index_.iapiinfo.html#formatoutputreverse" class="tsd-kind-icon">format<wbr>Output<wbr>Reverse</a>
-							</li>
-						</ul>
 					</li>
-				</ul>
-				<ul class="after-current">
 					<li class=" tsd-kind-interface tsd-parent-kind-module">
 						<a href="_index_.iapioption.html" class="tsd-kind-icon">IApi<wbr>Option</a>
 					</li>
@@ -416,9 +295,21 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter tsd-is-not-exported">
 						<a href="_index_.igroupinfo.html" class="tsd-kind-icon">IGroup<wbr>Info</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-module">
+				</ul>
+				<ul class="current">
+					<li class="current tsd-kind-interface tsd-parent-kind-module">
 						<a href="_index_.igroupinfoopt.html" class="tsd-kind-icon">IGroup<wbr>Info<wbr>Opt</a>
+						<ul>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="_index_.igroupinfoopt.html#name" class="tsd-kind-icon">name</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="_index_.igroupinfoopt.html#prefix" class="tsd-kind-icon">prefix</a>
+							</li>
+						</ul>
 					</li>
+				</ul>
+				<ul class="after-current">
 					<li class=" tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
 						<a href="_index_.igruop.html" class="tsd-kind-icon">IGruop</a>
 					</li>
