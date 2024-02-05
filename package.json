@@ -8,7 +8,7 @@
     "dist/lib"
   ],
   "scripts": {
-    "doc": "typedoc --out docs/ src/lib/",
+    "doc": "pnpm typedoc --out docs/ src/lib/",
     "dev": "export ISLIB=1 && jest --verbose --watch",
     "test": "npm run compile && jest",
     "test:lib": "export ISLIB=1 && jest --logHeapUsage",
