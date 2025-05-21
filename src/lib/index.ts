@@ -5,6 +5,7 @@
 
 import assert from "assert";
 import SchemaManage, { ValueTypeManager, SchemaType } from "@tuzhanai/schema-manager";
+import Koa from 'koa';
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
 import { ErrorManager } from "./manager";
@@ -17,6 +18,8 @@ import IAPIDoc, { IDocWritter, IDocGeneratePlugin } from "./extend/docs";
 
 export * from "@tuzhanai/schema-manager";
 export * from "./api";
+
+export type KoaHandler = (ctx: Koa.Context, next: Koa.Next) => Promise<void> | void;
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
@@ -455,6 +458,21 @@ export default class ERest<T = DEFAULT_HANDLER> {
     };
   }
 
+  public checkerKoa(erest: ERest<KoaHandler>, schema: API<KoaHandler>): KoaHandler {
+    return async function apiParamsCheckerKoa(ctx: Koa.Context, next: Koa.Next) {
+      // @ts-ignore
+      (ctx.request as any).$params = apiParamsCheck(
+        erest,
+        schema,
+        ctx.params, // For path parameters
+        ctx.request.query, // For query parameters
+        (ctx.request as any).body, // For body parameters, ensure body parsing middleware is used
+        ctx.request.headers // For headers
+      );
+      await next();
+    };
+  }
+
   /**
    * 绑定路由
    * （加载顺序：beforeHooks -> apiCheckParams -> middlewares -> handler -> afterHooks ）
@@ -476,6 +494,76 @@ export default class ERest<T = DEFAULT_HANDLER> {
         ...schema.options.middlewares,
         schema.options.handler
       );
+    }
+  }
+
+  public bindRouterToKoa(router: any, checker: (erest: ERest<KoaHandler>, schema: API<KoaHandler>) => KoaHandler) {
+    if (this.forceGroup) {
+      throw this.error.internalError("使用了 forceGroup，请使用 bindKoaRouterToApp");
+    }
+    for (const [key, schema] of this.apiInfo.$apis.entries()) {
+      debug("bind router to koa: %s", key);
+      schema.init(this as unknown as ERest<KoaHandler>);
+
+      const handlers = [
+        ...(this.apiInfo.beforeHooks as any), // Spread Set into array
+        ...(schema.options.beforeHooks as any), // Spread Set into array
+        checker(this as unknown as ERest<KoaHandler>, schema as API<KoaHandler>),
+        ...(schema.options.middlewares as any), // Spread Set into array
+        schema.options.handler,
+      ].filter(h => typeof h === 'function'); // Ensure only functions are passed
+
+      const routeMethod = schema.options.method.toLowerCase();
+      if (typeof router[routeMethod] === 'function') {
+        router[routeMethod](schema.options.path, ...handlers);
+      } else {
+        console.error(`ERest: Invalid method ${routeMethod} for Koa router.`);
+      }
+    }
+  }
+
+  public bindKoaRouterToApp(app: any, KoaRouter: any, checker: (erest: ERest<KoaHandler>, schema: API<KoaHandler>) => KoaHandler) {
+    if (!this.forceGroup) {
+      throw this.error.internalError("没有开启 forceGroup，请使用 bindRouterToKoa");
+    }
+    const routes = new Map();
+
+    for (const [key, schema] of this.apiInfo.$apis.entries()) {
+      schema.init(this as unknown as ERest<KoaHandler>);
+      const groupInfo = this.groupInfo[schema.options.group] || { before: [], middleware: [] };
+      const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
+      debug("bindGroupToKoaApp (api): %s - %s", key, prefix);
+
+      let route = routes.get(prefix);
+      if (!route) {
+        const routerPrefix = prefix ? (prefix[0] === '/' ? prefix : '/' + prefix) : undefined;
+        route = new KoaRouter(routerPrefix ? { prefix: routerPrefix } : {});
+        routes.set(prefix, route);
+      }
+
+      const handlers = [
+        ...(this.apiInfo.beforeHooks as any),
+        ...(groupInfo.before as any),
+        ...(schema.options.beforeHooks as any),
+        checker(this as unknown as ERest<KoaHandler>, schema as API<KoaHandler>),
+        ...(groupInfo.middleware as any),
+        ...(schema.options.middlewares as any),
+        schema.options.handler,
+      ].filter(h => typeof h === 'function');
+
+      const routeMethod = schema.options.method.toLowerCase();
+      if (typeof route[routeMethod] === 'function') {
+        route[routeMethod](schema.options.path, ...handlers);
+      } else {
+        // This case should ideally not be hit if SUPPORT_METHODS is respected
+        console.error(`ERest: Invalid method ${routeMethod} for Koa group router for path ${schema.options.path}.`);
+      }
+    }
+
+    for (const [key, groupRouter] of routes.entries()) {
+      debug("bindGroupToKoaApp - applying router for prefix: %s", key);
+      app.use(groupRouter.routes());
+      app.use(groupRouter.allowedMethods());
     }
   }
 
