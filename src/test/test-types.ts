@@ -1,96 +1,114 @@
+import * as z from 'zod';
 import lib from "./lib";
 
 const apiService = lib();
-const paramsChecker = apiService.paramsChecker();
+const paramsChecker = apiService.paramsChecker(); // This is ERest<any>.paramsChecker()
 
-const date = new Date();
+describe("paramsChecker with Zod Schemas", () => {
+  // Test basic Zod types
+  test("z.string()", () => {
+    const schema = z.string();
+    expect(paramsChecker("myStr", "hello", schema)).toBe("hello");
+    expect(() => paramsChecker("myStr", 123, schema)).toThrow(/^参数不合法: 'myStr' Expected string, received number$/);
+  });
 
-test.each([
-  // Boolean
-  ["Boolean", true, { type: "Boolean" }, true],
-  ["Boolean", false, { type: "Boolean" }, false],
-  ["Boolean", "false", { type: "Boolean" }, false],
-  ["Boolean", "true", { type: "Boolean", format: false }, "true"],
+  test("z.number()", () => {
+    const schema = z.number();
+    expect(paramsChecker("myNum", 123, schema)).toBe(123);
+    expect(paramsChecker("myNum", "123", schema)).toBe(123); // Zod coerces
+    expect(() => paramsChecker("myNum", "abc", schema)).toThrow(/^参数不合法: 'myNum' Expected number, received nan$/); // or specific Zod message
+  });
 
-  // Date
-  ["Date", "2017-05-01", { type: "Date" }, new Date("2017-05-01")],
-  ["Date", date, { type: "Date" }, date],
+  test("z.boolean()", () => {
+    const schema = z.boolean();
+    expect(paramsChecker("myBool", true, schema)).toBe(true);
+    expect(paramsChecker("myBool", "true", schema)).toBe(true); // Zod coerces
+    expect(() => paramsChecker("myBool", "notbool", schema)).toThrow(/^参数不合法: 'myBool' Expected boolean, received string$/);
+  });
+  
+  test("z.date()", () => {
+    const schema = z.date();
+    const date = new Date();
+    expect(paramsChecker("myDate", date, schema)).toEqual(date);
+    // Zod date coercion from string needs to be ISO 8601
+    const dateStr = "2023-01-01T00:00:00.000Z";
+    expect(paramsChecker("myDate", dateStr, schema)).toEqual(new Date(dateStr));
+    expect(() => paramsChecker("myDate", "not-a-date", schema)).toThrow(/^参数不合法: 'myDate' Invalid date$/);
+  });
 
-  // String
-  ["String", "1", { type: "String" }, "1"],
-  ["TrimString", " 1 ", { type: "TrimString", format: false }, " 1 "],
-  ["TrimString", " 1 ", { type: "TrimString" }, "1"],
+  test("z.enum()", () => {
+    const schema = z.enum(["A", "B", "C"]);
+    expect(paramsChecker("myEnum", "A", schema)).toBe("A");
+    expect(() => paramsChecker("myEnum", "D", schema)).toThrow(/^参数不合法: 'myEnum' Invalid enum value. Expected 'A' | 'B' | 'C', received 'D'$/);
+  });
 
-  // Number
-  ["Number", "1", { type: "Number" }, 1],
-  ["Integer", "-1", { type: "Integer" }, -1],
-  ["Integer", "1", { type: "Integer", format: false }, "1"],
-  ["Integer", 1, { type: "Integer" }, 1],
-  ["Float", "1.1", { type: "Float" }, 1.1],
-  ["Float", "-1", { type: "Float", format: true }, -1],
-  ["Float", "100.12233", { type: "Float", format: false }, "100.12233"],
+  test("z.object()", () => {
+    const schema = z.object({ name: z.string(), age: z.number() });
+    expect(paramsChecker("myObj", { name: "Test", age: 30 }, schema)).toEqual({ name: "Test", age: 30 });
+    expect(() => paramsChecker("myObj", { name: "Test", age: "30" }, schema)).toThrow(/^参数不合法: 'myObj.age' Expected number, received string$/); // Zod object errors include path
+  });
+  
+  test("z.array()", () => {
+    const schema = z.array(z.number());
+    expect(paramsChecker("myArr", [1, 2, 3], schema)).toEqual([1, 2, 3]);
+    expect(() => paramsChecker("myArr", [1, "2", 3], schema)).toThrow(/^参数不合法: 'myArr.1' Expected number, received string$/);
+  });
 
-  // Object
-  ["Object", { a: 1 }, { type: "Object" }, { a: 1 }],
-  ["Object", {}, { type: "Object" }, {}],
-  ["Object", ["1"], { type: "Object" }, ["1"]],
+  test("z.json()", () => {
+    const schema = z.json();
+    expect(paramsChecker("myJson", '{ "key": "value" }', schema)).toEqual({ key: "value" });
+    expect(() => paramsChecker("myJson", 'not json', schema)).toThrow(/^参数不合法: 'myJson' Invalid json value$/);
+  });
+  
+  test("z.literal()", () => {
+    const schema = z.literal("specific_value");
+    expect(paramsChecker("myLiteral", "specific_value", schema)).toBe("specific_value");
+    expect(() => paramsChecker("myLiteral", "other_value", schema)).toThrow(/^参数不合法: 'myLiteral' Invalid literal value, expected "specific_value"$/);
+  });
 
-  // JSON
-  ["JSON", `{"a": "b"}`, { type: "JSON", format: false }, `{"a": "b"}`],
-  ["JSON", `{"a": "b"}`, { type: "JSON" }, { a: "b" }],
-  ["JSONString", `{"a": "b"}`, { type: "JSONString", format: false }, `{"a": "b"}`],
-  ["JSONString", ` {"a": "b"} `, { type: "JSONString" }, `{"a": "b"}`],
+  test("z.union()", () => {
+    const schema = z.union([z.string(), z.number()]);
+    expect(paramsChecker("myUnion", "hello", schema)).toBe("hello");
+    expect(paramsChecker("myUnion", 123, schema)).toBe(123);
+    expect(() => paramsChecker("myUnion", true, schema)).toThrow(/^参数不合法: 'myUnion' Invalid input$/); // Zod union errors can be complex
+  });
 
-  // Array
-  ["Array", ["1"], { type: "Array" }, ["1"]],
-  ["Array", [1, 2, 3], { type: "Array" }, [1, 2, 3]],
-  ["IntArray", [1, 2, 3], { type: "IntArray" }, [1, 2, 3]],
-  ["IntArray", "1, 5, 3", { type: "IntArray" }, [1, 3, 5]],
-  ["StringArray", ["a", 2, "3"], { type: "StringArray" }, ["a", "2", "3"]],
-  ["StringArray", "a, 5, q", { type: "StringArray" }, ["a", "5", "q"]],
+  test("string transformations/refinements (e.g. email, url, min/max length)", () => {
+    const emailSchema = z.string().email();
+    expect(paramsChecker("myEmail", "test@example.com", emailSchema)).toBe("test@example.com");
+    expect(() => paramsChecker("myEmail", "not-an-email", emailSchema)).toThrow(/^参数不合法: 'myEmail' Invalid email$/);
 
-  // Nullable
-  ["NullableString", "1", { type: "NullableString" }, "1"],
-  ["NullableString", null, { type: "NullableString" }, null],
-  ["NullableInteger", "1", { type: "NullableInteger" }, 1],
-  ["NullableInteger", "1", { type: "NullableInteger", format: true }, 1],
-  ["NullableInteger", 1, { type: "NullableInteger" }, 1],
-  ["NullableInteger", null, { type: "NullableInteger" }, null],
+    const minLengthSchema = z.string().min(5);
+    expect(paramsChecker("myMinStr", "abcde", minLengthSchema)).toBe("abcde");
+    expect(() => paramsChecker("myMinStr", "abc", minLengthSchema)).toThrow(/^参数不合法: 'myMinStr' String must contain at least 5 character\(s\)$/);
+  });
 
-  // Other
-  ["Any", "1", { type: "Any" }, "1"],
-  ["Any", 1, { type: "Any" }, 1],
-  ["Any", null, { type: "Any" }, null],
-  ["Any", { a: "b" }, { type: "Any" }, { a: "b" }],
-  ["MongoIdString", "507f1f77bcf86cd799439011", { type: "MongoIdString" }, "507f1f77bcf86cd799439011"],
-  ["Email", "yourtion@gmail.com", { type: "Email" }, "yourtion@gmail.com"],
-  ["Domain", "yourtion.com", { type: "Domain" }, "yourtion.com"],
-  ["Alpha", "Yourtion", { type: "Alpha" }, "Yourtion"],
-  ["AlphaNumeric", "Yourtion012", { type: "AlphaNumeric" }, "Yourtion012"],
-  ["Ascii", "Yourtion.com/hello", { type: "Ascii" }, "Yourtion.com/hello"],
-  ["Base64", "WW91cnRpb24=", { type: "Base64" }, "WW91cnRpb24="],
-  ["URL", "http://github.com/yourtion", { type: "URL" }, "http://github.com/yourtion"],
-  ["ENUM", "Hello", { type: "ENUM", params: ["Hello", "World"] }, "Hello"],
-] as any[])("TYPES - %s (%s) success", (type, value, params, expected) => {
-  expect(paramsChecker(type, value, params)).toEqual(expected);
-});
+  test("number transformations/refinements (e.g. int, min/max)", () => {
+    const intSchema = z.number().int();
+    expect(paramsChecker("myInt", 123, intSchema)).toBe(123);
+    expect(() => paramsChecker("myInt", 123.5, intSchema)).toThrow(/^参数不合法: 'myInt' Expected integer, received float$/);
+    
+    const minMaxSchema = z.number().min(0).max(10);
+    expect(paramsChecker("myMinMax", 5, minMaxSchema)).toBe(5);
+    expect(() => paramsChecker("myMinMax", 11, minMaxSchema)).toThrow(/^参数不合法: 'myMinMax' Number must be less than or equal to 10$/);
+  });
+  
+  test("optional values and defaults", () => {
+    const optionalSchema = z.string().optional();
+    expect(paramsChecker("myOptStr", undefined, optionalSchema)).toBeUndefined();
+    expect(paramsChecker("myOptStr", "hello", optionalSchema)).toBe("hello");
 
-test.each([
-  // HACK: 临时修正Typings错误
-  ["Any", null, { type: "Any" }, null],
+    const defaultSchema = z.string().default("default_val");
+    expect(paramsChecker("myDefStr", undefined, defaultSchema)).toBe("default_val");
+    expect(paramsChecker("myDefStr", "provided", defaultSchema)).toBe("provided");
+  });
+  
+  test("nullable values", () => {
+    const nullableSchema = z.string().nullable();
+    expect(paramsChecker("myNullableStr", null, nullableSchema)).toBeNull();
+    expect(paramsChecker("myNullableStr", "hello", nullableSchema)).toBe("hello");
+    // Note: undefined would typically fail unless .optional() is also chained.
+    // For a field to accept string, null, or be absent, it's z.string().nullable().optional()
+  });
 
-  ["Number", -2, { type: "Number", params: { min: 0 } }],
-  ["Number", 200, { type: "Number", params: { max: 10 } }],
-  ["Number", "-1", { type: "Number", params: { min: 0, max: 10 } }],
-  ["Integer", "-1.0", { type: "Integer" }],
-  ["Integer", "Yourtion", { type: "ENUM", params: ["Hello", "World"] }],
-  ["ENUM", "Yourtion", { type: "ENUM", params: ["Hello", "World"] }],
-] as any[])("TYPES - %s (%s) toThrow", (type, value, params) => {
-  // console.log(value, expected);
-  if (type === "Any" && value === null) {
-    // HACK: 临时修正Typings错误
-    expect(value).toEqual(null);
-  } else {
-    expect(() => paramsChecker(type, value, params)).toThrow();
-  }
 });

@@ -1,4 +1,5 @@
 import express from "express";
+import * as z from 'zod'; // Add zod import
 import { Application, Router, Context } from "@leizm/web";
 
 import { hook } from "./helper";

@@ -1,4 +1,6 @@
+import * as z from 'zod';
 import { IApiInfo } from "../lib";
+import { ERestHandler } from '../lib/api'; // For typing handlers if needed
 
 /**
  * 辅助函数
@@ -23,51 +25,10 @@ export function nodeVersion() {
   return (v && Number(v[1])) || 0;
 }
 
-/** 类型枚举 */
-export const TYPES = Object.freeze({
-  Boolean: "Boolean",
-  Date: "Date",
-  String: "String",
-  TrimString: "TrimString",
-  Number: "Number",
-  Integer: "Integer",
-  Float: "Float",
-  Object: "Object",
-  Array: "Array",
-  JSON: "JSON",
-  JSONString: "JSONString",
-  Any: "Any",
-  MongoIdString: "MongoIdString",
-  Email: "Email",
-  Domain: "Domain",
-  Alpha: "Alpha",
-  AlphaNumeric: "AlphaNumeric",
-  Ascii: "Ascii",
-  Base64: "Base64",
-  URL: "URL",
-  ENUM: "ENUM",
-  IntArray: "IntArray",
-  StringArray: "StringArray",
-  NullableString: "NullableString",
-  NullableInteger: "NullableInteger",
-});
-
-/**
- * 参数构造
- *
- * @param {String} type 参数类型
- * @param comment 参数说明
- * @param required 是否必填
- * @param defaultValue 默认值
- */
-export function build(type: string, comment: string, required?: boolean, defaultValue?: any, params?: any) {
-  return removeUndefined({ type, comment, required, default: defaultValue, params }) as any;
-}
-
 /** 名字 */
-export const nameParams = build(TYPES.String, "Your name", true);
+export const zodNameParam = z.string().min(1).describe("Your name"); // Assuming required: true means non-empty
 /** 年龄 */
-export const ageParams = build(TYPES.Integer, "Your age", false);
+export const zodAgeParam = z.number().int().describe("Your age").optional(); // Assuming required: false means optional
 
 /** `GET /`（返回："Hello, API Framework Index"） */
 export function apiGet(api: IApiInfo<any>) {
@@ -85,7 +46,7 @@ export function apiGet2(api: IApiInfo<any>) {
   return api
     .get("/index")
     .group("Index")
-    .query({ name: nameParams })
+    .query(z.object({ name: zodNameParam }))
     .title("Get2")
     .register(function get2(req: any, res: any) {
       res.end(`Get ${req.$params.name}`);
@@ -94,13 +55,22 @@ export function apiGet2(api: IApiInfo<any>) {
 
 /** `POST /index`（返回："Post ${query.name}:${body.age}"） */
 export function apiPost(api: IApiInfo<any>) {
+  // If age is truly required for POST, it should not be optional in the body schema.
+  // Using .unwrap() or making a new required schema for POST context.
+  const requiredAgeParam = zodAgeParam.unwrap(); // Removes .optional()
   return api
     .post("/index")
     .group("Index")
-    .query({ name: nameParams })
-    .body({ age: ageParams })
+    .query(z.object({ name: zodNameParam }))
+    .body(z.object({ age: requiredAgeParam })) 
     .title("Post")
-    .required(["name", "age"])
+    // The .required(["name", "age"]) call is no longer the primary driver for field requirement.
+    // Zod schemas (zodNameParam being non-optional, and requiredAgeParam being non-optional) define this.
+    // The ERest `required` set can still be used for an additional check layer if desired,
+    // for example, to ensure fields exist even if Zod might allow them to be undefined with `z.undefined()`
+    // but here, Zod's own requirement handling is more idiomatic.
+    // If the intent of .required(["name", "age"]) was to ensure they are present (not undefined),
+    // then Zod's default non-optional behavior for `name` and `requiredAgeParam` covers this.
     .register(function post(req: any, res: any) {
       res.end(`Post ${req.$params.name}:${req.$params.age}`);
     });
@@ -112,7 +82,7 @@ export function apiPut(api: IApiInfo<any>) {
     .put("/index")
     .group("Index")
     .title("Put")
-    .body({ age: ageParams })
+    .body(z.object({ age: zodAgeParam })) // age is optional here as per zodAgeParam definition
     .register(function put(req: any, res: any) {
       res.end(`Put ${req.$params.age}`);
     });
@@ -123,7 +93,7 @@ export function apiDelete(api: IApiInfo<any>) {
   return api
     .delete("/index/:name")
     .group("Index")
-    .params({ name: nameParams })
+    .params(z.object({ name: zodNameParam }))
     .title("Delete")
     .register(function del(req: any, res: any) {
       res.end(`Delete ${req.$params.name}`);
@@ -149,7 +119,8 @@ export function apiPatch(api: IApiInfo<any>) {
  */
 export function apiJson(api: IApiInfo<any>, path = "/json") {
   function json(req: any, res: any) {
-    if (!req.$params.age || req.$params.age < 18) {
+    // req.$params will have { age?: number }
+    if (req.$params.age === undefined || req.$params.age < 18) {
       return res.json({ success: false });
     }
     return res.json({ success: true, result: req.$params, headers: req.headers });
@@ -159,7 +130,7 @@ export function apiJson(api: IApiInfo<any>, path = "/json") {
     path,
     group: "Index",
     title: "JSON",
-    query: { age: ageParams },
+    query: z.object({ age: zodAgeParam }), // age is optional here
     handler: json,
   });
 }
@@ -188,7 +159,7 @@ export function apiHeader(api: IApiInfo<any>) {
   return api
     .get("/header")
     .group("Index")
-    .headers({ name: nameParams })
+    .headers(z.object({ name: zodNameParam }))
     .title("Header")
     .register((req: any, res: any) => {
       res.end(`Get ${req.$params.name}`);

@@ -1,6 +1,7 @@
 import lib from "./lib";
 import express from "express";
-import { build, TYPES } from "./helper";
+import * as z from 'zod'; // Add zod import
+// Removed build, TYPES from "./helper"
 import { GROUPS, INFO } from "./lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";
 
@@ -33,37 +34,8 @@ describe("ERest - 基础测试", () => {
   });
 });
 
-describe("ERest - schema 注册与使用", () => {
-  const apiService = lib();
-
-  test("add Type", () => {
-    apiService.type.register("Any2", {
-      checker: (v) => v,
-    });
-    expect(apiService.type.has("Any2")).toBeTruthy();
-  });
-
-  test("add Schema", () => {
-    // 注册一个名字为`a`的 schema
-    apiService.schema.register("a", {
-      a: build(TYPES.String, "str"),
-    });
-
-    apiService.api
-      .get("/")
-      .group("Index")
-      .query({
-        a: build("a", "Object-a", true),
-        // 使用 a 类型对象的数组
-        b: build("a[]", "Object-a Array", true),
-      })
-      .register(() => {});
-
-    const router = express();
-    apiService.bindRouter(router, apiService.checkerExpress);
-    expect(apiService.schema.has("a")).toBeTruthy();
-  });
-});
+// Describe block for old schema/type registration is removed as the system was removed.
+// New tests would focus on using Zod schemas directly.
 
 describe("ERest - 更多测试（完善覆盖率）", () => {
   const apiService = lib();
@@ -99,28 +71,42 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
   apiService.api.get("/b").mock();
 
   describe("Checker", () => {
-    const api = apiService.api.define({
+    const apiWithEnumQuery = apiService.api.define({
       method: "get",
       path: "/a",
       group: "Index",
-      title: "ENUM Without params Test",
-      query: { p: build(TYPES.ENUM, "ENUM Without params", true) },
+      title: "ENUM Test",
+      query: z.object({ p: z.enum(["val1", "val2"]) }), // Zod enum
       handler: () => {},
     });
 
-    test("apiChecker", () => {
+    test("apiChecker with missing required enum", () => {
       const checker = apiService.apiChecker();
-      expect(() => checker(api, {}, {}, {})).toThrow("missing required parameter 'p'");
+      // apiParamsCheck will use the schema from apiWithEnumQuery.options.query
+      // Zod error for missing 'p' would be something like "Required"
+      // ErrorManager prepends "缺少参数: "
+      expect(() => checker(apiWithEnumQuery, {}, {}, {})).toThrow(/^缺少参数: 'p' Required$/);
     });
 
-    test("responseChecker", () => {
+    test("responseChecker with Zod schema", () => {
       const checker = apiService.responseChecker();
-      const ret = checker(api, {});
-      expect(ret).toEqual({ ok: true, message: "success", value: {} });
+      const sampleZodSchema = z.object({ name: z.string() });
+      const successData = { name: "test" };
+      const failureData = { name: 123 };
+      
+      let ret = checker(successData, sampleZodSchema);
+      expect(ret.ok).toBe(true);
+      expect(ret.value).toEqual(successData);
+      expect(ret.error).toBeUndefined();
+
+      ret = checker(failureData, sampleZodSchema);
+      expect(ret.ok).toBe(false);
+      expect(ret.value).toBeUndefined();
+      expect(ret.error).toBeInstanceOf(z.ZodError);
+      // Check for specific error message if needed, e.g.:
+      // expect(ret.error?.errors[0].message).toBe("Expected string, received number");
     });
 
-    test("require params", () => {
-      expect(() => api.init(apiService)).toThrow("ENUM is require a params");
-    });
+    // "require params" test is removed as it tested a feature of the old type system's .init() method
   });
 });

@@ -4,7 +4,7 @@
  */
 
 import assert from "assert";
-import SchemaManage, { ValueTypeManager, SchemaType } from "@tuzhanai/schema-manager";
+import * as z from 'zod';
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
 import { ErrorManager } from "./manager";
@@ -15,7 +15,6 @@ import * as utils from "./utils";
 import IAPITest from "./extend/test";
 import IAPIDoc, { IDocWritter, IDocGeneratePlugin } from "./extend/docs";
 
-export * from "@tuzhanai/schema-manager";
 export * from "./api";
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
@@ -123,8 +122,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
     invalidParameter: (msg: string) => Error;
     internalError: (msg: string) => Error;
   };
-  private schemaManage: SchemaManage = new SchemaManage();
-  private typeManage: ValueTypeManager = this.schemaManage.type;
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;
@@ -173,20 +170,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
    */
   get errors() {
     return this.errorManage;
-  }
-
-  /**
-   * 类型列表
-   */
-  get type() {
-    return this.typeManage;
-  }
-
-  /**
-   * 类型列表
-   */
-  get schema() {
-    return this.schemaManage;
   }
 
   constructor(options: IApiOption) {
@@ -360,20 +343,20 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * 获取参数检查实例
    */
   public paramsChecker() {
-    return (name: string, value: any, schema: ISchemaType) => paramsChecker(this, name, value, schema);
+    return (name: string, value: any, schema: any) => paramsChecker(this, name, value, schema);
   }
 
   /**
    * 获取Schema检查实例
    */
   public schemaChecker() {
-    return (data: any, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
+    return (data: any, schema: any, requiredOneOf: string[] = []) =>
       schemaChecker(this, data, schema, requiredOneOf);
   }
 
   /** 返回结果检查 */
   public responseChecker() {
-    return (data: any, schema: ISchemaType | SchemaType | Record<string, ISchemaType>) =>
+    return (data: any, schema: any) =>
       responseChecker(this, data, schema);
   }
 
@@ -434,11 +417,17 @@ export default class ERest<T = DEFAULT_HANDLER> {
     }
   }
 
-  public checkerLeiWeb<K>(ereat: ERest<T>, schema: API): (ctx: K) => void {
+  public checkerLeiWeb<
+    TQ extends z.AnyZodObject | undefined,
+    TP extends z.AnyZodObject | undefined,
+    TB extends z.AnyZodObject | undefined,
+    TH extends z.AnyZodObject | undefined,
+    THandler extends ERestHandler<TQ, TP, TB, TH, any>
+  >(erest: ERest<any>, apiSchema: API<TQ, TP, TB, TH, THandler>): (ctx: any) => void {
     return function apiParamsChecker(ctx: any) {
       ctx.request.$params = apiParamsCheck(
-        ereat,
-        schema,
+        erest,
+        apiSchema,
         ctx.request.params,
         ctx.request.query,
         ctx.request.body,
@@ -448,9 +437,22 @@ export default class ERest<T = DEFAULT_HANDLER> {
     };
   }
 
-  public checkerExpress<U, V, W>(ereat: ERest<T>, schema: API): (req: U, res: V, next: W) => void {
+  public checkerExpress<
+    TQ extends z.AnyZodObject | undefined,
+    TP extends z.AnyZodObject | undefined,
+    TB extends z.AnyZodObject | undefined,
+    TH extends z.AnyZodObject | undefined,
+    THandler extends ERestHandler<TQ, TP, TB, TH, any>
+  >(erest: ERest<any>, apiSchema: API<TQ, TP, TB, TH, THandler>): (req: any, res: any, next: any) => void {
     return function apiParamsChecker(req: any, res: any, next: any) {
-      req.$params = apiParamsCheck(ereat, schema, req.params, req.query, req.body, req.headers);
+      req.$params = apiParamsCheck(
+        erest, 
+        apiSchema, 
+        req.params, 
+        req.query, 
+        req.body, 
+        req.headers
+      );
       next();
     };
   }
@@ -461,18 +463,18 @@ export default class ERest<T = DEFAULT_HANDLER> {
    *
    * @param {Object} router 路由
    */
-  public bindRouter(router: any, checker: (ctx: ERest<T>, schema: API<T>) => T) {
+  public bindRouter(router: any, checker: (erest: ERest<T>, schema: API<any,any,any,any,any>) => T) { // schema: API<any> is now API<Q,P,B,H, Handler>
     if (this.forceGroup) {
       throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
     }
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
       debug("bind router: %s", key);
-      schema.init(this);
+      schema.init(this); // `this` is the ERest instance
       router[schema.options.method].bind(router)(
         schema.options.path,
         ...this.apiInfo.beforeHooks,
         ...schema.options.beforeHooks,
-        checker(this, schema),
+        checker(this, schema as API<any,any,any,any,any>), // Pass ERest instance and schema
         ...schema.options.middlewares,
         schema.options.handler
       );
@@ -485,13 +487,13 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * @param {Object} app Express App 实例
    * @param {Object} Router Router 对象
    */
-  public bindRouterToApp(app: any, Router: any, checker: (ctx: ERest<T>, schema: API<T>) => T) {
+  public bindRouterToApp(app: any, Router: any, checker: (erest: ERest<T>, schema: API<any,any,any,any,any>) => T) { // schema: API<any> is now API<Q,P,B,H, Handler>
     if (!this.forceGroup) {
       throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
     }
     const routes = new Map();
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      schema.init(this);
+      schema.init(this); // `this` is the ERest instance
       const groupInfo = this.groupInfo[schema.options.group] || {};
       const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
       debug("bindGroupToApp: %s - %s", key, prefix);
@@ -506,7 +508,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
         ...this.apiInfo.beforeHooks,
         ...groupInfo.before,
         ...schema.options.beforeHooks,
-        checker(this, schema),
+        checker(this, schema as API<any,any,any,any,any>), // Pass ERest instance and schema
         ...groupInfo.middleware,
         ...schema.options.middlewares,
         schema.options.handler

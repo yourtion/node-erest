@@ -3,8 +3,9 @@ import { createReadStream } from "fs";
 import { resolve } from "path";
 
 import express from "express";
+import * as z from 'zod'; // Ensure zod is imported
 
-import { apiAll, apiJson, build, TYPES } from "./helper";
+import { apiAll, apiJson } from "./helper"; // Removed build, TYPES
 import lib from "./lib";
 
 // 初始化 Express
@@ -22,18 +23,18 @@ apiJson(api);
 apiJson(api, "/json3").response({});
 const jsonApi = apiJson(api, "/json2");
 jsonApi.description("测试JSON用");
-const JsonSchema = {
-  num: build(TYPES.Number, "Number", false, 10, { max: 10, min: 0 }),
-  type: build(TYPES.ENUM, "类型", false, undefined, ["a", "b"]),
-  int_arr: build(TYPES.IntArray, "数组"),
-  date: build(TYPES.Date, "日期"),
-};
-jsonApi.response(JsonSchema);
-jsonApi.query(JsonSchema);
-jsonApi.requiredOneOf(["age", "type"]);
+const zodJsonSchema = z.object({ // Converted to Zod schema
+  num: z.number().min(0).max(10).default(10).optional(),
+  type: z.enum(["a", "b"]).optional(),
+  int_arr: z.array(z.number().int()).optional(), // Assuming IntArray means array of integers
+  date: z.date().optional(),
+});
+jsonApi.response(zodJsonSchema); // Use Zod schema
+jsonApi.query(zodJsonSchema);   // Use Zod schema
+jsonApi.requiredOneOf(["age", "type"]); // This remains, checked after Zod validation
 
-apiService.schema.register("JsonSchema", JsonSchema);
-apiJson(api, "/json4").query({ a: build("JsonSchema[]", "JsonSchema Array") });
+// apiService.schema.register("JsonSchema", JsonSchema); // Removed, schema registration is gone
+// apiJson(api, "/json4").query({ a: build("JsonSchema[]", "JsonSchema Array") }); // Removed, relies on old schema registration
 
 // 绑定路由并开始测试
 apiService.bindRouter(router, apiService.checkerExpress);
@@ -137,18 +138,21 @@ describe.each([
       })
       .takeExample("Index-Post")
       .raw();
-    expect(ret).toBe("missing required parameter 'age'");
+    // Updated error message based on Zod validation through apiParamsCheck
+    // Assumes 'age' is required in the body for apiPost (as per helper.ts zod update)
+    expect(ret).toBe("缺少参数: 'age' is required");
   });
 
-  test("Post missing params", async () => {
+  test("Put invalid param type", async () => { // Renamed test for clarity
     const { text: ret } = await agent
       .put("/api/index")
       .input({
-        age: share.ageStr,
+        age: share.ageStr, // Sending string where number is expected by apiPut's Zod schema
       })
-      .takeExample("Index-Post")
+      .takeExample("Index-Post") // Example name might need update if specific to this error
       .raw();
-    expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
+    // Updated error message based on Zod validation (e.g. "Expected number, received string")
+    expect(ret).toBe("参数不合法: Invalid body parameter: 'age' Expected number, received string");
   });
 
   test("JSON FormatOutput error", async () => {
@@ -255,10 +259,7 @@ describe.each([
 });
 
 describe("Doc - 文档生成", () => {
-  beforeAll(async () => {
-    // 添加自定义类型用于文档生成
-    apiService.type.register("Any2", { checker: (v) => v });
-  });
+  // beforeAll block with apiService.type.register is removed as type registration is gone.
 
   test("Gen docs", () => {
     apiService.genDocs("/", false);

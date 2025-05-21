@@ -5,13 +5,12 @@
 
 import assert from "assert";
 import { pathToRegexp } from "path-to-regexp";
+import * as z from 'zod';
 import { api as debug } from "./debug";
 import { getSchemaKey, SourceResult, getRealPath } from "./utils";
-import { ISchemaType } from "./params";
-import { SchemaType, parseTypeName } from "@tuzhanai/schema-manager";
-import ERest from ".";
+import type ERest from ".";
 
-export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
+export type TYPE_RESPONSE = string | z.ZodTypeAny;
 
 export interface IExample {
   name?: string | undefined;
@@ -21,53 +20,97 @@ export interface IExample {
   output?: Record<string, any>;
 }
 
-export type DEFAULT_HANDLER = (...args: any[]) => any;
+// Helper type for validated parameters
+export type ValidatedParams<
+  TQuery extends z.AnyZodObject | undefined,
+  TParams extends z.AnyZodObject | undefined,
+  TBody extends z.AnyZodObject | undefined,
+  THeaders extends z.AnyZodObject | undefined,
+> = (THeaders extends z.AnyZodObject ? z.infer<THeaders> : {}) &
+  (TQuery extends z.AnyZodObject ? z.infer<TQuery> : {}) &
+  (TParams extends z.AnyZodObject ? z.infer<TParams> : {}) &
+  (TBody extends z.AnyZodObject ? z.infer<TBody> : {});
+
+// Generic handler type
+export type ERestHandler<
+  TQuery extends z.AnyZodObject | undefined,
+  TParams extends z.AnyZodObject | undefined,
+  TBody extends z.AnyZodObject | undefined,
+  THeaders extends z.AnyZodObject | undefined,
+  TResponse = any, // Default response type
+> = (validatedData: ValidatedParams<TQuery, TParams, TBody, THeaders>) => TResponse;
+
+export type DEFAULT_HANDLER = ERestHandler<undefined, undefined, undefined, undefined, any>;
+
 export const SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"] as const;
 export type SUPPORT_METHODS = typeof SUPPORT_METHOD[number];
 
-export interface APICommon<T = DEFAULT_HANDLER> {
+export interface APICommon<THandlerType = DEFAULT_HANDLER> {
   method: SUPPORT_METHODS;
   path: string;
   title: string;
   description?: string;
-  handler?: T;
+  handler?: THandlerType;
   response?: TYPE_RESPONSE;
 }
 
-export interface APIDefine<T> extends APICommon<T> {
+export interface APIDefine<
+  THandler = DEFAULT_HANDLER, // This will become ERestHandler via API class default
+  TQuery extends z.AnyZodObject | undefined = undefined,
+  TParams extends z.AnyZodObject | undefined = undefined,
+  TBody extends z.AnyZodObject | undefined = undefined,
+  THeaders extends z.AnyZodObject | undefined = undefined,
+> extends APICommon<THandler> { // THandler here will be the specific ERestHandler
   group?: string;
-  headers?: Record<string, ISchemaType>;
-  query?: Record<string, ISchemaType>;
-  body?: Record<string, ISchemaType>;
-  params?: Record<string, ISchemaType>;
+  headers?: THeaders;
+  query?: TQuery;
+  body?: TBody;
+  params?: TParams;
   required?: string[];
   requiredOneOf?: string[];
-  before?: Array<T>;
-  middlewares?: Array<T>;
-  handler?: T;
+  before?: Array<THandler>; // Use THandler for hooks as well
+  middlewares?: Array<THandler>; // Use THandler for middlewares
+  // handler?: THandler; // Already in APICommon
   mock?: Record<string, any>;
 }
 
-export interface APIOption<T> extends Record<string, any> {
+export interface APIOption<
+  THandler,
+  TQuery extends z.AnyZodObject | undefined,
+  TParams extends z.AnyZodObject | undefined,
+  TBody extends z.AnyZodObject | undefined,
+  THeaders extends z.AnyZodObject | undefined,
+> extends Record<string, any> {
   group: string;
   realPath: string;
   examples: IExample[];
-  beforeHooks: Set<T>;
-  middlewares: Set<T>;
+  beforeHooks: Set<THandler>;
+  middlewares: Set<THandler>;
   required: Set<string>;
   requiredOneOf: string[][];
-  _allParams: Map<string, ISchemaType>;
+  headers?: THeaders;
+  query?: TQuery;
+  body?: TBody;
+  params?: TParams;
+  _allParams: Map<string, z.ZodTypeAny>;
   mock?: Record<string, any>;
   tested: boolean;
   response?: TYPE_RESPONSE;
-  responseSchema?: SchemaType | ISchemaType;
+  responseSchema?: z.ZodTypeAny;
+  handler?: THandler; // Add handler to APIOption
 }
 
-export default class API<T = DEFAULT_HANDLER> {
+export default class API<
+  TQuery extends z.AnyZodObject | undefined = undefined,
+  TParams extends z.AnyZodObject | undefined = undefined,
+  TBody extends z.AnyZodObject | undefined = undefined,
+  THeaders extends z.AnyZodObject | undefined = undefined,
+  THandler extends ERestHandler<TQuery, TParams, TBody, THeaders, any> = ERestHandler<TQuery, TParams, TBody, THeaders, any>,
+> {
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
-  public options: APIOption<T>;
+  public options: APIOption<THandler, TQuery, TParams, TBody, THeaders>;
 
   /**
    * 构造函数
@@ -94,11 +137,12 @@ export default class API<T = DEFAULT_HANDLER> {
       requiredOneOf: [],
       beforeHooks: new Set(),
       middlewares: new Set(),
-      query: {} as Record<string, ISchemaType>,
-      body: {} as Record<string, ISchemaType>,
-      params: {} as Record<string, ISchemaType>,
-      headers: {} as Record<string, ISchemaType>,
-      _allParams: new Map<string, ISchemaType>(),
+      query: undefined as TQuery,
+      body: undefined as TBody,
+      params: undefined as TParams,
+      headers: undefined as THeaders,
+      handler: undefined as THandler | undefined, // Initialize handler
+      _allParams: new Map<string, z.ZodTypeAny>(),
       group: group || "",
       tested: false,
     };
@@ -109,8 +153,15 @@ export default class API<T = DEFAULT_HANDLER> {
     debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
 
-  public static define<T>(options: APIDefine<T>, sourceFile: SourceResult, group?: string, prefix?: string) {
-    const schema = new API<T>(options.method, options.path, sourceFile, group, prefix);
+  public static define<
+    TQ extends z.AnyZodObject | undefined,
+    TP extends z.AnyZodObject | undefined,
+    TB extends z.AnyZodObject | undefined,
+    TH extends z.AnyZodObject | undefined,
+    TResp = any, // Response type for the handler
+    THandlerFn extends ERestHandler<TQ, TP, TB, TH, TResp> = ERestHandler<TQ, TP, TB, TH, TResp>,
+  >(options: APIDefine<THandlerFn, TQ, TP, TB, TH>, sourceFile: SourceResult, group?: string, prefix?: string) {
+    const schema = new API<TQ, TP, TB, TH, THandlerFn>(options.method, options.path, sourceFile, group, prefix);
     schema.title(options.title);
     const g = group || options.group;
     if (g) {
@@ -122,16 +173,16 @@ export default class API<T = DEFAULT_HANDLER> {
     if (options.response) {
       schema.response(options.response);
     }
-    if (options.body) {
+    if (options.body) { // options.body will be TBody
       schema.body(options.body);
     }
-    if (options.query) {
+    if (options.query) { // options.query will be TQuery
       schema.query(options.query);
     }
-    if (options.params) {
+    if (options.params) { // options.params will be TParams
       schema.params(options.params);
     }
-    if (options.headers) {
+    if (options.headers) { // options.headers will be THeaders
       schema.headers(options.headers);
     }
     if (options.required) {
@@ -228,7 +279,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 输入参数
    */
-  private setParam(name: string, options: ISchemaType, place: string) {
+  private setParam(name: string, options: z.ZodTypeAny, place: string) {
     this.checkInited();
 
     assert(typeof name === "string", "`name`必须是字符串类型");
@@ -249,39 +300,59 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 输入参数
    */
-  private setParams(place: string, obj: Record<string, ISchemaType>) {
-    for (const [key, o] of Object.entries(obj)) {
-      this.setParam(key, o, place);
+  private setParams(place: string, obj: z.AnyZodObject) {
+    // This method might need rethinking with fluent generics.
+    // For now, it's used by API.define, so keep its basic shape
+    // but the fluent methods below will directly set options.
+    this.options[place] = obj; // This is a simplification
+    for (const [key, o] of Object.entries(obj.shape)) {
+      this.options._allParams.set(key, o as z.ZodTypeAny);
     }
   }
 
   /**
    * Body 参数
    */
-  public body(obj: Record<string, ISchemaType>) {
-    this.setParams("body", obj);
-    return this;
+  public body<B extends z.AnyZodObject>(schema: B): API<TQuery, TParams, B, THeaders, ERestHandler<TQuery, TParams, B, THeaders, any>> {
+    this.checkInited();
+    this.options.body = schema;
+    for (const [key, o] of Object.entries(schema.shape)) {
+      this.options._allParams.set(key, o as z.ZodTypeAny);
+    }
+    return this as unknown as API<TQuery, TParams, B, THeaders, ERestHandler<TQuery, TParams, B, THeaders, any>>;
   }
 
   /**
    * Query 参数
    */
-  public query(obj: Record<string, ISchemaType>) {
-    this.setParams("query", obj);
-    return this;
+  public query<Q extends z.AnyZodObject>(schema: Q): API<Q, TParams, TBody, THeaders, ERestHandler<Q, TParams, TBody, THeaders, any>> {
+    this.checkInited();
+    this.options.query = schema;
+    for (const [key, o] of Object.entries(schema.shape)) {
+      this.options._allParams.set(key, o as z.ZodTypeAny);
+    }
+    return this as unknown as API<Q, TParams, TBody, THeaders, ERestHandler<Q, TParams, TBody, THeaders, any>>;
   }
 
   /**
    * Param 参数
    */
-  public params(obj: Record<string, ISchemaType>) {
-    this.setParams("params", obj);
-    return this;
+  public params<P extends z.AnyZodObject>(schema: P): API<TQuery, P, TBody, THeaders, ERestHandler<TQuery, P, TBody, THeaders, any>> {
+    this.checkInited();
+    this.options.params = schema;
+    for (const [key, o] of Object.entries(schema.shape)) {
+      this.options._allParams.set(key, o as z.ZodTypeAny);
+    }
+    return this as unknown as API<TQuery, P, TBody, THeaders, ERestHandler<TQuery, P, TBody, THeaders, any>>;
   }
 
-  public headers(obj: Record<string, ISchemaType>) {
-    this.setParams("headers", obj);
-    return this;
+  public headers<H extends z.AnyZodObject>(schema: H): API<TQuery, TParams, TBody, H, ERestHandler<TQuery, TParams, TBody, H, any>> {
+    this.checkInited();
+    this.options.headers = schema;
+    for (const [key, o] of Object.entries(schema.shape)) {
+      this.options._allParams.set(key, o as z.ZodTypeAny);
+    }
+    return this as unknown as API<TQuery, TParams, TBody, H, ERestHandler<TQuery, TParams, TBody, H, any>>;
   }
 
   /**
@@ -313,7 +384,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 中间件
    */
-  public middlewares(...list: Array<T>) {
+  public middlewares(...list: Array<THandler>) {
     this.checkInited();
     for (const mid of list) {
       assert(typeof mid === "function", "中间件必须是Function类型");
@@ -325,7 +396,7 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 注册执行之前的钩子
    */
-  public before(...list: Array<T>) {
+  public before(...list: Array<THandler>) {
     this.checkInited();
     for (const hook of list) {
       assert(typeof hook === "function", "钩子名称必须是Function类型");
@@ -337,11 +408,11 @@ export default class API<T = DEFAULT_HANDLER> {
   /**
    * 注册处理函数
    */
-  public register(fn: T) {
+  public register(fn: THandler): API<TQuery, TParams, TBody, THeaders, THandler> {
     this.checkInited();
     assert(typeof fn === "function", "处理函数必须是一个函数类型");
     this.options.handler = fn;
-    return this;
+    return this as unknown as API<TQuery, TParams, TBody, THeaders, THandler>;
   }
 
   public mock(data?: Record<string, any>) {
@@ -362,32 +433,40 @@ export default class API<T = DEFAULT_HANDLER> {
     for (const [name, options] of this.options._allParams.entries()) {
       const typeName = options.type;
       const type = parent.type.has(typeName) && parent.type.get(typeName).info;
-      if (type) {
-        // 基础类型
-        if (options.required) this.options.required.add(name);
-        if (type.isParamsRequired && options.params === undefined) {
-          throw new Error(`${typeName} is require a params`);
-        }
-        if (options.params && type.paramsChecker) {
-          assert(type.paramsChecker(options.params), `test type params failed`);
-        }
-      } else {
-        // schema 类型
-        const schemaName = parseTypeName(typeName);
-        assert(parent.schema.has(schemaName.name), `please register schema ${schemaName}`);
-      }
+      // TODO: Re-implement logic with Zod
+      // const typeName = options.type;
+      // const type = parent.type.has(typeName) && parent.type.get(typeName).info;
+      // if (type) {
+      //   // 基础类型
+      //   if (options.required) this.options.required.add(name);
+      //   if (type.isParamsRequired && options.params === undefined) {
+      //     throw new Error(`${typeName} is require a params`);
+      //   }
+      //   if (options.params && type.paramsChecker) {
+      //     assert(type.paramsChecker(options.params), `test type params failed`);
+      //   }
+      // } else {
+      //   // schema 类型
+      //   const schemaName = parseTypeName(typeName);
+      //   assert(parent.schema.has(schemaName.name), `please register schema ${schemaName}`);
+      // }
     }
 
     if (this.options.response) {
       if (typeof this.options.response === "string") {
-        this.options.responseSchema = parent.schema.get(this.options.response);
-      } else if (this.options.response instanceof SchemaType) {
-        this.options.responseSchema = this.options.response;
-      } else if (typeof this.options.response.type === "string") {
-        this.options.responseSchema = this.options.response as ISchemaType;
+        // TODO: Handle named schemas if this feature is kept
+        // this.options.responseSchema = parent.schema.get(this.options.response);
       } else {
-        this.options.responseSchema = parent.schema.create(this.options.response as any);
+        // Assumes response is a Zod schema
+        this.options.responseSchema = this.options.response;
       }
+      // else if (this.options.response instanceof SchemaType) {
+      //   this.options.responseSchema = this.options.response;
+      // } else if (typeof this.options.response.type === "string") {
+      //   this.options.responseSchema = this.options.response as ISchemaType;
+      // } else {
+      //   this.options.responseSchema = parent.schema.create(this.options.response as any);
+      // }
     }
 
     if (this.options.mock && parent.privateInfo.mockHandler && !this.options.handler) {

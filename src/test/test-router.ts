@@ -1,6 +1,6 @@
 import express from "express";
-
-import { apiAll, apiGet, apiPost, build, hook, TYPES } from "./helper";
+import * as z from 'zod'; // Add zod import
+import { apiAll, apiGet, apiPost, hook } from "./helper"; // Removed build, TYPES
 import lib from "./lib";
 
 test("Router - 绑定空路由", () => {
@@ -25,10 +25,10 @@ test("Router - API 绑定后不允许修改", () => {
   const router = express.Router();
   const getApi = apiGet(api);
   getApi.title("aaa");
-  getApi.query({
-    num: build(TYPES.Number, "Number", true, 10, { max: 10, min: 0 }),
-    type: build(TYPES.ENUM, "ENUM", true, undefined, ["a", "b"]),
-  });
+  getApi.query(z.object({ // Convert query schema to zod
+    num: z.number().min(0).max(10).default(10),
+    type: z.enum(["a", "b"]),
+  }));
 
   apiService.bindRouter(router, apiService.checkerExpress);
   const fn = () => getApi.title("bbb");
