@@ -1,5 +1,8 @@
 import express from "express";
-import { Application, Router, Context } from "@leizm/web";
+import { Application, Router, Context as LeiContext } from "@leizm/web";
+import Koa ,{Context as KoaContext} from 'koa';
+import KoaRouter from 'koa-router'; // or import Router from 'koa-router';
+// import bodyParser from 'koa-bodyparser'; // Add this
 
 import { hook } from "./helper";
 import lib from "./lib";
@@ -8,8 +11,12 @@ function reqFn(req: express.Request, res: express.Response) {
   res.json("Hello, API Framework Index");
 }
 
-function reqFnLeiWeb(ctx: Context) {
+function reqFnLeiWeb(ctx: LeiContext) {
   ctx.response.json("Hello, API Framework Index");
+}
+
+function reqFnKoa(ctx: KoaContext) {
+  ctx.response.body = "Hello, API Framework Index";
 }
 
 const globalBefore = hook("globalBefore");
@@ -126,6 +133,22 @@ describe("Group - 使用@leizm/web框架", () => {
     expect(ret).toBe(`"Hello, API Framework Index"`);
   });
 });
+
+describe("Group - 使用koa框架", () => {
+  const apiService = lib({ forceGroup: true, info: { basePath: "" } });
+  const api = apiService.group("Index");
+  const app = new Koa();
+  api.get("/").title("Get").register(reqFnKoa);
+  apiService.bindKoaRouterToApp(app, KoaRouter, apiService.checkerKoa);
+
+  test("Get请求成功", async () => {
+    apiService.initTest(app.callback());
+
+    const { text: ret } = await apiService.test.get("/index/").raw();
+    expect(ret).toBe("Hello, API Framework Index");
+  });
+});
+
 
 describe("Group - 高级分组配置", () => {
   const apiService = lib({

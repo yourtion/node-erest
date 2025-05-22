@@ -493,32 +493,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
       );
     }
   }
-
-  public bindRouterToKoa(router: any, checker: (erest: ERest<T>, schema: API<T>) => T) {
-    if (this.forceGroup) {
-      throw this.error.internalError("使用了 forceGroup，请使用 bindKoaRouterToApp");
-    }
-    for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      debug("bind router to koa: %s", key);
-      schema.init(this as unknown as ERest<T>);
-
-      const handlers = [
-        ...(this.apiInfo.beforeHooks as any), // Spread Set into array
-        ...(schema.options.beforeHooks as any), // Spread Set into array
-        checker(this as unknown as ERest<T>, schema as API<T>),
-        ...(schema.options.middlewares as any), // Spread Set into array
-        schema.options.handler,
-      ].filter(h => typeof h === 'function'); // Ensure only functions are passed
-
-      const routeMethod = schema.options.method.toLowerCase();
-      if (typeof router[routeMethod] === 'function') {
-        router[routeMethod](schema.options.path, ...handlers);
-      } else {
-        console.error(`ERest: Invalid method ${routeMethod} for Koa router.`);
-      }
-    }
-  }
-
   public bindKoaRouterToApp(app: any, KoaRouter: any, checker: (erest: ERest<T>, schema: API<T>) => T) {
     if (!this.forceGroup) {
       throw this.error.internalError("没有开启 forceGroup，请使用 bindRouterToKoa");

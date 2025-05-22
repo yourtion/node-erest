@@ -2,11 +2,11 @@ import Koa from 'koa';
 import KoaRouter from 'koa-router'; // or import Router from 'koa-router';
 import request from 'supertest';
 import bodyParser from 'koa-bodyparser'; // Add this
-import ERest, { KoaHandler, API } from '../lib'; // Adjust path as needed
+import ERest from '../lib'; // Adjust path as needed
 
 // Helper to set up ERest instance for forceGroup: false
 const setupERestNoGroup = () => {
-  return new ERest<KoaHandler>({
+  return new ERest({
     info: { title: 'Koa Test No Group' },
     // Ensure default error handlers are set up if your tests rely on specific status codes for errors
     missingParameterError: (msg: string) => ({ status: 400, message: `Missing Parameter: ${msg}` } as any), // Example
@@ -16,7 +16,7 @@ const setupERestNoGroup = () => {
 
 // Helper to set up ERest instance for forceGroup: true
 const setupERestWithGroup = () => {
-  return new ERest<KoaHandler>({
+  return new ERest({
     info: { title: 'Koa Test With Group' },
     forceGroup: true,
     groups: {
@@ -35,22 +35,22 @@ describe('ERest Koa Integration', () => {
     app.use(bodyParser()); // Use bodyParser for all non-group tests
     const erest = setupERestNoGroup();
     const router = new KoaRouter();
-
+    const api = erest.group("Index");;
     // Test 1.1
-    erest.api.get('/test-koa').register(async (ctx: Koa.Context) => { ctx.body = { success: true, data: 'koa works' }; });
+    api.get('/test-koa').register(async (ctx: Koa.Context) => { ctx.body = { success: true, data: 'koa works' }; });
 
     // Test 1.2
-    erest.api.get('/query-test')
+    api.get('/query-test')
       .query({ name: { type: 'string', required: true }})
       .register(async (ctx: Koa.Context) => { ctx.body = { name: (ctx.request as any).$params.query.name }; });
     
     // Test 1.3
-    erest.api.post('/body-test')
+    api.post('/body-test')
       .body({ id: { type: 'int', required: true }})
       .register(async (ctx: Koa.Context) => { ctx.body = { id: (ctx.request as any).$params.body.id }; });
     
     // After all API definitions for this block
-    erest.bindRouterToKoa(router, (e,s) => erest.checkerKoa(e,s as API<KoaHandler>));
+    erest.bindRouterToKoa(router, (e,s) => erest.checkerKoa(e,s));
     app.use(router.routes()).use(router.allowedMethods());
 
     // Now run the actual test executions that were commented out above
@@ -79,7 +79,7 @@ describe('ERest Koa Integration', () => {
     erestGroup.group('user').get('/info').register(async (ctx: Koa.Context) => { ctx.body = { group: 'user info' }; });
     
     // After all API definitions for this block
-    erestGroup.bindKoaRouterToApp(appGroup, KoaRouter, (e,s) => erestGroup.checkerKoa(e,s as API<KoaHandler>));
+    erestGroup.bindKoaRouterToApp(appGroup, KoaRouter, (e,s) => erestGroup.checkerKoa(e,s));
 
     // Now run the actual test executions
     it('should handle basic GET request in a group with explicit prefix (execution)', async () => {
