@@ -5,7 +5,6 @@
 
 import assert from "assert";
 import SchemaManage, { ValueTypeManager, SchemaType } from "@tuzhanai/schema-manager";
-import Koa from 'koa';
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
 import { ErrorManager } from "./manager";
@@ -18,8 +17,6 @@ import IAPIDoc, { IDocWritter, IDocGeneratePlugin } from "./extend/docs";
 
 export * from "@tuzhanai/schema-manager";
 export * from "./api";
-
-export type KoaHandler = (ctx: Koa.Context, next: Koa.Next) => Promise<void> | void;
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
@@ -458,8 +455,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
     };
   }
 
-  public checkerKoa(erest: ERest<KoaHandler>, schema: API<KoaHandler>): KoaHandler {
-    return async function apiParamsCheckerKoa(ctx: Koa.Context, next: Koa.Next) {
+  public checkerKoa<U, V, W>(erest: ERest<T>, schema: API): (req: U, res: V, next: W) => void {
+    return async function apiParamsCheckerKoa(ctx: any, next: any) {
       // @ts-ignore
       (ctx.request as any).$params = apiParamsCheck(
         erest,
@@ -497,18 +494,18 @@ export default class ERest<T = DEFAULT_HANDLER> {
     }
   }
 
-  public bindRouterToKoa(router: any, checker: (erest: ERest<KoaHandler>, schema: API<KoaHandler>) => KoaHandler) {
+  public bindRouterToKoa(router: any, checker: (erest: ERest<T>, schema: API<T>) => T) {
     if (this.forceGroup) {
       throw this.error.internalError("使用了 forceGroup，请使用 bindKoaRouterToApp");
     }
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
       debug("bind router to koa: %s", key);
-      schema.init(this as unknown as ERest<KoaHandler>);
+      schema.init(this as unknown as ERest<T>);
 
       const handlers = [
         ...(this.apiInfo.beforeHooks as any), // Spread Set into array
         ...(schema.options.beforeHooks as any), // Spread Set into array
-        checker(this as unknown as ERest<KoaHandler>, schema as API<KoaHandler>),
+        checker(this as unknown as ERest<T>, schema as API<T>),
         ...(schema.options.middlewares as any), // Spread Set into array
         schema.options.handler,
       ].filter(h => typeof h === 'function'); // Ensure only functions are passed
@@ -522,14 +519,14 @@ export default class ERest<T = DEFAULT_HANDLER> {
     }
   }
 
-  public bindKoaRouterToApp(app: any, KoaRouter: any, checker: (erest: ERest<KoaHandler>, schema: API<KoaHandler>) => KoaHandler) {
+  public bindKoaRouterToApp(app: any, KoaRouter: any, checker: (erest: ERest<T>, schema: API<T>) => T) {
     if (!this.forceGroup) {
       throw this.error.internalError("没有开启 forceGroup，请使用 bindRouterToKoa");
     }
     const routes = new Map();
 
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      schema.init(this as unknown as ERest<KoaHandler>);
+      schema.init(this as unknown as ERest<T>);
       const groupInfo = this.groupInfo[schema.options.group] || { before: [], middleware: [] };
       const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
       debug("bindGroupToKoaApp (api): %s - %s", key, prefix);
@@ -545,7 +542,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
         ...(this.apiInfo.beforeHooks as any),
         ...(groupInfo.before as any),
         ...(schema.options.beforeHooks as any),
-        checker(this as unknown as ERest<KoaHandler>, schema as API<KoaHandler>),
+        checker(this as unknown as ERest<T>, schema as API<T>),
         ...(groupInfo.middleware as any),
         ...(schema.options.middlewares as any),
         schema.options.handler,
