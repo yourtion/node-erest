@@ -59,7 +59,10 @@ test("Router - Hook测试", () => {
   expect(router.stack.length).toBe(1);
 
   const ORDER = ["globalBefore", "beforHook", "apiParamsChecker", "middleware", "fn"];
-  const routerStack = router.stack[0].route.stack;
+  const routerStack = router.stack[0].route?.stack;
+  if (!routerStack) {
+    throw new Error("routerStack is undefined");
+  }
   expect(routerStack.length).toBe(ORDER.length);
   const hooksName = routerStack.map((r: any) => r.name);
   expect(hooksName).toEqual(ORDER);
