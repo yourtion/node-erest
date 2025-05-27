@@ -457,13 +457,12 @@ export default class ERest<T = DEFAULT_HANDLER> {
 
   public checkerKoa<U, V, W>(erest: ERest<T>, schema: API): (req: U, res: V, next: W) => void {
     return async function apiParamsCheckerKoa(ctx: any, next: any) {
-      // @ts-ignore
-      (ctx.request as any).$params = apiParamsCheck(
+      ctx.$params = apiParamsCheck(
         erest,
         schema,
         ctx.params, // For path parameters
         ctx.request.query, // For query parameters
-        (ctx.request as any).body, // For body parameters, ensure body parsing middleware is used
+        ctx.request.body, // For body parameters, ensure body parsing middleware is used
         ctx.request.headers // For headers
       );
       await next();
