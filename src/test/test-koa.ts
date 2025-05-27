@@ -29,6 +29,17 @@ describe('ERest Koa Integration', () => {
   describe('forceGroup: false', () => {
     const app = new Koa();
     app.use(bodyParser()) // Use bodyParser for all non-group tests
+    app.use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (err: any) {
+        ctx.status = err.status || 500;
+        ctx.body = JSON.stringify({
+          message: err.message,
+          stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+        });
+      }
+    });
     const apiService = lib();
     const router = new KoaRouter();
     server = app.listen()
@@ -63,24 +74,23 @@ describe('ERest Koa Integration', () => {
       expect(ret).toStrictEqual({ data: 'koa works' });
     });
     it('should validate query parameters (execution)', async () => {
-      const ret1 = await apiService.test.get('/query-test').query({ name: "tester" }).success();
-      expect(ret1).toStrictEqual({ name: 'tester' });
+      const ret = await apiService.test.get('/query-test').query({ name: "tester" }).success();
+      expect(ret).toStrictEqual({ name: 'tester' });
     });
-    it('should validate POST body parameters (execution)', async () => {
+    it('should validate POST body parameters (success)', async () => {
+      const ret = await apiService.test.post('/body-test').input({ id: 'abc' }).error();
+      expect(ret).toStrictEqual(new Error('POST_/body-test 期望API输出失败结果，但实际输出成功结果：{}'));
+    });
+
+    it('should validate POST body parameters (error)', async () => {
       const ret1 = await apiService.test.post('/body-test').input({ id: 123 }).success();
       expect(ret1).toStrictEqual({ id: 123 });
-      const ret2 = await apiService.test.post('/body-test').input({ id: 'abc' }).error();
-      console.error(ret2);
-      expect(ret2).toStrictEqual(new Error('POST_/body-test 期望API输出失败结果，但实际输出成功结果：{}'));
     });
+
 
   });
 
   describe('forceGroup: true', () => {
-    let server: any;
-    afterAll(() => {
-      server.close();
-    });
     const appGroup = new Koa();
     appGroup.use(bodyParser());
     const erestGroup = setupERestWithGroup();
