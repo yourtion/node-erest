@@ -61,7 +61,7 @@
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
     "koa-router": "^13.0.1",
-    "prettier": "^2.8.8",
+    "prettier": "^3.6.0",
     "supertest": "^6.3.4",
     "ts-jest": "^27.1.5",
     "ts-node": "^10.9.2",
