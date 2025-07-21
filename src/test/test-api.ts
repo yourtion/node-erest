@@ -1,4 +1,4 @@
-import os from "os";
+import * as os from "node:os";
 import { apiDelete, build, nameParams, TYPES } from "../test/helper";
 import lib from "../test/lib";
 

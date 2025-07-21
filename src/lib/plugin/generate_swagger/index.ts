@@ -70,20 +70,21 @@ export function buildSwagger(data: IDocData) {
   }
   result.tags.sort((a, b) => (a.name > b.name ? 1 : -1));
 
-  data.schema.forEach((value, key) => {
-    const schema = {
-      type: "object",
-      properties: {},
-    } as ISwaggerModels;
-    const fields = (value as any).fields || ({} as ISchemaTypeFields);
-    for (const item of Object.keys(fields)) {
-      schema.properties[item] = {
-        type: "string",
-        description: fields[item].comment || "",
-      };
-    }
-    result.definitions[key] = schema;
-  });
+  // TODO: 需要根据新的 Zod 实现重新设计 schema 文档生成
+  // data.schema.forEach((value, key) => {
+  //   const schema = {
+  //     type: "object",
+  //     properties: {},
+  //   } as ISwaggerModels;
+  //   const fields = (value as any).fields || ({} as ISchemaTypeFields);
+  //   for (const item of Object.keys(fields)) {
+  //     schema.properties[item] = {
+  //       type: "string",
+  //       description: fields[item].comment || "",
+  //     };
+  //   }
+  //   result.definitions[key] = schema;
+  // });
 
   const paths = result.paths;
   const apis = data.apis;

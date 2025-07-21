@@ -37,8 +37,11 @@ export default function schemaDocs(data: IDocData) {
 
   const schemaList: string[] = [];
   schemaList.push("# 数据类型");
-  data.schema.forEach((value) => {
+  // data.schema.forEach((value) => {
+  // TODO: 需要根据新的 Zod 实现重新设计 schema 文档生成
+  /*
     schemaList.push(schemaInfo(value));
-  });
+  */
+  // });
   return schemaList.join("\n");
 }

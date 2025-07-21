@@ -4,7 +4,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import assert from "assert";
+import * as assert from "assert";
 import { coreError as debug } from "../debug";
 import { Manager } from "./manager";
 

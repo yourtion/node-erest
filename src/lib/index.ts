@@ -3,20 +3,29 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import assert from "assert";
-import SchemaManage, { ValueTypeManager, SchemaType } from "@tuzhanai/schema-manager";
+import * as assert from "node:assert";
+import { z, ZodRawShape, ZodType } from "zod";
+import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
-import { ErrorManager } from "./manager";
-import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
-import { apiParamsCheck, paramsChecker, schemaChecker, ISchemaType, responseChecker } from "./params";
-import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
-import * as utils from "./utils";
+import IAPIDoc, { IDocGeneratePlugin, IDocWritter } from "./extend/docs";
 import IAPITest from "./extend/test";
-import IAPIDoc, { IDocWritter, IDocGeneratePlugin } from "./extend/docs";
+import { ErrorManager } from "./manager";
+import {
+  apiParamsCheck,
+  createZodSchema,
+  ISchemaType,
+  paramsChecker,
+  responseChecker,
+  schemaChecker,
+  zodTypeMap,
+} from "./params";
+import * as utils from "./utils";
+import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
 
-export * from "@tuzhanai/schema-manager";
 export * from "./api";
+export * from "./params";
+export { z, ZodRawShape, ZodType };
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);
 const invalidParameter = (msg: string) => new Error(`incorrect parameter ${msg}`);
@@ -123,8 +132,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
     invalidParameter: (msg: string) => Error;
     internalError: (msg: string) => Error;
   };
-  private schemaManage: SchemaManage = new SchemaManage();
-  private typeManage: ValueTypeManager = this.schemaManage.type;
+  private schemaRegistry: Map<string, ZodType> = new Map();
+  private typeRegistry: Map<string, ZodType> = new Map();
   private errorManage: ErrorManager;
   private docsOptions: IDocOptions;
   private groups: Record<string, string>;
@@ -176,17 +185,82 @@ export default class ERest<T = DEFAULT_HANDLER> {
   }
 
   /**
-   * 类型列表
+   * 类型管理器
    */
-  get type() {
-    return this.typeManage;
+  get type(): {
+    register: (name: string, schema: ZodType) => ERest<T>;
+    get: (name: string) => ZodType | undefined;
+    has: (name: string) => boolean;
+    value: (type: string, input: any, params?: any, format?: boolean) => { ok: boolean; message: string; value: any };
+  } {
+    return {
+      register: (name: string, schema: ZodType) => {
+        this.typeRegistry.set(name, schema);
+        return this;
+      },
+      get: (name: string) => this.typeRegistry.get(name),
+      has: (name: string) => this.typeRegistry.has(name),
+      value: (type: string, input: any, params?: any, format?: boolean) => {
+        const schema = this.typeRegistry.get(type) || zodTypeMap[type as keyof typeof zodTypeMap];
+        if (!schema) {
+          return { ok: false, message: `Unknown type: ${type}`, value: input };
+        }
+        try {
+          const result = schema.parse(input);
+          return { ok: true, message: "", value: result };
+        } catch (error: any) {
+          return { ok: false, message: error.message, value: input };
+        }
+      },
+    };
   }
 
   /**
-   * 类型列表
+   * Schema 管理器
    */
-  get schema() {
-    return this.schemaManage;
+  get schema(): {
+    register: (name: string, schema: ZodType) => void;
+    get: (name: string) => ZodType | undefined;
+    has: (name: string) => boolean;
+    check: (name: string, value: any) => boolean;
+    createZodSchema: (schemaType: ISchemaType) => ZodType;
+  } {
+    return {
+      register: (name: string, schema: ZodType) => {
+        this.schemaRegistry.set(name, schema);
+        return this;
+      },
+      get: (name: string) => {
+        return this.schemaRegistry.get(name);
+      },
+      has: (name: string) => {
+        return this.schemaRegistry.has(name);
+      },
+      check: (name: string, value: any) => {
+        const schema = this.schemaRegistry.get(name);
+        if (!schema) return false;
+        try {
+          schema.parse(value);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      createZodSchema: (schemaType: ISchemaType) => {
+        return createZodSchema(schemaType);
+      },
+    };
+  }
+
+  /**
+   * 创建 Schema 对象
+   */
+  createSchema(schemaObj: Record<string, ISchemaType>) {
+    const schemaFields: Record<string, any> = {};
+    for (const [key, typeInfo] of Object.entries(schemaObj)) {
+      schemaFields[key] = createZodSchema(typeInfo);
+    }
+    return z.object(schemaFields);
   }
 
   constructor(options: IApiOption) {
@@ -280,6 +354,32 @@ export default class ERest<T = DEFAULT_HANDLER> {
   }
 
   /**
+   * 获取参数检查实例
+   */
+  public paramsChecker() {
+    return (name: string, value: any, schema: ISchemaType) => paramsChecker(this, name, value, schema);
+  }
+
+  /**
+   * 获取Schema检查实例
+   */
+  public schemaChecker() {
+    return (data: any, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
+      schemaChecker(this, data, schema, requiredOneOf);
+  }
+
+  public responseChecker() {
+    return (data: any, schema: ISchemaType) => responseChecker(this, data, schema);
+  }
+
+  /**
+   * 获取API参数检查实例
+   */
+  public apiParamsCheck() {
+    return (data: any, schema: Record<string, ISchemaType>) => apiParamsCheck(this, data, schema);
+  }
+
+  /**
    * 初始化测试系统
    * @param app APP或者serve实例，用于init supertest
    * @param testPath 测试文件路径
@@ -354,35 +454,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
   public afterHooks(fn: T) {
     assert(typeof fn === "function", "钩子名称必须是Function类型");
     this.apiInfo.afterHooks.add(fn);
-  }
-
-  /**
-   * 获取参数检查实例
-   */
-  public paramsChecker() {
-    return (name: string, value: any, schema: ISchemaType) => paramsChecker(this, name, value, schema);
-  }
-
-  /**
-   * 获取Schema检查实例
-   */
-  public schemaChecker() {
-    return (data: any, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
-      schemaChecker(this, data, schema, requiredOneOf);
-  }
-
-  /** 返回结果检查 */
-  public responseChecker() {
-    return (data: any, schema: ISchemaType | SchemaType | Record<string, ISchemaType>) =>
-      responseChecker(this, data, schema);
-  }
-
-  /**
-   * 获取Schema检查实例
-   */
-  public apiChecker() {
-    return (schema: API<any>, params?: Record<string, any>, query?: Record<string, any>, body?: Record<string, any>) =>
-      apiParamsCheck(this, schema, params, query, body);
   }
 
   /**
@@ -492,6 +563,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       );
     }
   }
+
   public bindKoaRouterToApp(app: any, KoaRouter: any, checker: (erest: ERest<T>, schema: API<T>) => T) {
     if (!this.forceGroup) {
       throw this.error.internalError("没有开启 forceGroup，请使用 bindRouterToKoa");
@@ -499,14 +571,14 @@ export default class ERest<T = DEFAULT_HANDLER> {
     const routes = new Map();
 
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      schema.init(this as unknown as ERest<T>);
+      schema.init(this);
       const groupInfo = this.groupInfo[schema.options.group] || { before: [], middleware: [] };
       const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
       debug("bindGroupToKoaApp (api): %s - %s", key, prefix);
 
       let route = routes.get(prefix);
       if (!route) {
-        const routerPrefix = prefix ? (prefix[0] === '/' ? prefix : '/' + prefix) : undefined;
+        const routerPrefix = prefix ? (prefix[0] === "/" ? prefix : "/" + prefix) : undefined;
         route = new KoaRouter(routerPrefix ? { prefix: routerPrefix } : {});
         routes.set(prefix, route);
       }
@@ -519,10 +591,10 @@ export default class ERest<T = DEFAULT_HANDLER> {
         ...(groupInfo.middleware as any),
         ...(schema.options.middlewares as any),
         schema.options.handler,
-      ].filter(h => typeof h === 'function');
+      ].filter((h) => typeof h === "function");
 
       const routeMethod = schema.options.method.toLowerCase();
-      if (typeof route[routeMethod] === 'function') {
+      if (typeof route[routeMethod] === "function") {
         route[routeMethod](schema.options.path, ...handlers);
       } else {
         // This case should ideally not be hit if SUPPORT_METHODS is respected

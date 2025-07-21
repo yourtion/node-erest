@@ -1,15 +1,24 @@
 {
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
+    "rootDir": "./src",
+    "outDir": "./dist",
     "module": "commonjs",
-    "moduleResolution": "node",
+    "target": "es2022",
+    "lib": ["es2022"],
     "declaration": true,
     "strict": true,
-    "target": "esnext",
-    "esModuleInterop": true,
-    "sourceMap": false,
-    "allowUnusedLabels": false,
-    "noUnusedLocals": true
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   }
 }

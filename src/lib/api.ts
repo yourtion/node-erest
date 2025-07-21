@@ -3,13 +3,13 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import assert from "assert";
+import * as assert from "node:assert";
 import { pathToRegexp } from "path-to-regexp";
+import { z } from "zod";
+import type ERest from ".";
 import { api as debug } from "./debug";
-import { getSchemaKey, SourceResult, getRealPath } from "./utils";
-import { ISchemaType } from "./params";
-import { SchemaType, parseTypeName } from "@tuzhanai/schema-manager";
-import ERest from ".";
+import type { ISchemaType, SchemaType } from "./params";
+import { getRealPath, getSchemaKey, type SourceResult } from "./utils";
 
 export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
 
@@ -23,7 +23,7 @@ export interface IExample {
 
 export type DEFAULT_HANDLER = (...args: any[]) => any;
 export const SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"] as const;
-export type SUPPORT_METHODS = typeof SUPPORT_METHOD[number];
+export type SUPPORT_METHODS = (typeof SUPPORT_METHOD)[number];
 
 export interface APICommon<T = DEFAULT_HANDLER> {
   method: SUPPORT_METHODS;
@@ -61,6 +61,11 @@ export interface APIOption<T> extends Record<string, any> {
   tested: boolean;
   response?: TYPE_RESPONSE;
   responseSchema?: SchemaType | ISchemaType;
+  // Zod schema 支持
+  querySchema?: z.ZodObject<any>;
+  bodySchema?: z.ZodObject<any>;
+  paramsSchema?: z.ZodObject<any>;
+  headersSchema?: z.ZodObject<any>;
 }
 
 export default class API<T = DEFAULT_HANDLER> {
@@ -344,6 +349,84 @@ export default class API<T = DEFAULT_HANDLER> {
     return this;
   }
 
+  /**
+   * 注册强类型处理函数 (基于 zod schema)
+   */
+  public registerTyped<
+    TQuery extends z.ZodRawShape = {},
+    TBody extends z.ZodRawShape = {},
+    TParams extends z.ZodRawShape = {},
+    THeaders extends z.ZodRawShape = {},
+    TResponse extends z.ZodTypeAny = z.ZodAny
+  >(
+    schemas: {
+      query?: z.ZodObject<TQuery>;
+      body?: z.ZodObject<TBody>;
+      params?: z.ZodObject<TParams>;
+      headers?: z.ZodObject<THeaders>;
+      response?: TResponse;
+    },
+    handler: (
+      req: {
+        query: z.infer<z.ZodObject<TQuery>>;
+        body: z.infer<z.ZodObject<TBody>>;
+        params: z.infer<z.ZodObject<TParams>>;
+        headers: z.infer<z.ZodObject<THeaders>>;
+      },
+      res: any
+    ) => z.infer<TResponse> | Promise<z.infer<TResponse>>
+  ) {
+    this.checkInited();
+
+    // 设置 zod schemas
+    if (schemas.query) {
+      this.options.querySchema = schemas.query;
+    }
+    if (schemas.body) {
+      this.options.bodySchema = schemas.body;
+    }
+    if (schemas.params) {
+      this.options.paramsSchema = schemas.params;
+    }
+    if (schemas.headers) {
+      this.options.headersSchema = schemas.headers;
+    }
+    if (schemas.response) {
+      this.options.responseSchema = schemas.response;
+    }
+
+    // 包装处理函数，添加类型验证
+    const wrappedHandler = async (req: any, res: any) => {
+      try {
+        const validatedReq = {
+          query: schemas.query ? schemas.query.parse(req.query || {}) : ({} as any),
+          body: schemas.body ? schemas.body.parse(req.body || {}) : ({} as any),
+          params: schemas.params ? schemas.params.parse(req.params || {}) : ({} as any),
+          headers: schemas.headers ? schemas.headers.parse(req.headers || {}) : ({} as any),
+        };
+
+        const result = await handler(validatedReq as any, res);
+
+        // 验证响应
+        if (schemas.response) {
+          return schemas.response.parse(result);
+        }
+
+        return result;
+      } catch (error: any) {
+        if (error.name === "ZodError") {
+          throw new Error(
+            `Validation failed: ${error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ")}`
+          );
+        }
+        throw error;
+      }
+    };
+
+    this.options.handler = wrappedHandler as T;
+    return this;
+  }
+
   public mock(data?: Record<string, any>) {
     this.checkInited();
     this.options.mock = data || {};
@@ -361,32 +444,61 @@ export default class API<T = DEFAULT_HANDLER> {
     // 初始化时参数类型检查
     for (const [name, options] of this.options._allParams.entries()) {
       const typeName = options.type;
-      const type = parent.type.has(typeName) && parent.type.get(typeName).info;
-      if (type) {
-        // 基础类型
-        if (options.required) this.options.required.add(name);
-        if (type.isParamsRequired && options.params === undefined) {
-          throw new Error(`${typeName} is require a params`);
+
+      // 特殊类型验证
+      if (typeName === "ENUM") {
+        if (!options.params || !Array.isArray(options.params)) {
+          throw new Error("ENUM is require a params");
         }
-        if (options.params && type.paramsChecker) {
-          assert(type.paramsChecker(options.params), `test type params failed`);
+      }
+
+      // 检查是否为基础类型或已注册的自定义类型
+      // 处理数组类型，如 'JsonSchema[]'
+      const baseTypeName = typeName.endsWith("[]") ? typeName.slice(0, -2) : typeName;
+
+      if (!parent.type.has(baseTypeName) && !parent.schema.has(baseTypeName)) {
+        // 检查是否为内置的 zod 类型
+        const builtinTypes = [
+          "string",
+          "number",
+          "integer",
+          "boolean",
+          "date",
+          "email",
+          "url",
+          "uuid",
+          "array",
+          "object",
+          "any",
+          "JSON",
+          "ENUM",
+          "IntArray",
+          "Date",
+          "Array",
+          "Number",
+          "String",
+          "Boolean",
+          "Integer",
+        ];
+        if (!builtinTypes.includes(baseTypeName)) {
+          throw new Error(`Unknown type: ${baseTypeName}. Please register this type first.`);
         }
-      } else {
-        // schema 类型
-        const schemaName = parseTypeName(typeName);
-        assert(parent.schema.has(schemaName.name), `please register schema ${schemaName}`);
+      }
+
+      if (options.required) {
+        this.options.required.add(name);
       }
     }
 
     if (this.options.response) {
       if (typeof this.options.response === "string") {
         this.options.responseSchema = parent.schema.get(this.options.response);
-      } else if (this.options.response instanceof SchemaType) {
+      } else if (this.options.response instanceof z.ZodType) {
         this.options.responseSchema = this.options.response;
-      } else if (typeof this.options.response.type === "string") {
+      } else if (typeof (this.options.response as ISchemaType).type === "string") {
         this.options.responseSchema = this.options.response as ISchemaType;
       } else {
-        this.options.responseSchema = parent.schema.create(this.options.response as any);
+        this.options.responseSchema = parent.schema.createZodSchema(this.options.response as any);
       }
     }
 

@@ -1,8 +1,9 @@
-import os from "os";
+import * as os from "os";
 import { createReadStream } from "fs";
 import { resolve } from "path";
 
-import express from "express";
+import * as express from "express";
+import { z } from "zod";
 
 import { apiAll, apiJson, build, TYPES } from "./helper";
 import lib from "./lib";
@@ -22,14 +23,15 @@ apiJson(api);
 apiJson(api, "/json3").response({});
 const jsonApi = apiJson(api, "/json2");
 jsonApi.description("测试JSON用");
-const JsonSchema = {
+const JsonSchemaObj = {
   num: build(TYPES.Number, "Number", false, 10, { max: 10, min: 0 }),
   type: build(TYPES.ENUM, "类型", false, undefined, ["a", "b"]),
   int_arr: build(TYPES.IntArray, "数组"),
   date: build(TYPES.Date, "日期"),
 };
-jsonApi.response(JsonSchema);
-jsonApi.query(JsonSchema);
+const JsonSchema = apiService.createSchema(JsonSchemaObj);
+jsonApi.response(JsonSchemaObj);
+jsonApi.query(JsonSchemaObj);
 jsonApi.requiredOneOf(["age", "type"]);
 
 apiService.schema.register("JsonSchema", JsonSchema);
@@ -257,7 +259,7 @@ describe.each([
 describe("Doc - 文档生成", () => {
   beforeAll(async () => {
     // 添加自定义类型用于文档生成
-    apiService.type.register("Any2", { checker: (v) => v });
+    apiService.type.register("Any2", z.any());
   });
 
   test("Gen docs", () => {

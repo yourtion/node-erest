@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "1.11.7",
+  "version": "2.0.0",
   "description": "Easy to build api server depend on @leizm/web and express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
@@ -39,7 +39,7 @@
   },
   "homepage": "https://github.com/yourtion/node-erest#readme",
   "dependencies": {
-    "@tuzhanai/schema-manager": "^1.3.0",
+    "zod": "^4.0.0",
     "debug": "^4.3.4",
     "path-to-regexp": "^6.2.1"
   },
@@ -66,7 +66,7 @@
     "ts-jest": "^27.1.5",
     "ts-node": "^10.9.2",
     "typedoc": "^0.25.7",
-    "typescript": "^4"
+    "typescript": "^5.8.3"
   },
   "jest": {
     "transform": {

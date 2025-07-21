@@ -4,9 +4,9 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import assert from "assert";
-import fs from "fs";
-import path from "path";
+import * as assert from "assert";
+import * as fs from "fs";
+import * as path from "path";
 import { docs as debug } from "../debug";
 import ERest, { IApiOptionInfo } from "..";
 import { IDocOptions } from "..";
@@ -58,9 +58,9 @@ export interface IDocData {
   /** API */
   apis: Record<string, APIOption<any>>;
   /** 文档Schema */
-  schema: SchemaManager;
+  schema: any;
   /** 类型管理器 */
-  typeManager: ValueTypeManager;
+  typeManager: any;
   /** 错误信息 */
   errorManager: ErrorManager;
   /** API统计信息 */
@@ -144,16 +144,17 @@ export default class IAPIDoc {
     };
     const formatOutput = this.erest.api.docOutputForamt || docOutputFormat;
 
-    // types
-    this.erest.type.forEach((item, key) => {
-      const type = item.info;
-      const t = Object.assign({}, JSON.parse(JSON.stringify(type))) as IDocTypes;
-      t.name = key;
-      t.parser = type.parser && type.parser.toString();
-      t.checker = type.checker && type.checker.toString();
-      t.formatter = type.formatter && type.formatter.toString();
-      data.types[key] = t;
-    });
+    // types - 暂时跳过类型遍历，因为新的实现不支持 forEach
+    // TODO: 需要根据新的 Zod 实现重新设计类型文档生成
+    // this.erest.type.forEach((item, key) => {
+    //   const type = item.info;
+    //   const t = Object.assign({}, JSON.parse(JSON.stringify(type))) as IDocTypes;
+    //   t.name = key;
+    //   t.parser = type.parser && type.parser.toString();
+    //   t.checker = type.checker && type.checker.toString();
+    //   t.formatter = type.formatter && type.formatter.toString();
+    //   data.types[key] = t;
+    // });
 
     for (const [k, schema] of this.erest.api.$apis.entries()) {
       const o = schema.options;

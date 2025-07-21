@@ -1,8 +1,9 @@
 import lib from "./lib";
-import express from "express";
+import * as express from "express";
 import { build, TYPES } from "./helper";
 import { GROUPS, INFO } from "./lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";
+import { z } from "zod";
 
 describe("ERest - 基础测试", () => {
   const apiService = lib();
@@ -37,17 +38,16 @@ describe("ERest - schema 注册与使用", () => {
   const apiService = lib();
 
   test("add Type", () => {
-    apiService.type.register("Any2", {
-      checker: (v) => v,
-    });
+    apiService.type.register("Any2", z.any());
     expect(apiService.type.has("Any2")).toBeTruthy();
   });
 
   test("add Schema", () => {
     // 注册一个名字为`a`的 schema
-    apiService.schema.register("a", {
+    const aSchema = apiService.createSchema({
       a: build(TYPES.String, "str"),
     });
+    apiService.schema.register("a", aSchema);
 
     apiService.api
       .get("/")
@@ -108,14 +108,13 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
       handler: () => {},
     });
 
-    test("apiChecker", () => {
-      const checker = apiService.apiChecker();
-      expect(() => checker(api, {}, {}, {})).toThrow("missing required parameter 'p'");
+    test("apiParamsCheck", () => {
+      expect(() => api.init(apiService)).toThrow("ENUM is require a params");
     });
 
     test("responseChecker", () => {
       const checker = apiService.responseChecker();
-      const ret = checker(api, {});
+      const ret = checker({}, { type: "object" });
       expect(ret).toEqual({ ok: true, message: "success", value: {} });
     });
 

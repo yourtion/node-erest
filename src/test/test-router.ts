@@ -1,4 +1,4 @@
-import express from "express";
+import * as express from "express";
 
 import { apiAll, apiGet, apiPost, build, hook, TYPES } from "./helper";
 import lib from "./lib";

@@ -60,7 +60,7 @@ describe("SchemaChecker", () => {
 
   test("remove not in schema success", () => {
     const data = { numP: 1.02, a: "xxx" };
-    const res = schemaChecker(data, schema1);
+    const res = schemaChecker(data, schema1) as any;
     expect(res.a).toBeUndefined();
   });
 
@@ -78,7 +78,7 @@ describe("SchemaChecker", () => {
   });
 
   test("requiedOneOf check throw", () => {
-    const data = { numP: 122 };
+    const data = { numP: 122, stringP2: "test" };
     const fn = () => schemaChecker(data, schema1, ["intP", "stringP3"]);
     expect(fn).toThrow("missing required parameter one of intP, stringP3 is required");
   });

@@ -3,7 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import assert from "assert";
+import * as assert from "assert";
 import { TestAgent } from "../agent";
 import { test as debug } from "../debug";
 import ERest, { IApiOptionInfo } from "..";

@@ -3,15 +3,15 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import assert from "assert";
-import { IDebugger } from "debug";
-import stream from "stream";
-import { Test } from "supertest";
-import util from "util";
+import type { IDebugger } from "debug";
+import * as assert from "node:assert";
+import * as stream from "node:stream";
+import * as util from "node:util";
+import type { Test } from "supertest";
+import type ERest from ".";
+import { SUPPORT_METHOD, type SUPPORT_METHODS } from "./api";
 import { create as createDebug, test as debug } from "./debug";
-import { SUPPORT_METHOD, SUPPORT_METHODS } from "./api";
-import { SourceResult } from "./utils";
-import ERest from ".";
+import type { SourceResult } from "./utils";
 
 const defaultFormatOutput = (data: any) => [null, data];
 
@@ -55,7 +55,10 @@ export class TestAgent {
    */
   constructor(method: SUPPORT_METHODS, path: string, key: string, sourceFile: SourceResult, erestIns: any) {
     assert(typeof method === "string", "`method` must be string");
-    assert(SUPPORT_METHOD.indexOf(method.toLowerCase() as SUPPORT_METHODS) !== -1, "`method` must be one of " + SUPPORT_METHOD);
+    assert(
+      SUPPORT_METHOD.indexOf(method.toLowerCase() as SUPPORT_METHODS) !== -1,
+      "`method` must be one of " + SUPPORT_METHOD
+    );
     assert(typeof path === "string", "`path` must be string");
     assert(path[0] === "/", '`path` must be start with "/"');
     this.options = {
@@ -133,7 +136,7 @@ export class TestAgent {
     this.debug("attach: %j", data);
     for (const i in data) {
       if (data[i] instanceof stream.Readable) {
-        this.options.agent!.attach(i, data[i]);
+        this.options.agent!.attach(i, data[i] as any);
         delete data[i];
       } else {
         this.options.agent!.field(i, data[i]);

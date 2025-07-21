@@ -1,7 +1,7 @@
-import express from "express";
-import { Application, Router, Context as LeiContext } from "@leizm/web";
-import Koa ,{Context as KoaContext} from 'koa';
-import KoaRouter from 'koa-router'; // or import Router from 'koa-router';
+import { Application, Context as LeiContext, Router } from "@leizm/web";
+import * as express from "express";
+import Koa, { Context as KoaContext } from "koa";
+import * as KoaRouter from "koa-router";
 // import bodyParser from 'koa-bodyparser'; // Add this
 
 import { hook } from "./helper";
@@ -148,7 +148,6 @@ describe("Group - 使用koa框架", () => {
     expect(ret).toBe("Hello, API Framework Index");
   });
 });
-
 
 describe("Group - 高级分组配置", () => {
   const apiService = lib({
