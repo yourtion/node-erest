@@ -3,13 +3,13 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
+import { ISchemaTypeFields } from "@tuzhanai/schema-manager";
 import * as path from "path";
 import { URL } from "url";
+import type { IDocOptions } from "../..";
 import { plugin as debug } from "../../debug";
-import { IDocData, IDocWritter } from "../../extend/docs";
-import { IDocOptions } from "../..";
+import type { IDocData, IDocWritter } from "../../extend/docs";
 import * as utils from "../../utils";
-import { ISchemaTypeFields } from "@tuzhanai/schema-manager";
 
 type SCHEMA = "http" | "https" | "ws" | "wss";
 

@@ -1,9 +1,9 @@
 import * as path from "path";
+import type { IDocOptions } from "../..";
+import type { APIOption } from "../../api";
 import { plugin as debug } from "../../debug";
-import { IDocData, IDocWritter } from "../../extend/docs";
-import { IDocOptions } from "../..";
+import type { IDocData, IDocWritter } from "../../extend/docs";
 import * as utils from "../../utils";
-import { APIOption } from "../../api";
 
 export default function generateAsiox(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
   debug("generateAsiox: %s - %o", dir, options);
@@ -23,8 +23,8 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
   }
 
   function getFuncParams(req: APIOption<any>) {
-    let parseData = req.method === "get" ? req.query : req.body;
-    let dataKeys = Object.keys(parseData);
+    const parseData = req.method === "get" ? req.query : req.body;
+    const dataKeys = Object.keys(parseData);
     if (!dataKeys.length) {
       return "";
     }
@@ -37,14 +37,14 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
 
   function getReqSendPath(path: string) {
     if (hasUrlParam(path)) {
-      return "`" + path.replace(/:([a-z]+)/gi, "${$1}") + "`";
+      return "`" + path.replace(/:([a-z]+)/gi, "\\${$1}") + "`";
     }
     return `'${path}'`;
   }
 
   function getPathParams(req: APIOption<any>) {
     if (req.params) {
-      let params = Object.keys(req.params)
+      const params = Object.keys(req.params)
         .map((key) => `${key},`)
         .join("");
       return params;
@@ -53,9 +53,9 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
   }
 
   function getReqSendData(req: APIOption<any>) {
-    let isGetReq = req.method === "get";
-    let parseData = isGetReq ? req.query : req.body;
-    let dataKeys = Object.keys(parseData);
+    const isGetReq = req.method === "get";
+    const parseData = isGetReq ? req.query : req.body;
+    const dataKeys = Object.keys(parseData);
     if (!dataKeys.length) {
       return "";
     }
@@ -67,11 +67,11 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
     return `{ ${dataKeys.join(", ")} }`;
   }
 
-  const baseURL = data.info.host! + data.info.basePath;
+  const baseURL = (data.info.host || "") + data.info.basePath;
 
   const { apis } = data;
   const request = Object.keys(apis).map((key) => {
-    let req = apis[key];
+    const req = apis[key];
     let reqSendData = getReqSendData(req);
     if (reqSendData) {
       reqSendData = ", " + reqSendData;

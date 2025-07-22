@@ -7,20 +7,19 @@
 import { strict as assert } from "assert";
 import * as fs from "fs";
 import * as path from "path";
+import type ERest from "..";
+import type { IApiOptionInfo, IDocOptions } from "..";
+import type { APIOption } from "../api";
 import { docs as debug } from "../debug";
-import ERest, { IApiOptionInfo } from "..";
-import { IDocOptions } from "..";
-import { ErrorManager } from "../manager";
-import generateMarkdown from "../plugin/generate_markdown";
-import generateSwagger, { buildSwagger } from "../plugin/generate_swagger";
-import generatePostman from "../plugin/generate_postman";
-import { getPath, jsonStringify } from "../utils";
-import { APIOption } from "../api";
-import SchemaManager, { ValueTypeManager } from "@tuzhanai/schema-manager";
+import type { ErrorManager } from "../manager";
 import generateAsiox from "../plugin/generate_axios";
+import generateMarkdown from "../plugin/generate_markdown";
+import generatePostman from "../plugin/generate_postman";
+import generateSwagger, { buildSwagger } from "../plugin/generate_swagger";
+import { getPath, jsonStringify } from "../utils";
 
 /** 文档输出写入方法 */
-export type IDocWritter = (path: string, data: any) => void;
+export type IDocWritter = (path: string, data: string) => void;
 /** 文档生成器插件 */
 export type IDocGeneratePlugin = (data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) => void;
 
@@ -97,7 +96,7 @@ export interface IDocTypes {
 /** 默认文档输出格式化 */
 const docOutputFormat = (out: any) => out;
 /** 默认文档输出函数（直接写文件） */
-const docWriteSync: IDocWritter = (path: string, data: any) => fs.writeFileSync(path, data);
+const docWriteSync: IDocWritter = (path: string, data: string) => fs.writeFileSync(path, data);
 
 function generateJosn(data: IDocData, dir: string, options: IDocOptions, writer: IDocWritter) {
   const filename = getPath("doc.json", options.json);

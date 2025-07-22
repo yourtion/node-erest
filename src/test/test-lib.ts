@@ -1,9 +1,8 @@
-import lib from "./lib";
 import express from "express";
-import { build, TYPES } from "./helper";
-import { GROUPS, INFO } from "./lib";
-import { getCallerSourceLine, getPath } from "../lib/utils";
 import { z } from "zod";
+import { getCallerSourceLine, getPath } from "../lib/utils";
+import { build, TYPES } from "./helper";
+import lib, { GROUPS, INFO } from "./lib";
 
 describe("ERest - 基础测试", () => {
   const apiService = lib();

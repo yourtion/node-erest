@@ -1,6 +1,6 @@
-import { Application, Context as LeiContext, Router } from "@leizm/web";
+import { Application, type Context as LeiContext, Router } from "@leizm/web";
 import express from "express";
-import Koa, { Context as KoaContext } from "koa";
+import Koa, { type Context as KoaContext } from "koa";
 import KoaRouter from "koa-router";
 // import bodyParser from 'koa-bodyparser'; // Add this
 

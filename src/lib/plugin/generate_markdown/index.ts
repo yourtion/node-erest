@@ -4,15 +4,15 @@
  */
 
 import * as path from "path";
+import type { IDocOptions } from "../..";
 import { plugin as debug } from "../../debug";
-import { IDocData, IDocWritter } from "../../extend/docs";
-import { IDocOptions } from "../..";
+import type { IDocData, IDocWritter } from "../../extend/docs";
 import * as utils from "../../utils";
-import errorDocs from "./errors";
 import apiDocs from "./apis";
+import errorDocs from "./errors";
+import schemaDocs from "./schema";
 import typeDocs from "./types";
 import { trimSpaces } from "./utils";
-import schemaDocs from "./schema";
 
 function filePath(dir: string, name: string) {
   const filename = name === "Home" ? name : name.toLowerCase();

@@ -1,4 +1,4 @@
-import { IDocData, IDocTypes } from "../../extend/docs";
+import type { IDocData, IDocTypes } from "../../extend/docs";
 import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
 
 function typeString(item: IDocTypes) {

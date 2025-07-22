@@ -1,6 +1,6 @@
+import type { IDocData } from "../../extend/docs";
+import type { IError } from "../../manager";
 import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
-import { IDocData } from "../../extend/docs";
-import { IError } from "../../manager";
 
 function errorString(item: IError) {
   return fieldString([
@@ -14,7 +14,7 @@ function errorString(item: IError) {
 
 export default function errorDocs(data: IDocData) {
   const errors: IError[] = [];
-  data.errorManager.forEach((value: any) => {
+  data.errorManager.forEach((value: IError) => {
     errors.push(value);
   });
 

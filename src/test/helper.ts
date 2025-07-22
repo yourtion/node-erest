@@ -1,4 +1,4 @@
-import { IApiInfo } from "../lib";
+import type { IApiInfo } from "../lib";
 
 /**
  * 辅助函数

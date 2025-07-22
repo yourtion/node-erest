@@ -1,9 +1,9 @@
-import { IDocData } from "../../extend/docs";
-import { APIOption, IExample, TYPE_RESPONSE } from "../../api";
+import { SchemaType } from "@tuzhanai/schema-manager";
+import type { APIOption, IExample, TYPE_RESPONSE } from "../../api";
+import type { IDocData } from "../../extend/docs";
+import type { ISchemaType } from "../../params";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
-import { SchemaType } from "@tuzhanai/schema-manager";
-import { ISchemaType } from "../../params";
 
 export default function apiDocs(data: IDocData) {
   const group: Record<string, string[]> = {};
@@ -96,7 +96,7 @@ export default function apiDocs(data: IDocData) {
     return str
       .split("\n")
       .map((s) => {
-        const r = s.match(/"(.*)"\:/);
+        const r = s.match(/"(.*)":/);
         if (r && r[1] && data[r[1]] && data[r[1]].comment) {
           return s + " \t// " + data[r[1]].comment;
         }

@@ -1,6 +1,6 @@
+import type { ISchemaTypeFieldInfo, ISchemaTypeFields, SchemaType } from "@tuzhanai/schema-manager";
+import type { IDocData } from "../../extend/docs";
 import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
-import { IDocData } from "../../extend/docs";
-import { SchemaType, ISchemaTypeFields, ISchemaTypeFieldInfo } from "@tuzhanai/schema-manager";
 
 export default function schemaDocs(data: IDocData) {
   function parseType(type: string) {

@@ -5,8 +5,8 @@ import * as ERestModule from "../lib";
 export const ERROR_INFO = Object.freeze({
   DataBaseError: { code: -1004, desc: "数据库错误", show: false, log: true },
   PermissionsError: { code: -1003, desc: "权限不足", show: true, log: true },
-  missingParameterError: (msg: string) => ({ status: 400, message: `Missing Parameter: ${msg}` } as any),
-  invalidParameterError: (msg: string) => ({ status: 400, message: `Invalid Parameter: ${msg}` } as any),
+  missingParameterError: (msg: string) => ({ status: 400, message: `Missing Parameter: ${msg}` }) as any,
+  invalidParameterError: (msg: string) => ({ status: 400, message: `Invalid Parameter: ${msg}` }) as any,
 });
 
 /** 基本信息 */

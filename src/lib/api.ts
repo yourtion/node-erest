@@ -5,11 +5,11 @@
 
 import { strict as assert } from "assert";
 import { pathToRegexp } from "path-to-regexp";
-import { z, ZodTypeAny } from "zod";
-import { isZodSchema, isISchemaTypeRecord } from "./params";
+import { type ZodTypeAny, z } from "zod";
 import type ERest from ".";
 import { api as debug } from "./debug";
 import type { ISchemaType, SchemaType } from "./params";
+import { isISchemaTypeRecord, isZodSchema } from "./params";
 import { getRealPath, getSchemaKey, type SourceResult } from "./utils";
 
 export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
@@ -420,7 +420,7 @@ export default class API<T = DEFAULT_HANDLER> {
     TBody extends z.ZodRawShape = {},
     TParams extends z.ZodRawShape = {},
     THeaders extends z.ZodRawShape = {},
-    TResponse extends z.ZodTypeAny = z.ZodAny
+    TResponse extends z.ZodTypeAny = z.ZodAny,
   >(
     schemas: {
       query?: z.ZodObject<TQuery>;

@@ -1,7 +1,7 @@
 import * as path from "path";
+import type { IDocOptions } from "../..";
 import { plugin as debug } from "../../debug";
-import { IDocData, IDocWritter } from "../../extend/docs";
-import { IDocOptions } from "../..";
+import type { IDocData, IDocWritter } from "../../extend/docs";
 import * as utils from "../../utils";
 
 interface IPostManHeader {

@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { isZodSchema, isISchemaType, isISchemaTypeRecord, schemaChecker } from "../lib/params";
-import lib from "./lib";
 import API from "../lib/api";
 import { TYPES } from "../lib/helper";
+import { isISchemaType, isISchemaTypeRecord, isZodSchema, schemaChecker } from "../lib/params";
+import lib from "./lib";
 
 // 创建测试用的 ERest 实例
 const apiService = lib();

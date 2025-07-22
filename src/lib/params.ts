@@ -4,15 +4,15 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import ERest from ".";
+import { type ZodType, z } from "zod";
+import type ERest from ".";
+import type API from "./api";
 import { create, params as debug } from "./debug";
-import API from "./api";
-import { z, ZodSchema, ZodType, ZodTypeAny, ZodRawShape } from "zod";
 
 /**
  * 检测是否为 Zod Schema
  */
-export function isZodSchema(obj: any): obj is ZodTypeAny {
+export function isZodSchema(obj: any): obj is ZodType {
   if (!obj || typeof obj !== "object") return false;
   return "_def" in obj && obj._def && typeof obj.parse === "function";
 }
@@ -45,7 +45,7 @@ export interface ISchemaType {
 }
 
 // Zod schema type alias
-export type SchemaType<T = any> = ZodSchema<T>;
+export type SchemaType<T = any> = ZodType<T>;
 
 // 基础类型映射
 export const zodTypeMap = {
@@ -156,12 +156,12 @@ export const zodTypeMap = {
 } as const;
 
 // 类型转换函数
-export function createZodSchema(typeInfo: ISchemaType | string): ZodTypeAny {
+export function createZodSchema(typeInfo: ISchemaType | string): ZodType {
   if (typeof typeInfo === "string") {
     return zodTypeMap[typeInfo as keyof typeof zodTypeMap] || z.any();
   }
 
-  let schema: ZodTypeAny;
+  let schema: ZodType;
 
   // 处理特殊类型
   if (typeInfo.type === "ENUM") {
@@ -371,17 +371,17 @@ export function schemaChecker<T extends Record<string, any>>(
   const { error } = ctx.privateInfo;
 
   try {
-    let zodSchema: ZodTypeAny;
+    let zodSchema: ZodType;
 
     // 检测是否为原生 Zod Schema
     if (isZodSchema(schema)) {
-      zodSchema = schema as ZodTypeAny;
+      zodSchema = schema as ZodType;
     } else if (isISchemaTypeRecord(schema)) {
       // 将 Record<string, ISchemaType> 转换为 zod object schema
-      const schemaFields: Record<string, ZodTypeAny> = {};
+      const schemaFields: Record<string, ZodType> = {};
       for (const [key, typeInfo] of Object.entries(schema)) {
         // 创建基础schema，但不包含默认值（对于必填字段）
-        let fieldSchema: ZodTypeAny;
+        let fieldSchema: ZodType;
         if (typeInfo.type === "ENUM") {
           if (typeInfo.params && Array.isArray(typeInfo.params)) {
             fieldSchema = z.enum(typeInfo.params as [string, ...string[]]);
@@ -593,16 +593,16 @@ export function responseChecker<T extends Record<string, any>>(
   schema: ISchemaType | SchemaType | Record<string, ISchemaType>
 ) {
   try {
-    let zodSchema: ZodTypeAny;
+    let zodSchema: ZodType;
 
     // 检测是否为原生 Zod Schema
     if (isZodSchema(schema)) {
-      zodSchema = schema as ZodTypeAny;
+      zodSchema = schema as ZodType;
     } else if (isISchemaType(schema)) {
       zodSchema = createZodSchema(schema as ISchemaType);
     } else if (isISchemaTypeRecord(schema)) {
       // 将 Record<string, ISchemaType> 转换为 zod object schema
-      const schemaFields: Record<string, ZodTypeAny> = {};
+      const schemaFields: Record<string, ZodType> = {};
       for (const [key, typeInfo] of Object.entries(schema as Record<string, ISchemaType>)) {
         schemaFields[key] = createZodSchema(typeInfo);
       }

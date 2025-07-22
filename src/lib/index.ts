@@ -4,24 +4,24 @@
  */
 
 import { strict as assert } from "assert";
-import { z, ZodRawShape, ZodType } from "zod";
-import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
+import { ZodRawShape, ZodType, z } from "zod";
+import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api";
 import { core as debug } from "./debug";
 import { defaultErrors } from "./default";
-import IAPIDoc, { IDocGeneratePlugin, IDocWritter } from "./extend/docs";
+import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs";
 import IAPITest from "./extend/test";
 import { ErrorManager } from "./manager";
 import {
   apiParamsCheck,
   createZodSchema,
-  ISchemaType,
+  type ISchemaType,
   paramsChecker,
   responseChecker,
   schemaChecker,
   zodTypeMap,
 } from "./params";
 import * as utils from "./utils";
-import { camelCase2underscore, getCallerSourceLine, ISupportMethds } from "./utils";
+import { camelCase2underscore, getCallerSourceLine, type ISupportMethds } from "./utils";
 
 export * from "./api";
 export * from "./params";

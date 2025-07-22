@@ -4,13 +4,13 @@
  */
 
 import { strict as assert } from "assert";
+import type { SuperTest } from "supertest";
+import type ERest from "..";
+import type { IApiOptionInfo } from "..";
 import { TestAgent } from "../agent";
+import type { SUPPORT_METHODS } from "../api";
 import { test as debug } from "../debug";
-import ERest, { IApiOptionInfo } from "..";
-import { getCallerSourceLine, getSchemaKey, ISupportMethds } from "../utils";
-
-import { SuperTest } from "supertest";
-import { SUPPORT_METHODS } from "../api";
+import { getCallerSourceLine, getSchemaKey, type ISupportMethds } from "../utils";
 
 /** 测试Agent */
 export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
@@ -87,7 +87,7 @@ export default class IAPITest {
   /** 根据请求方法和请求路径查找对应的API */
   private findApi(method: SUPPORT_METHODS, path: string) {
     // 如果定义了 API 的 basePath，需要在测试时替换掉
-    let routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
+    const routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
 
     const key = getSchemaKey(method, routerPath);
     debug(method, path, key);
