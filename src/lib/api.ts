@@ -5,7 +5,8 @@
 
 import { strict as assert } from "assert";
 import { pathToRegexp } from "path-to-regexp";
-import { z } from "zod";
+import { z, ZodTypeAny } from "zod";
+import { isZodSchema, isISchemaTypeRecord } from "./params";
 import type ERest from ".";
 import { api as debug } from "./debug";
 import type { ISchemaType, SchemaType } from "./params";
@@ -261,31 +262,93 @@ export default class API<T = DEFAULT_HANDLER> {
   }
 
   /**
-   * Body 参数
+   * 检测混合使用并设置 Zod Schema
    */
-  public body(obj: Record<string, ISchemaType>) {
-    this.setParams("body", obj);
+  private setZodSchema(place: string, schema: z.ZodTypeAny) {
+    this.checkInited();
+
+    // 检查是否已经有 ISchemaType 参数
+    const hasISchemaType = Object.keys(this.options[place]).length > 0;
+    if (hasISchemaType) {
+      throw new Error(
+        `Cannot mix ISchemaType and Zod schema in ${place}. Please use either ISchemaType or Zod schema, not both.`
+      );
+    }
+
+    // 设置对应的 Zod Schema
+    const schemaKey = `${place}Schema` as keyof typeof this.options;
+    this.options[schemaKey] = schema;
+  }
+
+  /**
+   * 检测混合使用并设置 ISchemaType 参数
+   */
+  private checkMixedUsage(place: string) {
+    const schemaKey = `${place}Schema` as keyof typeof this.options;
+    if (this.options[schemaKey]) {
+      throw new Error(
+        `Cannot mix ISchemaType and Zod schema in ${place}. Please use either ISchemaType or Zod schema, not both.`
+      );
+    }
+  }
+
+  /**
+   * Body 参数 - 支持 ISchemaType 和原生 Zod Schema
+   */
+  public body(obj: Record<string, ISchemaType> | ZodTypeAny) {
+    if (isZodSchema(obj)) {
+      this.setZodSchema("body", obj);
+    } else if (isISchemaTypeRecord(obj)) {
+      this.checkMixedUsage("body");
+      this.setParams("body", obj);
+    } else {
+      throw new Error("Body parameter must be either ISchemaType record or Zod schema");
+    }
     return this;
   }
 
   /**
-   * Query 参数
+   * Query 参数 - 支持 ISchemaType 和原生 Zod Schema
    */
-  public query(obj: Record<string, ISchemaType>) {
-    this.setParams("query", obj);
+  public query(obj: Record<string, ISchemaType> | ZodTypeAny) {
+    if (isZodSchema(obj)) {
+      this.setZodSchema("query", obj);
+    } else if (isISchemaTypeRecord(obj)) {
+      this.checkMixedUsage("query");
+      this.setParams("query", obj);
+    } else {
+      throw new Error("Query parameter must be either ISchemaType record or Zod schema");
+    }
     return this;
   }
 
   /**
-   * Param 参数
+   * Param 参数 - 支持 ISchemaType 和原生 Zod Schema
    */
-  public params(obj: Record<string, ISchemaType>) {
-    this.setParams("params", obj);
+  public params(obj: Record<string, ISchemaType> | ZodTypeAny) {
+    if (isZodSchema(obj)) {
+      this.setZodSchema("params", obj);
+    } else if (isISchemaTypeRecord(obj)) {
+      this.checkMixedUsage("params");
+      this.setParams("params", obj);
+    } else {
+      throw new Error("Params parameter must be either ISchemaType record or Zod schema");
+    }
     return this;
   }
 
-  public headers(obj: Record<string, ISchemaType>) {
-    this.setParams("headers", obj);
+  /**
+   * Headers 参数 - 支持 ISchemaType 和原生 Zod Schema
+   */
+  public headers(obj: Record<string, ISchemaType> | ZodTypeAny) {
+    if (isZodSchema(obj)) {
+      this.setZodSchema("headers", obj);
+    } else if (isISchemaTypeRecord(obj)) {
+      this.checkMixedUsage("headers");
+      this.setParams("headers", obj);
+    } else {
+      throw new Error("Headers parameter must be either ISchemaType record or Zod schema");
+    }
     return this;
   }
 

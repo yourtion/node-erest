@@ -18,10 +18,5 @@ export default defineConfig({
         statements: 80
       }
     }
-  },
-  resolve: {
-    alias: {
-      'assert': 'node:assert'
-    }
   }
 })
