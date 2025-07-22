@@ -3,7 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as assert from "node:assert";
+import { strict as assert } from "assert";
 import { pathToRegexp } from "path-to-regexp";
 import { z } from "zod";
 import type ERest from ".";

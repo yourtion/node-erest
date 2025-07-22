@@ -1,5 +1,5 @@
 import lib from "./lib";
-import * as express from "express";
+import express from "express";
 import { build, TYPES } from "./helper";
 import { GROUPS, INFO } from "./lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";

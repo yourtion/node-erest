@@ -2,8 +2,9 @@ import * as os from "os";
 import { createReadStream } from "fs";
 import { resolve } from "path";
 
-import * as express from "express";
+import express from "express";
 import { z } from "zod";
+import { vi } from "vitest";
 
 import { apiAll, apiJson, build, TYPES } from "./helper";
 import lib from "./lib";
@@ -268,7 +269,7 @@ describe("Doc - 文档生成", () => {
   });
 
   test("Docs plugin", () => {
-    const mockPlugin = jest.fn((data, dir, options, writter) => {});
+    const mockPlugin = vi.fn((data, dir, options, writter) => {});
     apiService.addDocPlugin("test", mockPlugin);
     apiService.genDocs("/", false);
     expect(mockPlugin.mock.calls.length).toBe(1);

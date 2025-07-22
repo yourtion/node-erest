@@ -1,4 +1,5 @@
 import type ERest from "../lib";
+import * as ERestModule from "../lib";
 
 /** 错误信息 */
 export const ERROR_INFO = Object.freeze({
@@ -44,9 +45,15 @@ const DEFAULT_OPTION = Object.freeze({
 /** 获得 ERest 实例 */
 export default (options = {}) => {
   // 根据环境获取包
-  const packPath = process.env.ISLIB ? "../lib" : "../../dist/lib";
-  const pack = require(packPath);
-  const ERest = pack.default;
+  let ERest;
+  if (process.env.ISLIB) {
+    // 在测试环境下直接导入源码
+    ERest = ERestModule.default;
+  } else {
+    // 在生产环境下使用编译后的代码
+    const pack = require("../../dist/lib");
+    ERest = pack.default;
+  }
   // 生成 EREST
   const apiService = new ERest(Object.assign({ ...DEFAULT_OPTION, ...options }));
   return apiService as ERest;

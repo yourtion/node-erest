@@ -1,7 +1,7 @@
 import { Application, Context as LeiContext, Router } from "@leizm/web";
-import * as express from "express";
+import express from "express";
 import Koa, { Context as KoaContext } from "koa";
-import * as KoaRouter from "koa-router";
+import KoaRouter from "koa-router";
 // import bodyParser from 'koa-bodyparser'; // Add this
 
 import { hook } from "./helper";

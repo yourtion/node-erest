@@ -1,6 +1,6 @@
 import Koa from "koa";
-import * as KoaRouter from "koa-router";
-import * as bodyParser from "koa-bodyparser";
+import KoaRouter from "koa-router";
+import bodyParser from "koa-bodyparser";
 // import { koaBody } from "koa-body"
 import { TYPES } from "./helper";
 import lib from "./lib";

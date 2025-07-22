@@ -3,7 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import * as assert from "node:assert";
+import { strict as assert } from "assert";
 import { z, ZodRawShape, ZodType } from "zod";
 import API, { APIDefine, DEFAULT_HANDLER, SUPPORT_METHODS } from "./api";
 import { core as debug } from "./debug";

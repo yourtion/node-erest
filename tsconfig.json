@@ -20,5 +20,6 @@
     "emitDecoratorMetadata": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  "exclude": ["dist","vitest.config.ts", "src/test/**/*"]
 }

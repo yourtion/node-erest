@@ -4,7 +4,7 @@
  */
 
 import type { IDebugger } from "debug";
-import * as assert from "node:assert";
+import { strict as assert } from "assert";
 import * as stream from "node:stream";
 import * as util from "node:util";
 import type { Test } from "supertest";
