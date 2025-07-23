@@ -102,7 +102,7 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
     export default api;
   `;
 
-  const filename = utils.getPath("jssdk.js", options.swagger);
+  const filename = utils.getPath("jssdk.js", options.axios);
 
   writter(path.resolve(dir, filename), template);
 }
