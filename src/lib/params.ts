@@ -12,23 +12,24 @@ import { create, params as debug } from "./debug";
 /**
  * 检测是否为 Zod Schema
  */
-export function isZodSchema(obj: any): obj is ZodType {
+export function isZodSchema(obj: unknown): obj is ZodType {
   if (!obj || typeof obj !== "object") return false;
-  return "_def" in obj && obj._def && typeof obj.parse === "function";
+  const objTyped = obj as Record<string, unknown>;
+  return "_def" in objTyped && !!objTyped._def && typeof objTyped.parse === "function";
 }
 
 /**
  * 检测是否为 ISchemaType 对象
  */
-export function isISchemaType(obj: any): obj is ISchemaType {
+export function isISchemaType(obj: unknown): obj is ISchemaType {
   if (!obj || typeof obj !== "object") return false;
-  return typeof obj.type === "string" && !isZodSchema(obj);
+  return typeof (obj as Record<string, unknown>).type === "string" && !isZodSchema(obj);
 }
 
 /**
  * 检测是否为 ISchemaType 对象的集合
  */
-export function isISchemaTypeRecord(obj: any): obj is Record<string, ISchemaType> {
+export function isISchemaTypeRecord(obj: unknown): obj is Record<string, ISchemaType> {
   if (!obj || typeof obj !== "object" || isZodSchema(obj)) {
     return false;
   }
@@ -39,13 +40,25 @@ export interface ISchemaType {
   type: string;
   comment?: string;
   format?: boolean;
-  default?: any;
+  default?: unknown;
   required?: boolean;
-  params?: any;
+  params?: unknown;
 }
 
+// 数值类型参数接口
+export interface INumericParams {
+  min?: number;
+  max?: number;
+}
+
+// 枚举类型参数接口
+export interface IEnumParams extends Array<string | number> {}
+
+// 数组类型参数接口
+export type IArrayParams = string | ISchemaType;
+
 // Zod schema type alias
-export type SchemaType<T = any> = ZodType<T>;
+export type SchemaType<T = unknown> = ZodType<T>;
 
 // 基础类型映射
 export const zodTypeMap = {
@@ -56,7 +69,7 @@ export const zodTypeMap = {
     z.number(),
     z.string().transform((val) => {
       const num = Number(val);
-      if (isNaN(num)) throw new Error("Invalid number");
+      if (Number.isNaN(num)) throw new Error("Invalid number");
       return num;
     }),
   ]),
@@ -64,7 +77,7 @@ export const zodTypeMap = {
     z.number(),
     z.string().transform((val) => {
       const num = Number(val);
-      if (isNaN(num)) throw new Error("Invalid number");
+      if (Number.isNaN(num)) throw new Error("Invalid number");
       return num;
     }),
   ]),
@@ -74,7 +87,7 @@ export const zodTypeMap = {
       // 检查是否包含小数点
       if (val.includes(".")) throw new Error("Invalid integer");
       const num = parseInt(val, 10);
-      if (isNaN(num)) throw new Error("Invalid integer");
+      if (Number.isNaN(num)) throw new Error("Invalid integer");
       return num;
     }),
   ]),
@@ -82,7 +95,7 @@ export const zodTypeMap = {
     z.number(),
     z.string().transform((val) => {
       const num = parseFloat(val);
-      if (isNaN(num)) throw new Error("Invalid float");
+      if (Number.isNaN(num)) throw new Error("Invalid float");
       return num;
     }),
   ]),
@@ -142,7 +155,7 @@ export const zodTypeMap = {
         // 检查是否包含小数点
         if (val.includes(".")) throw new Error("Invalid integer");
         const num = parseInt(val, 10);
-        if (isNaN(num)) throw new Error("Invalid integer");
+        if (Number.isNaN(num)) throw new Error("Invalid integer");
         return num;
       }),
     ])
@@ -174,7 +187,9 @@ export function createZodSchema(typeInfo: ISchemaType | string): ZodType {
     }
   } else if (typeInfo.type === "Array" && typeInfo.params) {
     const itemSchema =
-      typeof typeInfo.params === "string" ? createZodSchema(typeInfo.params) : createZodSchema(typeInfo.params);
+      typeof typeInfo.params === "string"
+        ? createZodSchema({ type: typeInfo.params } as ISchemaType)
+        : createZodSchema(typeInfo.params as ISchemaType);
     schema = z.array(itemSchema);
   } else if (typeInfo.type === "JSON") {
     // JSON 类型特殊处理
@@ -185,7 +200,8 @@ export function createZodSchema(typeInfo: ISchemaType | string): ZodType {
     typeof typeInfo.params === "object"
   ) {
     // 数值类型特殊处理：当有 min/max 参数时，需要创建支持 min/max 的基础 schema
-    let baseSchema: any;
+    const numericParams = typeInfo.params as INumericParams;
+    let baseSchema: z.ZodNumber;
     if (typeInfo.type === "Number") {
       baseSchema = z.number();
     } else if (typeInfo.type === "Integer") {
@@ -193,15 +209,15 @@ export function createZodSchema(typeInfo: ISchemaType | string): ZodType {
     } else if (typeInfo.type === "Float") {
       baseSchema = z.number();
     } else {
-      baseSchema = zodTypeMap[typeInfo.type as keyof typeof zodTypeMap] || z.any();
+      baseSchema = z.number();
     }
 
     // 应用 min/max 约束
-    if (typeInfo.params.min !== undefined) {
-      baseSchema = baseSchema.min(typeInfo.params.min);
+    if (numericParams.min !== undefined) {
+      baseSchema = baseSchema.min(numericParams.min);
     }
-    if (typeInfo.params.max !== undefined) {
-      baseSchema = baseSchema.max(typeInfo.params.max);
+    if (numericParams.max !== undefined) {
+      baseSchema = baseSchema.max(numericParams.max);
     }
 
     // 为了保持与原有 union 类型的兼容性，仍然支持字符串输入
@@ -209,14 +225,15 @@ export function createZodSchema(typeInfo: ISchemaType | string): ZodType {
       baseSchema,
       z.string().transform((val) => {
         const num = typeInfo.type === "Integer" ? parseInt(val, 10) : Number(val);
-        if (isNaN(num)) throw new Error(`Invalid ${typeInfo.type.toLowerCase()}`);
+        if (Number.isNaN(num)) throw new Error(`Invalid ${typeInfo.type.toLowerCase()}`);
 
         // 验证转换后的数值是否满足约束
-        if (typeInfo.params.min !== undefined && num < typeInfo.params.min) {
-          throw new Error(`Value ${num} is below minimum ${typeInfo.params.min}`);
+        const numericParams = typeInfo.params as INumericParams;
+        if (numericParams.min !== undefined && num < numericParams.min) {
+          throw new Error(`Value ${num} is below minimum ${numericParams.min}`);
         }
-        if (typeInfo.params.max !== undefined && num > typeInfo.params.max) {
-          throw new Error(`Value ${num} is above maximum ${typeInfo.params.max}`);
+        if (numericParams.max !== undefined && num > numericParams.max) {
+          throw new Error(`Value ${num} is above maximum ${numericParams.max}`);
         }
 
         return num;
@@ -234,7 +251,7 @@ export function createZodSchema(typeInfo: ISchemaType | string): ZodType {
 
   // 处理默认值
   if (typeInfo.default !== undefined) {
-    schema = (schema as any).default(typeInfo.default);
+    schema = schema.default(typeInfo.default);
   }
 
   return schema;
@@ -243,23 +260,20 @@ export function createZodSchema(typeInfo: ISchemaType | string): ZodType {
 const schemaDebug = create("params:schema");
 const apiDebug = create("params:api");
 
-export function paramsChecker(ctx: ERest<any>, name: string, input: any, typeInfo: ISchemaType): any {
+export function paramsChecker(ctx: ERest<unknown>, name: string, input: unknown, typeInfo: ISchemaType): unknown {
   const { error } = ctx.privateInfo;
 
   try {
     // Array 类型特殊处理 - 需要处理元素的format属性
     if (typeInfo.type === "Array" && Array.isArray(input) && typeInfo.params) {
-      const elementTypeInfo =
+      const _elementTypeInfo =
         typeof typeInfo.params === "string" ? ({ type: typeInfo.params } as ISchemaType) : typeInfo.params;
 
       // 对所有数组元素类型进行特殊处理
       const processedArray = input.map((item, index) => {
-        try {
-          return paramsChecker(ctx, `${name}[${index}]`, item, elementTypeInfo);
-        } catch (e: any) {
-          // 重新抛出错误，保持原有的错误格式
-          throw e;
-        }
+        const elementTypeInfo: ISchemaType =
+          typeof typeInfo.params === "string" ? { type: typeInfo.params } : (typeInfo.params as ISchemaType);
+        return paramsChecker(ctx, `${name}[${index}]`, item, elementTypeInfo);
       });
       return processedArray;
     }
@@ -270,7 +284,7 @@ export function paramsChecker(ctx: ERest<any>, name: string, input: any, typeInf
         try {
           const parsed = JSON.parse(input);
           return typeInfo.format !== false ? parsed : input;
-        } catch (e) {
+        } catch (_e) {
           throw error.invalidParameter(`'${name}' should be valid JSON`);
         }
       }
@@ -311,31 +325,40 @@ export function paramsChecker(ctx: ERest<any>, name: string, input: any, typeInf
     const result = schema.parse(input);
     debug("paramsChecker: ", input, "success", result);
     return result;
-  } catch (zodError: any) {
-    debug("paramsChecker: ", input, "failed", zodError.message);
+  } catch (zodError: unknown) {
+    debug("paramsChecker: ", input, "failed", (zodError as Error).message);
 
     // 如果错误已经是我们自定义的参数错误（比如来自数组元素验证），直接重新抛出
-    if (zodError.message && zodError.message.includes("incorrect parameter")) {
+    if ((zodError as Error).message?.includes("incorrect parameter")) {
       throw zodError;
     }
 
     // 处理 Zod transform 函数抛出的错误
-    if (zodError.message && typeof zodError.message === "string") {
+    if ((zodError as Error).message && typeof (zodError as Error).message === "string") {
       if (
-        zodError.message.includes("Invalid integer") ||
-        zodError.message.includes("Invalid number") ||
-        zodError.message.includes("Invalid float")
+        (zodError as Error).message.includes("Invalid integer") ||
+        (zodError as Error).message.includes("Invalid number") ||
+        (zodError as Error).message.includes("Invalid float")
       ) {
         throw error.invalidParameter(`'${name}' should be valid ${typeInfo.type}`);
       }
-      if (zodError.message.includes("Invalid boolean")) {
+      if ((zodError as Error).message.includes("Invalid boolean")) {
         throw error.invalidParameter(`'${name}' should be valid ${typeInfo.type}`);
       }
     }
 
     // 处理 Zod 验证错误
-    if (zodError.issues && zodError.issues.length > 0) {
-      const err = zodError.issues[0];
+    interface ZodErrorWithIssues {
+      issues?: Array<{
+        code: string;
+        path?: unknown[];
+        message?: string;
+      }>;
+    }
+
+    const zodErr = zodError as ZodErrorWithIssues;
+    if (zodErr.issues && zodErr.issues.length > 0) {
+      const err = zodErr.issues[0];
 
       // ENUM 类型特殊错误消息
       if (
@@ -343,16 +366,17 @@ export function paramsChecker(ctx: ERest<any>, name: string, input: any, typeInf
         typeInfo.params &&
         (err.code === "invalid_enum_value" || err.code === "invalid_union")
       ) {
+        const enumParams = typeInfo.params as IEnumParams;
         throw error.invalidParameter(
-          `'${name}' should be valid ENUM with additional restrictions: ${typeInfo.params.join(",")}`
+          `'${name}' should be valid ENUM with additional restrictions: ${enumParams.join(",")}`
         );
       }
 
       // Array 类型错误处理
       if (typeInfo.type === "Array" && err.path && err.path.length > 0) {
-        const pathStr = err.path.map((p: any) => `[${p}]`).join("");
+        const pathStr = err.path.map((p: unknown) => `[${p}]`).join("");
         const elementType =
-          typeof typeInfo.params === "string" ? typeInfo.params : (typeInfo.params && typeInfo.params.type) || "JSON";
+          typeof typeInfo.params === "string" ? typeInfo.params : (typeInfo.params as ISchemaType)?.type || "JSON";
         throw error.invalidParameter(`'${name}${pathStr}' should be valid ${elementType}`);
       }
     }
@@ -362,8 +386,8 @@ export function paramsChecker(ctx: ERest<any>, name: string, input: any, typeInf
   }
 }
 
-export function schemaChecker<T extends Record<string, any>>(
-  ctx: ERest<any>,
+export function schemaChecker<T extends Record<string, unknown>>(
+  ctx: ERest<unknown>,
   data: T,
   schema: SchemaType | Record<string, ISchemaType>,
   requiredOneOf: string[] = []
@@ -392,7 +416,7 @@ export function schemaChecker<T extends Record<string, any>>(
           const itemSchema =
             typeof typeInfo.params === "string"
               ? createZodSchema({ type: typeInfo.params } as ISchemaType)
-              : createZodSchema(typeInfo.params);
+              : createZodSchema(typeInfo.params as ISchemaType);
           fieldSchema = z.array(itemSchema);
         } else {
           fieldSchema = zodTypeMap[typeInfo.type as keyof typeof zodTypeMap] || z.any();
@@ -408,11 +432,12 @@ export function schemaChecker<T extends Record<string, any>>(
           let baseSchema = typeInfo.type === "Integer" ? z.number().int() : z.number();
 
           // 应用 min/max 约束
-          if (typeInfo.params.min !== undefined) {
-            baseSchema = baseSchema.min(typeInfo.params.min);
+          const numericParams = typeInfo.params as INumericParams;
+          if (numericParams.min !== undefined) {
+            baseSchema = baseSchema.min(numericParams.min);
           }
-          if (typeInfo.params.max !== undefined) {
-            baseSchema = baseSchema.max(typeInfo.params.max);
+          if (numericParams.max !== undefined) {
+            baseSchema = baseSchema.max(numericParams.max);
           }
 
           // 创建与原有 union 类型兼容的 schema
@@ -422,7 +447,7 @@ export function schemaChecker<T extends Record<string, any>>(
               .string()
               .transform((val) => {
                 const num = Number(val);
-                if (isNaN(num)) throw new Error("Invalid number");
+                if (Number.isNaN(num)) throw new Error("Invalid number");
                 if (typeInfo.type === "Integer" && !Number.isInteger(num)) {
                   throw new Error("Invalid integer");
                 }
@@ -434,10 +459,10 @@ export function schemaChecker<T extends Record<string, any>>(
 
         // 处理默认值和可选字段
         if (typeInfo.default !== undefined) {
-          fieldSchema = (fieldSchema as any).default(typeInfo.default);
+          fieldSchema = (fieldSchema as z.ZodType).default(typeInfo.default);
         }
         if (!typeInfo.required) {
-          fieldSchema = (fieldSchema as any).optional();
+          fieldSchema = (fieldSchema as z.ZodType).optional();
         }
 
         schemaFields[key] = fieldSchema;
@@ -447,7 +472,7 @@ export function schemaChecker<T extends Record<string, any>>(
       throw new Error("Invalid schema type");
     }
 
-    const value = zodSchema.parse(data) as any;
+    const value = zodSchema.parse(data) as Record<string, unknown>;
 
     // 可选参数检查
     let req = requiredOneOf.length < 1;
@@ -459,17 +484,19 @@ export function schemaChecker<T extends Record<string, any>>(
     if (!req) throw error.missingParameter(`one of ${requiredOneOf.join(", ")} is required`);
 
     return value;
-  } catch (zodError: any) {
-    if (zodError.issues) {
+  } catch (zodError: unknown) {
+    const zodErr = zodError as {
+      issues?: Array<{ code: string; received?: unknown; path: string[]; expected?: string; errors?: unknown[] }>;
+    };
+    if (zodErr.issues) {
       // 处理原生 Zod Schema 的错误
       if (isZodSchema(schema)) {
         // 对于原生 Zod Schema，直接处理 Zod 错误
         if (requiredOneOf.length > 0) {
           // 检查requiredOneOf中是否至少有一个字段存在
           const hasRequiredOneOf = requiredOneOf.some((fieldName) => {
-            return !zodError.issues.some(
-              (err: any) =>
-                err.code === "invalid_type" && err.received === undefined && err.path.join(".") === fieldName
+            return !zodErr.issues?.some(
+              (err) => err.code === "invalid_type" && err.received === undefined && err.path.join(".") === fieldName
             );
           });
 
@@ -479,7 +506,7 @@ export function schemaChecker<T extends Record<string, any>>(
         }
 
         // 处理原生 Zod Schema 的验证错误
-        for (const err of zodError.issues) {
+        for (const err of zodErr.issues || []) {
           const fieldName = err.path.join(".") || "value";
 
           if (err.code === "invalid_type" && err.received === undefined) {
@@ -501,9 +528,8 @@ export function schemaChecker<T extends Record<string, any>>(
         if (requiredOneOf.length > 0) {
           // 检查requiredOneOf中是否至少有一个字段存在
           const hasRequiredOneOf = requiredOneOf.some((fieldName) => {
-            return !zodError.issues.some(
-              (err: any) =>
-                err.code === "invalid_type" && err.received === undefined && err.path.join(".") === fieldName
+            return !(zodErr.issues || []).some(
+              (err) => err.code === "invalid_type" && err.received === undefined && err.path.join(".") === fieldName
             );
           });
 
@@ -512,7 +538,7 @@ export function schemaChecker<T extends Record<string, any>>(
           }
         } else {
           // 如果没有requiredOneOf，优先检查必填字段缺失
-          for (const err of zodError.issues) {
+          for (const err of zodErr.issues || []) {
             let fieldName: string | undefined;
             let isUndefinedError = false;
 
@@ -521,8 +547,12 @@ export function schemaChecker<T extends Record<string, any>>(
               isUndefinedError = true;
             } else if (err.code === "invalid_union" && err.path.length > 0) {
               // 检查union错误中是否包含undefined类型错误
-              const hasUndefinedError = err.errors?.some((errorGroup: any[]) =>
-                errorGroup.some((e: any) => e.code === "invalid_type" && e.received === undefined)
+              const hasUndefinedError = err.errors?.some(
+                (errorGroup: unknown) =>
+                  Array.isArray(errorGroup) &&
+                  errorGroup.some(
+                    (e: { code?: string; received?: unknown }) => e.code === "invalid_type" && e.received === undefined
+                  )
               );
               if (hasUndefinedError) {
                 fieldName = err.path.join(".");
@@ -532,7 +562,7 @@ export function schemaChecker<T extends Record<string, any>>(
 
             if (isUndefinedError && fieldName) {
               const fieldInfo = fieldSchema[fieldName];
-              if (fieldInfo && fieldInfo.required && fieldInfo.default === undefined) {
+              if (fieldInfo?.required && fieldInfo.default === undefined) {
                 throw error.missingParameter(`'${fieldName}'`);
               }
             }
@@ -540,7 +570,7 @@ export function schemaChecker<T extends Record<string, any>>(
         }
 
         // 然后处理其他类型的错误
-        for (const err of zodError.issues) {
+        for (const err of zodErr.issues || []) {
           const fieldName = err.path.join(".");
           const fieldInfo = fieldSchema[fieldName];
 
@@ -548,8 +578,12 @@ export function schemaChecker<T extends Record<string, any>>(
           if (
             (err.code === "invalid_type" && err.received === undefined) ||
             (err.code === "invalid_union" &&
-              err.errors?.some((errorGroup: any[]) =>
-                errorGroup.some((e: any) => e.code === "invalid_type" && e.received === undefined)
+              err.errors?.some(
+                (errorGroup: unknown) =>
+                  Array.isArray(errorGroup) &&
+                  errorGroup.some(
+                    (e: { code?: string; received?: unknown }) => e.code === "invalid_type" && e.received === undefined
+                  )
               ))
           ) {
             // 如果是缺失字段但不是必填字段（或有默认值），报告类型错误
@@ -567,28 +601,29 @@ export function schemaChecker<T extends Record<string, any>>(
       }
     }
     // 处理 transform 函数抛出的错误
-    if (zodError.message && typeof zodError.message === "string") {
+    const zodErrWithMessage = zodError as { message?: string };
+    if (zodErrWithMessage.message && typeof zodErrWithMessage.message === "string") {
       if (isZodSchema(schema)) {
         // 对于原生 Zod Schema，直接使用错误消息
-        throw error.invalidParameter(zodError.message);
+        throw error.invalidParameter(zodErrWithMessage.message);
       } else {
         // 尝试从错误消息中提取字段信息
         const fieldNames = Object.keys(schema as Record<string, ISchemaType>);
         for (const fieldName of fieldNames) {
           const fieldSchema = schema as Record<string, ISchemaType>;
           const fieldType = fieldSchema[fieldName]?.type;
-          if (fieldType && zodError.message.includes("Invalid")) {
+          if (fieldType && zodErrWithMessage.message.includes("Invalid")) {
             throw error.invalidParameter(`'${fieldName}' should be valid ${fieldType}`);
           }
         }
       }
     }
-    throw error.invalidParameter(JSON.stringify(zodError.issues || zodError.message));
+    throw error.invalidParameter(JSON.stringify(zodErr.issues || zodErrWithMessage.message));
   }
 }
 
-export function responseChecker<T extends Record<string, any>>(
-  ctx: ERest<any>,
+export function responseChecker<T extends Record<string, unknown>>(
+  _ctx: ERest<unknown>,
   data: T,
   schema: ISchemaType | SchemaType | Record<string, ISchemaType>
 ) {
@@ -613,9 +648,9 @@ export function responseChecker<T extends Record<string, any>>(
 
     const value = zodSchema.parse(data);
     return { ok: true, message: "success", value };
-  } catch (zodError: any) {
+  } catch (zodError: unknown) {
     // 响应验证失败时返回原始数据，避免破坏正常流程
-    debug("responseChecker failed:", zodError.message);
+    debug("responseChecker failed:", (zodError as { message?: string }).message);
     return data;
   }
 }
@@ -624,22 +659,22 @@ export function responseChecker<T extends Record<string, any>>(
  * API 参数检查
  */
 export function apiParamsCheck(
-  ctx: ERest<any>,
-  schema: API<any>,
-  params?: Record<string, any>,
-  query?: Record<string, any>,
-  body?: Record<string, any>,
-  headers?: Record<string, any>
+  ctx: ERest<unknown>,
+  schema: API<unknown>,
+  params?: Record<string, unknown>,
+  query?: Record<string, unknown>,
+  body?: Record<string, unknown>,
+  headers?: Record<string, unknown>
 ) {
   const { error } = ctx.privateInfo;
-  const newParams: Record<string, any> = {};
+  const newParams: Record<string, unknown> = {};
 
   // 检查 params - 支持原生 Zod Schema 和 ISchemaType
   if (schema.options.paramsSchema && params) {
     const res = schemaChecker(ctx, params, schema.options.paramsSchema);
     Object.assign(newParams, res);
   } else if (schema.options.params && params && Object.keys(schema.options.params).length > 0) {
-    const res = schemaChecker(ctx, params, schema.options.params);
+    const res = schemaChecker(ctx, params, schema.options.params as Record<string, ISchemaType>);
     Object.assign(newParams, res);
   }
 
@@ -648,7 +683,7 @@ export function apiParamsCheck(
     const res = schemaChecker(ctx, query, schema.options.querySchema);
     Object.assign(newParams, res);
   } else if (schema.options.query && query && Object.keys(schema.options.query).length > 0) {
-    const res = schemaChecker(ctx, query, schema.options.query);
+    const res = schemaChecker(ctx, query, schema.options.query as Record<string, ISchemaType>);
     Object.assign(newParams, res);
   }
 
@@ -657,7 +692,7 @@ export function apiParamsCheck(
     const res = schemaChecker(ctx, body, schema.options.bodySchema);
     Object.assign(newParams, res);
   } else if (schema.options.body && body && Object.keys(schema.options.body).length > 0) {
-    const res = schemaChecker(ctx, body, schema.options.body);
+    const res = schemaChecker(ctx, body, schema.options.body as Record<string, ISchemaType>);
     Object.assign(newParams, res);
   }
 
@@ -666,7 +701,7 @@ export function apiParamsCheck(
     const res = schemaChecker(ctx, headers, schema.options.headersSchema);
     Object.assign(newParams, res);
   } else if (schema.options.headers && headers && Object.keys(schema.options.headers).length > 0) {
-    const res = schemaChecker(ctx, headers, schema.options.headers);
+    const res = schemaChecker(ctx, headers, schema.options.headers as Record<string, ISchemaType>);
     Object.assign(newParams, res);
   }
 

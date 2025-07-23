@@ -4,12 +4,12 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import { strict as assert } from "assert";
-import * as fs from "fs";
-import * as path from "path";
+import { strict as assert } from "node:assert";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import type ERest from "..";
 import type { IApiOptionInfo, IDocOptions } from "..";
-import type { APIOption } from "../api";
+import type { APIOption, IExample } from "../api";
 import { docs as debug } from "../debug";
 import type { ErrorManager } from "../manager";
 import generateAsiox from "../plugin/generate_axios";
@@ -55,11 +55,11 @@ export interface IDocData {
   /** 基础数据类型 */
   types: Record<string, IDocTypes>;
   /** API */
-  apis: Record<string, APIOption<any>>;
+  apis: Record<string, APIOption<unknown>>;
   /** 文档Schema */
-  schema: any;
+  schema: unknown;
   /** 类型管理器 */
-  typeManager: any;
+  typeManager: unknown;
   /** 错误信息 */
   errorManager: ErrorManager;
   /** API统计信息 */
@@ -94,7 +94,7 @@ export interface IDocTypes {
 }
 
 /** 默认文档输出格式化 */
-const docOutputFormat = (out: any) => out;
+const docOutputFormat = (out: unknown) => out;
 /** 默认文档输出函数（直接写文件） */
 const docWriteSync: IDocWritter = (path: string, data: string) => fs.writeFileSync(path, data);
 
@@ -104,7 +104,7 @@ function generateJosn(data: IDocData, dir: string, options: IDocOptions, writer:
 }
 
 export default class IAPIDoc {
-  private erest: ERest<any>;
+  private erest: ERest<unknown>;
   private info: IApiOptionInfo;
   private groups: Record<string, string>;
   private docsOptions: IDocOptions;
@@ -112,7 +112,7 @@ export default class IAPIDoc {
   private writer: IDocWritter = docWriteSync;
   private docDataCache: IDocData | null = null;
 
-  constructor(erestIns: ERest<any>) {
+  constructor(erestIns: ERest<unknown>) {
     this.erest = erestIns;
     const { info, groups, docsOptions } = this.erest.privateInfo;
     this.info = info;
@@ -134,7 +134,7 @@ export default class IAPIDoc {
       typeManager: this.erest.type,
       group: this.groups,
       types: {} as Record<string, IDocTypes>,
-      apis: {} as Record<string, APIOption<any>>,
+      apis: {} as Record<string, APIOption<unknown>>,
       apiInfo: {
         count: 0,
         tested: 0,
@@ -157,14 +157,16 @@ export default class IAPIDoc {
 
     for (const [k, schema] of this.erest.api.$apis.entries()) {
       const o = schema.options;
-      data.apis[k] = {} as APIOption<any>;
+      data.apis[k] = {} as APIOption<unknown>;
       for (const key of DOC_FIELD) {
         data.apis[k][key] = o[key];
       }
       const examples = data.apis[k].examples;
       if (examples) {
-        examples.forEach((item: any) => {
-          item.output = formatOutput(item.output);
+        examples.forEach((item: IExample) => {
+          if (item && typeof item === "object") {
+            item.output = formatOutput(item.output) as Record<string, unknown>;
+          }
         });
       }
     }
@@ -200,7 +202,7 @@ export default class IAPIDoc {
   }
 
   public getSwaggerInfo() {
-    return buildSwagger(this.buildDocData()) as any;
+    return buildSwagger(this.buildDocData()) as unknown;
   }
 
   public registerPlugin(name: string, plugin: IDocGeneratePlugin) {

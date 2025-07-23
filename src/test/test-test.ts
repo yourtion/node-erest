@@ -1,7 +1,7 @@
+import { createReadStream } from "node:fs";
+import * as os from "node:os";
+import { resolve } from "node:path";
 import express from "express";
-import { createReadStream } from "fs";
-import * as os from "os";
-import { resolve } from "path";
 import { vi } from "vitest";
 import { z } from "zod";
 
@@ -40,8 +40,8 @@ apiJson(api, "/json4").query({ a: build("JsonSchema[]", "JsonSchema Array") });
 // 绑定路由并开始测试
 apiService.bindRouter(router, apiService.checkerExpress);
 // 绑定路由后再加载错误处理中间件
-router.use((err: any, req: any, res: any, next: any) => {
-  if (err) return res.end(err.message);
+router.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err) return res.end((err as Error).message);
   next();
 });
 
@@ -49,7 +49,7 @@ router.use((err: any, req: any, res: any, next: any) => {
 apiService.initTest(app, __dirname, os.tmpdir());
 
 // 添加测试格式化函数
-function format(data: any): [Error | null, any] {
+function format(data: unknown): [Error | null, unknown] {
   if (typeof data === "object") {
     if (data.success) {
       return [null, data.result || "success"];
@@ -62,7 +62,7 @@ apiService.setFormatOutput(format);
 
 const DOC_DATA = new Map();
 // 配置文档输出方法
-function writter(path: string, data: any) {
+function writter(path: string, data: unknown) {
   return DOC_DATA.set(path, data);
 }
 apiService.setDocWritter(writter);
@@ -115,10 +115,7 @@ describe.each([
   });
 
   test("Delete success", async () => {
-    const { text: ret } = await agent
-      .delete("/api/index/" + share.name)
-      .takeExample("Index-Delete")
-      .raw();
+    const { text: ret } = await agent.delete(`/api/index/${share.name}`).takeExample("Index-Delete").raw();
     expect(ret).toBe(`Delete ${share.name}`);
   });
 
@@ -259,7 +256,7 @@ describe.each([
 describe("Doc - 文档生成", () => {
   beforeAll(async () => {
     // 添加自定义类型用于文档生成
-    apiService.type.register("Any2", z.any());
+    apiService.type.register("Any2", z.unknown());
   });
 
   test("Gen docs", () => {
@@ -268,7 +265,7 @@ describe("Doc - 文档生成", () => {
   });
 
   test("Docs plugin", () => {
-    const mockPlugin = vi.fn((data, dir, options, writter) => {});
+    const mockPlugin = vi.fn((_data, _dir, _options, _writter) => {});
     apiService.addDocPlugin("test", mockPlugin);
     apiService.genDocs("/", false);
     expect(mockPlugin.mock.calls.length).toBe(1);

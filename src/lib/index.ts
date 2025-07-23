@@ -3,7 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import { strict as assert } from "assert";
+import { strict as assert } from "node:assert";
 import { ZodRawShape, ZodType, z } from "zod";
 import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api";
 import { core as debug } from "./debug";
@@ -21,7 +21,7 @@ import {
   zodTypeMap,
 } from "./params";
 import * as utils from "./utils";
-import { camelCase2underscore, getCallerSourceLine, type ISupportMethds } from "./utils";
+import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils";
 
 export * from "./api";
 export * from "./params";
@@ -35,21 +35,21 @@ const internalError = (msg: string) => new Error(`internal error ${msg}`);
 export type genSchema<T> = Readonly<ISupportMethds<(path: string) => API<T>>>;
 
 /** 组方法 */
-export interface IGruop<T> extends Record<string, any>, genSchema<T> {
+export interface IGruop<T> extends Record<string, unknown>, genSchema<T> {
   define: (opt: APIDefine<T>) => API<T>;
   before: (...fn: T[]) => IGruop<T>;
   middleware: (...fn: T[]) => IGruop<T>;
 }
 
 /** API接口定义 */
-export interface IApiInfo<T> extends Record<string, any>, genSchema<T> {
+export interface IApiInfo<T> extends Record<string, unknown>, genSchema<T> {
   readonly $apis: Map<string, API<T>>;
   define: (opt: APIDefine<T>) => API<T>;
   beforeHooks: Set<T>;
   afterHooks: Set<T>;
   docs?: IAPIDoc;
-  formatOutputReverse?: (out: any) => [Error | null, any];
-  docOutputForamt?: (out: any) => any;
+  formatOutputReverse?: (out: unknown) => [Error | null, unknown];
+  docOutputForamt?: (out: unknown) => unknown;
 }
 
 /** API基础信息 */
@@ -84,7 +84,7 @@ export interface IApiOption {
 }
 
 /** 文档生成信息 */
-export interface IDocOptions extends Record<string, any> {
+export interface IDocOptions extends Record<string, unknown> {
   /** 生成Markdown */
   markdown?: string | boolean;
   /** 生成wiki */
@@ -119,12 +119,12 @@ interface IGroupInfo<T> extends IGroupInfoOpt {
  * Easy rest api helper
  */
 export default class ERest<T = DEFAULT_HANDLER> {
-  public shareTestData?: any;
+  public shareTestData?: unknown;
   public utils = utils;
 
   private apiInfo: IApiInfo<T>;
   private testAgent: IAPITest = {} as IAPITest;
-  private app: any;
+  private app: unknown;
   private info: IApiOptionInfo;
   private config: IAPIConfig;
   private error: {
@@ -146,7 +146,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
     prefix?: string | undefined
   ) => API<T>;
   private defineAPI: (options: APIDefine<T>, group?: string | undefined, prefix?: string | undefined) => API<T>;
-  private mockHandler?: (data: any) => T;
+  private mockHandler?: (data: unknown) => T;
 
   /**
    * 获取私有变量信息
@@ -191,7 +191,12 @@ export default class ERest<T = DEFAULT_HANDLER> {
     register: (name: string, schema: ZodType) => ERest<T>;
     get: (name: string) => ZodType | undefined;
     has: (name: string) => boolean;
-    value: (type: string, input: any, params?: any, format?: boolean) => { ok: boolean; message: string; value: any };
+    value: (
+      type: string,
+      input: unknown,
+      params?: unknown,
+      format?: boolean
+    ) => { ok: boolean; message: string; value: unknown };
   } {
     return {
       register: (name: string, schema: ZodType) => {
@@ -200,7 +205,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       },
       get: (name: string) => this.typeRegistry.get(name),
       has: (name: string) => this.typeRegistry.has(name),
-      value: (type: string, input: any, params?: any, format?: boolean) => {
+      value: (type: string, input: unknown, _params?: unknown, _format?: boolean) => {
         const schema = this.typeRegistry.get(type) || zodTypeMap[type as keyof typeof zodTypeMap];
         if (!schema) {
           return { ok: false, message: `Unknown type: ${type}`, value: input };
@@ -208,8 +213,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
         try {
           const result = schema.parse(input);
           return { ok: true, message: "", value: result };
-        } catch (error: any) {
-          return { ok: false, message: error.message, value: input };
+        } catch (error: unknown) {
+          return { ok: false, message: error instanceof Error ? error.message : String(error), value: input };
         }
       },
     };
@@ -222,7 +227,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
     register: (name: string, schema: ZodType) => void;
     get: (name: string) => ZodType | undefined;
     has: (name: string) => boolean;
-    check: (name: string, value: any) => boolean;
+    check: (name: string, value: unknown) => boolean;
     createZodSchema: (schemaType: ISchemaType) => ZodType;
   } {
     return {
@@ -236,7 +241,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       has: (name: string) => {
         return this.schemaRegistry.has(name);
       },
-      check: (name: string, value: any) => {
+      check: (name: string, value: unknown) => {
         const schema = this.schemaRegistry.get(name);
         if (!schema) return false;
         try {
@@ -256,7 +261,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * 创建 Schema 对象
    */
   createSchema(schemaObj: Record<string, ISchemaType>) {
-    const schemaFields: Record<string, any> = {};
+    const schemaFields: Record<string, ZodType> = {};
     for (const [key, typeInfo] of Object.entries(schemaObj)) {
       schemaFields[key] = createZodSchema(typeInfo);
     }
@@ -278,8 +283,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
     this.groups = {};
     this.groupInfo = {};
     for (const g of Object.keys(options.groups || {})) {
-      const gInfo = options.groups![g];
-      this.groups[g] = typeof gInfo === "string" ? gInfo : gInfo.name;
+      const gInfo = options.groups?.[g];
+      this.groups[g] = typeof gInfo === "string" ? gInfo : gInfo?.name || "";
       const gI = typeof gInfo === "string" ? { name: gInfo } : gInfo;
       this.groupInfo[g] = Object.assign({ middleware: [], before: [] }, gI);
     }
@@ -288,7 +293,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
     this.registAPI = (method: SUPPORT_METHODS, path: string, group?: string, prefix?: string) => {
       if (this.forceGroup) {
         assert(group, "使用 forceGroup 但是没有通过 group 注册");
-        assert(group! in this.groups, `请先配置 ${group} 类型`);
+        assert(group && group in this.groups, `请先配置 ${group} 类型`);
       } else {
         assert(!group, "请开启 forceGroup 再使用 group 功能");
       }
@@ -296,8 +301,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
-        `尝试注册API：${s.key}（所在文件：${s.options.sourceFile.absolute}）失败，因为该API已在文件${
-          s2 && s2.options.sourceFile.absolute
+        `尝试注册API：${s.key}（所在文件：${(s.options.sourceFile as SourceResult)?.absolute}）失败，因为该API已在文件${
+          (s2?.options.sourceFile as SourceResult)?.absolute
         }中注册过`
       );
 
@@ -311,8 +316,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
-        `尝试注册API：${s.key}（所在文件：${s.options.sourceFile.absolute}）失败，因为该API已在文件${
-          s2 && s2.options.sourceFile.absolute
+        `尝试注册API：${s.key}（所在文件：${(s.options.sourceFile as SourceResult)?.absolute}）失败，因为该API已在文件${
+          (s2?.options.sourceFile as SourceResult)?.absolute
         }中注册过`
       );
 
@@ -335,7 +340,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
 
     // 初始化文档生成
     const getDocOpt = (key: string, def: string | boolean): string | boolean => {
-      return options.docs && options.docs[key] !== undefined ? options.docs[key] : def;
+      return options.docs && options.docs[key] !== undefined ? (options.docs[key] as string | boolean) : def;
     };
     this.docsOptions = {
       markdown: getDocOpt("markdown", true),
@@ -357,26 +362,29 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * 获取参数检查实例
    */
   public paramsChecker() {
-    return (name: string, value: any, schema: ISchemaType) => paramsChecker(this, name, value, schema);
+    return (name: string, value: unknown, schema: ISchemaType) =>
+      paramsChecker(this as ERest<unknown>, name, value, schema);
   }
 
   /**
    * 获取Schema检查实例
    */
   public schemaChecker() {
-    return (data: any, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
-      schemaChecker(this, data, schema, requiredOneOf);
+    return (data: unknown, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
+      schemaChecker(this as ERest<unknown>, data as Record<string, unknown>, schema, requiredOneOf);
   }
 
   public responseChecker() {
-    return (data: any, schema: ISchemaType) => responseChecker(this, data, schema);
+    return (data: unknown, schema: ISchemaType) =>
+      responseChecker(this as ERest<unknown>, data as Record<string, unknown>, schema);
   }
 
   /**
    * 获取API参数检查实例
    */
   public apiParamsCheck() {
-    return (data: any, schema: Record<string, ISchemaType>) => apiParamsCheck(this, data, schema);
+    return (data: unknown, schema: Record<string, ISchemaType>) =>
+      apiParamsCheck(this as ERest<unknown>, data as API<unknown>, schema);
   }
 
   /**
@@ -385,15 +393,15 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * @param testPath 测试文件路径
    * @param docPath 输出文件路径
    */
-  public initTest(app: any, testPath = process.cwd(), docPath = process.cwd() + "/docs/") {
+  public initTest(app: unknown, testPath = process.cwd(), docPath = `${process.cwd()}/docs/`) {
     if (this.app && this.testAgent) {
       return;
     }
     debug("initTest: %s %s", testPath, docPath);
     this.app = app;
-    this.testAgent = new IAPITest(this, testPath);
+    this.testAgent = new IAPITest(this as ERest<unknown>, testPath);
     if (!this.api.docs) {
-      this.api.docs = new IAPIDoc(this);
+      this.api.docs = new IAPIDoc(this as ERest<unknown>);
     }
     this.genDocs(docPath);
   }
@@ -401,14 +409,14 @@ export default class ERest<T = DEFAULT_HANDLER> {
   /**
    * 设置测试格式化函数
    */
-  public setFormatOutput(fn: (out: any) => [Error | null, any]) {
+  public setFormatOutput(fn: (out: unknown) => [Error | null, unknown]) {
     this.apiInfo.formatOutputReverse = fn;
   }
 
   /**
    * 设置文档格式化函数
    */
-  public setDocOutputForamt(fn: (out: any) => any) {
+  public setDocOutputForamt(fn: (out: unknown) => unknown) {
     this.apiInfo.docOutputForamt = fn;
   }
 
@@ -416,10 +424,10 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * 设置文档格式化函数
    */
   public setDocWritter(fn: IDocWritter) {
-    this.apiInfo.docs!.setWritter(fn);
+    this.apiInfo.docs?.setWritter(fn);
   }
 
-  public setMockHandler(fn: (data: any) => T) {
+  public setMockHandler(fn: (data: unknown) => T) {
     this.mockHandler = fn;
   }
 
@@ -427,7 +435,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * 注册文档生成组件
    */
   public addDocPlugin(name: string, plugin: IDocGeneratePlugin) {
-    this.apiInfo.docs!.registerPlugin(name, plugin);
+    this.apiInfo.docs?.registerPlugin(name, plugin);
   }
 
   /**
@@ -435,7 +443,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
    */
   public buildSwagger() {
     if (!this.api.docs) {
-      this.api.docs = new IAPIDoc(this);
+      this.api.docs = new IAPIDoc(this as ERest<unknown>);
     }
     return this.api.docs.getSwaggerInfo();
   }
@@ -492,9 +500,9 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * @param savePath 文档保存路径
    * @param onExit 是否等待程序退出再保存
    */
-  public genDocs(savePath = process.cwd() + "/docs/", onExit = true) {
+  public genDocs(savePath = `${process.cwd()}/docs/`, onExit = true) {
     if (!this.api.docs) {
-      this.api.docs = new IAPIDoc(this);
+      this.api.docs = new IAPIDoc(this as ERest<unknown>);
     }
     const docs = this.api.docs;
     docs.genDocs();
@@ -506,37 +514,51 @@ export default class ERest<T = DEFAULT_HANDLER> {
   }
 
   public checkerLeiWeb<K>(ereat: ERest<T>, schema: API): (ctx: K) => void {
-    return function apiParamsChecker(ctx: any) {
-      ctx.request.$params = apiParamsCheck(
-        ereat,
+    return function apiParamsChecker(ctx: K) {
+      const ctxTyped = ctx as Record<string, unknown> & {
+        request: Record<string, unknown>;
+        next: () => void;
+      };
+      (ctxTyped.request as Record<string, unknown>).$params = apiParamsCheck(
+        ereat as ERest<unknown>,
         schema,
-        ctx.request.params,
-        ctx.request.query,
-        ctx.request.body,
-        ctx.request.headers
+        (ctxTyped.request as Record<string, unknown>).params as Record<string, unknown> | undefined,
+        (ctxTyped.request as Record<string, unknown>).query as Record<string, unknown> | undefined,
+        (ctxTyped.request as Record<string, unknown>).body as Record<string, unknown> | undefined,
+        (ctxTyped.request as Record<string, unknown>).headers as Record<string, unknown> | undefined
       );
-      ctx.next();
+      ctxTyped.next();
     };
   }
 
   public checkerExpress<U, V, W>(ereat: ERest<T>, schema: API): (req: U, res: V, next: W) => void {
-    return function apiParamsChecker(req: any, res: any, next: any) {
-      req.$params = apiParamsCheck(ereat, schema, req.params, req.query, req.body, req.headers);
-      next();
+    return function apiParamsChecker(req: U, _res: V, next: W) {
+      (req as Record<string, unknown>).$params = apiParamsCheck(
+        ereat as ERest<unknown>,
+        schema,
+        (req as Record<string, unknown>).params as Record<string, unknown> | undefined,
+        (req as Record<string, unknown>).query as Record<string, unknown> | undefined,
+        (req as Record<string, unknown>).body as Record<string, unknown> | undefined,
+        (req as Record<string, unknown>).headers as Record<string, unknown> | undefined
+      );
+      (next as () => void)();
     };
   }
 
   public checkerKoa<U, V, W>(erest: ERest<T>, schema: API): (req: U, res: V, next: W) => void {
-    return async function apiParamsCheckerKoa(ctx: any, next: any) {
-      ctx.$params = apiParamsCheck(
-        erest,
+    return async function apiParamsCheckerKoa(ctx: U, next: V) {
+      const ctxTyped = ctx as Record<string, unknown> & {
+        request: Record<string, unknown>;
+      };
+      (ctx as Record<string, unknown>).$params = apiParamsCheck(
+        erest as ERest<unknown>,
         schema,
-        ctx.params, // For path parameters
-        ctx.request.query, // For query parameters
-        ctx.request.body, // For body parameters, ensure body parsing middleware is used
-        ctx.request.headers // For headers
+        ctxTyped.params as Record<string, unknown> | undefined, // For path parameters
+        ctxTyped.request.query as Record<string, unknown> | undefined, // For query parameters
+        ctxTyped.request.body as Record<string, unknown> | undefined, // For body parameters, ensure body parsing middleware is used
+        ctxTyped.request.headers as Record<string, unknown> | undefined // For headers
       );
-      await next();
+      await (next as () => Promise<void>)();
     };
   }
 
@@ -546,14 +568,14 @@ export default class ERest<T = DEFAULT_HANDLER> {
    *
    * @param {Object} router 路由
    */
-  public bindRouter(router: any, checker: (ctx: ERest<T>, schema: API<T>) => T) {
+  public bindRouter(router: unknown, checker: (ctx: ERest<T>, schema: API<T>) => T) {
     if (this.forceGroup) {
       throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
     }
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
       debug("bind router: %s", key);
-      schema.init(this);
-      router[schema.options.method].bind(router)(
+      schema.init(this as ERest<unknown>);
+      (router as Record<string, (...args: unknown[]) => unknown>)[schema.options.method as string].bind(router)(
         schema.options.path,
         ...this.apiInfo.beforeHooks,
         ...schema.options.beforeHooks,
@@ -564,36 +586,38 @@ export default class ERest<T = DEFAULT_HANDLER> {
     }
   }
 
-  public bindKoaRouterToApp(app: any, KoaRouter: any, checker: (erest: ERest<T>, schema: API<T>) => T) {
+  public bindKoaRouterToApp(app: unknown, KoaRouter: unknown, checker: (erest: ERest<T>, schema: API<T>) => T) {
     if (!this.forceGroup) {
       throw this.error.internalError("没有开启 forceGroup，请使用 bindRouterToKoa");
     }
     const routes = new Map();
 
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      schema.init(this);
+      schema.init(this as ERest<unknown>);
       const groupInfo = this.groupInfo[schema.options.group] || { before: [], middleware: [] };
       const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
       debug("bindGroupToKoaApp (api): %s - %s", key, prefix);
 
       let route = routes.get(prefix);
       if (!route) {
-        const routerPrefix = prefix ? (prefix[0] === "/" ? prefix : "/" + prefix) : undefined;
-        route = new KoaRouter(routerPrefix ? { prefix: routerPrefix } : {});
+        const routerPrefix = prefix ? (prefix[0] === "/" ? prefix : `/${prefix}`) : undefined;
+        route = new (KoaRouter as new (options?: { prefix?: string }) => unknown)(
+          routerPrefix ? { prefix: routerPrefix } : {}
+        );
         routes.set(prefix, route);
       }
 
       const handlers = [
-        ...(this.apiInfo.beforeHooks as any),
-        ...(groupInfo.before as any),
-        ...(schema.options.beforeHooks as any),
+        ...Array.from(this.apiInfo.beforeHooks),
+        ...Array.from(groupInfo.before as T[]),
+        ...Array.from(schema.options.beforeHooks),
         checker(this as unknown as ERest<T>, schema as API<T>),
-        ...(groupInfo.middleware as any),
-        ...(schema.options.middlewares as any),
+        ...Array.from(groupInfo.middleware as T[]),
+        ...Array.from(schema.options.middlewares),
         schema.options.handler,
       ].filter((h) => typeof h === "function");
 
-      const routeMethod = schema.options.method.toLowerCase();
+      const routeMethod = (schema.options.method as string).toLowerCase();
       if (typeof route[routeMethod] === "function") {
         route[routeMethod](schema.options.path, ...handlers);
       } else {
@@ -604,8 +628,12 @@ export default class ERest<T = DEFAULT_HANDLER> {
 
     for (const [key, groupRouter] of routes.entries()) {
       debug("bindGroupToKoaApp - applying router for prefix: %s", key);
-      app.use(groupRouter.routes());
-      app.use(groupRouter.allowedMethods());
+      (app as Record<string, (...args: unknown[]) => unknown>).use(
+        (groupRouter as Record<string, (...args: unknown[]) => unknown>).routes()
+      );
+      (app as Record<string, (...args: unknown[]) => unknown>).use(
+        (groupRouter as Record<string, (...args: unknown[]) => unknown>).allowedMethods()
+      );
     }
   }
 
@@ -615,23 +643,23 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * @param {Object} app Express App 实例
    * @param {Object} Router Router 对象
    */
-  public bindRouterToApp(app: any, Router: any, checker: (ctx: ERest<T>, schema: API<T>) => T) {
+  public bindRouterToApp(app: unknown, Router: unknown, checker: (ctx: ERest<T>, schema: API<T>) => T) {
     if (!this.forceGroup) {
       throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
     }
     const routes = new Map();
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      schema.init(this);
+      schema.init(this as ERest<unknown>);
       const groupInfo = this.groupInfo[schema.options.group] || {};
       const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
       debug("bindGroupToApp: %s - %s", key, prefix);
       let route = routes.get(prefix);
       if (!route) {
-        route = new Router();
+        route = new (Router as new () => unknown)();
         routes.set(prefix, route);
       }
 
-      route[schema.options.method].bind(route)(
+      (route as Record<string, (...args: unknown[]) => unknown>)[schema.options.method as string].bind(route)(
         schema.options.path,
         ...this.apiInfo.beforeHooks,
         ...groupInfo.before,
@@ -644,8 +672,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
     }
     for (const [key, value] of routes.entries()) {
       debug("bindGroupToApp - %s", key);
-      const k = key[0] === "/" ? key : "/" + key;
-      app.use(k, value);
+      const k = key[0] === "/" ? key : `/${key}`;
+      (app as Record<string, (...args: unknown[]) => unknown>).use(k, value);
     }
   }
 }

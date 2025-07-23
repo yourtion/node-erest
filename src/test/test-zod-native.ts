@@ -1,6 +1,5 @@
 import { z } from "zod";
 import API from "../lib/api";
-import { TYPES } from "../lib/helper";
 import { isISchemaType, isISchemaTypeRecord, isZodSchema, schemaChecker } from "../lib/params";
 import lib from "./lib";
 
@@ -307,7 +306,7 @@ describe("Zod Native Support Tests", () => {
             preferences: z.array(z.string()),
           }),
         }),
-        metadata: z.record(z.string(), z.any()).optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
       });
 
       const validData = {
@@ -347,11 +346,11 @@ describe("Zod Native Support Tests", () => {
       const api = new API("GET", "/test", mockSourceFile);
 
       expect(() => {
-        api.query("invalid schema" as any);
+        api.query("invalid schema" as unknown);
       }).toThrow(/must be either ISchemaType record or Zod schema/);
 
       expect(() => {
-        api.body(123 as any);
+        api.body(123 as unknown);
       }).toThrow(/must be either ISchemaType record or Zod schema/);
     });
   });

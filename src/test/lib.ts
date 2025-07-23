@@ -5,8 +5,8 @@ import * as ERestModule from "../lib";
 export const ERROR_INFO = Object.freeze({
   DataBaseError: { code: -1004, desc: "数据库错误", show: false, log: true },
   PermissionsError: { code: -1003, desc: "权限不足", show: true, log: true },
-  missingParameterError: (msg: string) => ({ status: 400, message: `Missing Parameter: ${msg}` }) as any,
-  invalidParameterError: (msg: string) => ({ status: 400, message: `Invalid Parameter: ${msg}` }) as any,
+  missingParameterError: (msg: string) => ({ status: 400, message: `Missing Parameter: ${msg}` }),
+  invalidParameterError: (msg: string) => ({ status: 400, message: `Invalid Parameter: ${msg}` }),
 });
 
 /** 基本信息 */
@@ -45,7 +45,7 @@ const DEFAULT_OPTION = Object.freeze({
 /** 获得 ERest 实例 */
 export default (options = {}) => {
   // 根据环境获取包
-  let ERest;
+  let ERest: typeof ERestModule.default;
   if (process.env.ISLIB) {
     // 在测试环境下直接导入源码
     ERest = ERestModule.default;

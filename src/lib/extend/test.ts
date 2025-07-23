@@ -3,31 +3,31 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import { strict as assert } from "assert";
-import type { SuperTest } from "supertest";
+import { strict as assert } from "node:assert";
+import type { SuperTest, Test } from "supertest";
 import type ERest from "..";
 import type { IApiOptionInfo } from "..";
 import { TestAgent } from "../agent";
 import type { SUPPORT_METHODS } from "../api";
 import { test as debug } from "../debug";
-import { getCallerSourceLine, getSchemaKey, type ISupportMethds } from "../utils";
+import { getCallerSourceLine, getSchemaKey, type ISupportMethds, type SourceResult } from "../utils";
 
 /** 测试Agent */
 export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
 
 export interface ITestSession extends IAgent {
   /** 原始SuperTestAgent */
-  readonly $agent: SuperTest<any>;
+  readonly $agent: SuperTest<Test>;
 }
 
 export default class IAPITest {
-  private erest: ERest<any>;
+  private erest: ERest<unknown>;
   private info: IApiOptionInfo;
-  private app: any;
+  private app: unknown;
   private testPath: string;
-  private supertest?: any;
+  private supertest?: unknown;
 
-  constructor(erestIns: ERest<any>, path: string) {
+  constructor(erestIns: ERest<unknown>, path: string) {
     this.erest = erestIns;
     const { info, app } = this.erest.privateInfo;
     this.info = info;
@@ -61,14 +61,14 @@ export default class IAPITest {
     assert(this.app, "请先调用 setApp() 设置 app 实例");
     assert(this.supertest, "请先安装 supertest");
 
-    const agent = this.supertest.agent(this.app);
+    const agent = (this.supertest as { agent: (app: unknown) => SuperTest<Test> }).agent(this.app);
 
     const buildSession = (method: SUPPORT_METHODS) => {
       return (path: string) => {
         const s = this.findApi(method, path);
         if (!s || !s.key) throw new Error(`尝试请求未注册的API：${method} ${path}`);
 
-        const a = new TestAgent(method, path, s.key, s.options.sourceFile, this.erest);
+        const a = new TestAgent(method, path, s.key, s.options.sourceFile as SourceResult, this.erest);
         a.setAgent(agent[method](path));
         return a.agent();
       };

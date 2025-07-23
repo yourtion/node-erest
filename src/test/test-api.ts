@@ -8,15 +8,15 @@ const deleteApi = apiDelete(api);
 apiService.genDocs(os.tmpdir());
 
 test("API - 初始化", () => {
-  const apiInfo = api.$apis.get("DELETE_/index/:name")!;
-  expect(apiInfo.key).toBe("DELETE_/index/:name");
-  expect(apiInfo.options.method).toBe("delete");
-  expect(apiInfo.options.path).toBe("/index/:name");
-  expect(apiInfo.options.title).toBe("Delete");
-  expect(apiInfo.options.group).toBe("Index");
-  expect(apiInfo.options.params.name).toEqual(nameParams);
-  expect(apiInfo.options._allParams.get("name")).toEqual(nameParams);
-  expect(apiInfo.options.handler!.name).toBe("del");
+  const apiInfo = api.$apis.get("DELETE_/index/:name");
+  expect(apiInfo?.key).toBe("DELETE_/index/:name");
+  expect(apiInfo?.options.method).toBe("delete");
+  expect(apiInfo?.options.path).toBe("/index/:name");
+  expect(apiInfo?.options.title).toBe("Delete");
+  expect(apiInfo?.options.group).toBe("Index");
+  expect(apiInfo?.options.params.name).toEqual(nameParams);
+  expect(apiInfo?.options._allParams.get("name")).toEqual(nameParams);
+  expect(apiInfo?.options.handler?.name).toBe("del");
 });
 
 test("API - 更新信息", () => {
@@ -33,10 +33,10 @@ test("API - 更新信息", () => {
     numP2: build(TYPES.Number, "Number", true, 10, { max: 10, min: 0 }),
   });
 
-  const apiInfo = api.$apis.get("DELETE_/index/:name")!;
-  expect(apiInfo.options.title).toBe("newTitle");
-  expect(apiInfo.options.description).toBe("Yourtion");
-  expect(apiInfo.options.examples.length).toBe(1);
-  expect(apiInfo.options.examples[0]).toEqual(example);
-  expect(apiInfo.options.response).toEqual(outSchema);
+  const apiInfo = api.$apis.get("DELETE_/index/:name");
+  expect(apiInfo?.options.title).toBe("newTitle");
+  expect(apiInfo?.options.description).toBe("Yourtion");
+  expect(apiInfo?.options.examples.length).toBe(1);
+  expect(apiInfo?.options.examples[0]).toEqual(example);
+  expect(apiInfo?.options.response).toEqual(outSchema);
 });

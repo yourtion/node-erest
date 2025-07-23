@@ -3,7 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import { strict as assert } from "assert";
+import { strict as assert } from "node:assert";
 import { pathToRegexp } from "path-to-regexp";
 import { type ZodTypeAny, z } from "zod";
 import type ERest from ".";
@@ -17,12 +17,12 @@ export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, I
 export interface IExample {
   name?: string | undefined;
   path?: string;
-  headers?: Record<string, any>;
-  input?: Record<string, any>;
-  output?: Record<string, any>;
+  headers?: Record<string, unknown>;
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
 }
 
-export type DEFAULT_HANDLER = (...args: any[]) => any;
+export type DEFAULT_HANDLER = (...args: unknown[]) => unknown;
 export const SUPPORT_METHOD = ["get", "post", "put", "delete", "patch"] as const;
 export type SUPPORT_METHODS = (typeof SUPPORT_METHOD)[number];
 
@@ -46,10 +46,10 @@ export interface APIDefine<T> extends APICommon<T> {
   before?: Array<T>;
   middlewares?: Array<T>;
   handler?: T;
-  mock?: Record<string, any>;
+  mock?: Record<string, unknown>;
 }
 
-export interface APIOption<T> extends Record<string, any> {
+export interface APIOption<T> extends Record<string, unknown> {
   group: string;
   realPath: string;
   examples: IExample[];
@@ -58,15 +58,15 @@ export interface APIOption<T> extends Record<string, any> {
   required: Set<string>;
   requiredOneOf: string[][];
   _allParams: Map<string, ISchemaType>;
-  mock?: Record<string, any>;
+  mock?: Record<string, unknown>;
   tested: boolean;
   response?: TYPE_RESPONSE;
   responseSchema?: SchemaType | ISchemaType;
   // Zod schema 支持
-  querySchema?: z.ZodObject<any>;
-  bodySchema?: z.ZodObject<any>;
-  paramsSchema?: z.ZodObject<any>;
-  headersSchema?: z.ZodObject<any>;
+  querySchema?: z.ZodObject<z.ZodRawShape>;
+  bodySchema?: z.ZodObject<z.ZodRawShape>;
+  paramsSchema?: z.ZodObject<z.ZodRawShape>;
+  headersSchema?: z.ZodObject<z.ZodRawShape>;
 }
 
 export default class API<T = DEFAULT_HANDLER> {
@@ -82,7 +82,7 @@ export default class API<T = DEFAULT_HANDLER> {
     assert(typeof method === "string", "`method`必须是字符串类型");
     assert(
       SUPPORT_METHOD.indexOf(method.toLowerCase() as SUPPORT_METHODS) !== -1,
-      "`method`必须是以下请求方法中的一个：" + SUPPORT_METHOD
+      `\`method\`必须是以下请求方法中的一个：${SUPPORT_METHOD}`
     );
     assert(typeof path === "string", "`path`必须是字符串类型");
     assert(path[0] === "/", '`path`必须以"/"开头');
@@ -249,7 +249,7 @@ export default class API<T = DEFAULT_HANDLER> {
     assert(options && (typeof options === "string" || typeof options === "object"));
 
     this.options._allParams.set(name, options);
-    this.options[place][name] = options;
+    (this.options[place] as Record<string, ISchemaType>)[name] = options;
   }
 
   /**
@@ -268,7 +268,7 @@ export default class API<T = DEFAULT_HANDLER> {
     this.checkInited();
 
     // 检查是否已经有 ISchemaType 参数
-    const hasISchemaType = Object.keys(this.options[place]).length > 0;
+    const hasISchemaType = Object.keys(this.options[place] as Record<string, ISchemaType>).length > 0;
     if (hasISchemaType) {
       throw new Error(
         `Cannot mix ISchemaType and Zod schema in ${place}. Please use either ISchemaType or Zod schema, not both.`
@@ -416,10 +416,10 @@ export default class API<T = DEFAULT_HANDLER> {
    * 注册强类型处理函数 (基于 zod schema)
    */
   public registerTyped<
-    TQuery extends z.ZodRawShape = {},
-    TBody extends z.ZodRawShape = {},
-    TParams extends z.ZodRawShape = {},
-    THeaders extends z.ZodRawShape = {},
+    TQuery extends z.ZodRawShape = Record<string, never>,
+    TBody extends z.ZodRawShape = Record<string, never>,
+    TParams extends z.ZodRawShape = Record<string, never>,
+    THeaders extends z.ZodRawShape = Record<string, never>,
     TResponse extends z.ZodTypeAny = z.ZodAny,
   >(
     schemas: {
@@ -436,7 +436,7 @@ export default class API<T = DEFAULT_HANDLER> {
         params: z.infer<z.ZodObject<TParams>>;
         headers: z.infer<z.ZodObject<THeaders>>;
       },
-      res: any
+      res: unknown
     ) => z.infer<TResponse> | Promise<z.infer<TResponse>>
   ) {
     this.checkInited();
@@ -459,16 +459,19 @@ export default class API<T = DEFAULT_HANDLER> {
     }
 
     // 包装处理函数，添加类型验证
-    const wrappedHandler = async (req: any, res: any) => {
+    const wrappedHandler = async (req: unknown, res: unknown) => {
       try {
+        const reqObj = req as { query?: unknown; body?: unknown; params?: unknown; headers?: unknown };
         const validatedReq = {
-          query: schemas.query ? schemas.query.parse(req.query || {}) : ({} as any),
-          body: schemas.body ? schemas.body.parse(req.body || {}) : ({} as any),
-          params: schemas.params ? schemas.params.parse(req.params || {}) : ({} as any),
-          headers: schemas.headers ? schemas.headers.parse(req.headers || {}) : ({} as any),
+          query: schemas.query ? schemas.query.parse(reqObj.query || {}) : ({} as z.infer<z.ZodObject<TQuery>>),
+          body: schemas.body ? schemas.body.parse(reqObj.body || {}) : ({} as z.infer<z.ZodObject<TBody>>),
+          params: schemas.params ? schemas.params.parse(reqObj.params || {}) : ({} as z.infer<z.ZodObject<TParams>>),
+          headers: schemas.headers
+            ? schemas.headers.parse(reqObj.headers || {})
+            : ({} as z.infer<z.ZodObject<THeaders>>),
         };
 
-        const result = await handler(validatedReq as any, res);
+        const result = await handler(validatedReq, res);
 
         // 验证响应
         if (schemas.response) {
@@ -476,10 +479,11 @@ export default class API<T = DEFAULT_HANDLER> {
         }
 
         return result;
-      } catch (error: any) {
-        if (error.name === "ZodError") {
+      } catch (error: unknown) {
+        if ((error as { name?: string }).name === "ZodError") {
+          const zodError = error as { errors: Array<{ path: string[]; message: string }> };
           throw new Error(
-            `Validation failed: ${error.errors.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ")}`
+            `Validation failed: ${zodError.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`
           );
         }
         throw error;
@@ -490,12 +494,12 @@ export default class API<T = DEFAULT_HANDLER> {
     return this;
   }
 
-  public mock(data?: Record<string, any>) {
+  public mock(data?: Record<string, unknown>) {
     this.checkInited();
     this.options.mock = data || {};
   }
 
-  public init(parent: ERest<any>) {
+  public init(parent: ERest<unknown>) {
     this.checkInited();
 
     assert(this.options.group, `请为 API ${this.key} 选择一个分组`);
@@ -561,7 +565,7 @@ export default class API<T = DEFAULT_HANDLER> {
       } else if (typeof (this.options.response as ISchemaType).type === "string") {
         this.options.responseSchema = this.options.response as ISchemaType;
       } else {
-        this.options.responseSchema = parent.schema.createZodSchema(this.options.response as any);
+        this.options.responseSchema = parent.schema.createZodSchema(this.options.response as ISchemaType);
       }
     }
 

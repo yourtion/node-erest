@@ -3,12 +3,12 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import { ISchemaTypeFields } from "@tuzhanai/schema-manager";
-import * as path from "path";
-import { URL } from "url";
+import * as path from "node:path";
+import { URL } from "node:url";
 import type { IDocOptions } from "../..";
 import { plugin as debug } from "../../debug";
 import type { IDocData, IDocWritter } from "../../extend/docs";
+import type { ISchemaType } from "../../params";
 import * as utils from "../../utils";
 
 type SCHEMA = "http" | "https" | "ws" | "wss";
@@ -17,7 +17,7 @@ interface ISwaggerResult {
   // 指定swagger spec版本，2.0
   swagger: string;
   // 提供API的元数据
-  info: any;
+  info: unknown;
   // 主机，如果没有提供，则使用文档所在的host
   host?: string;
   // 相对于host的路径
@@ -26,7 +26,7 @@ interface ISwaggerResult {
   // 补充的元数据，在swagger ui中，用于作为api的分组标签
   tags: Array<{ name: string; description: string }>;
   definitions: Record<string, ISwaggerModels>;
-  paths: any;
+  paths: unknown;
 }
 
 interface ISwaggerResultParams {
@@ -35,9 +35,9 @@ interface ISwaggerResultParams {
   description: string;
   type?: string;
   required?: string[] | boolean;
-  example?: any;
+  example?: unknown;
   enum?: string[];
-  items?: any;
+  items?: unknown;
   format?: string;
   $ref?: string;
 }
@@ -86,15 +86,15 @@ export function buildSwagger(data: IDocData) {
   //   result.definitions[key] = schema;
   // });
 
-  const paths = result.paths;
+  const paths = result.paths as Record<string, unknown>;
   const apis = data.apis;
   for (const [key, api] of Object.entries(apis)) {
     const newPath = utils.getRealPath(key).replace(/:(\w+)/, "{$1}");
     if (!paths[newPath]) {
       paths[newPath] = {};
     }
-    const sc = paths[newPath];
-    sc[api.method] = {
+    const sc = paths[newPath] as Record<string, unknown>;
+    sc[api.method as string] = {
       tags: [api.group],
       summary: api.title,
       description: api.description || "",
@@ -107,12 +107,12 @@ export function buildSwagger(data: IDocData) {
       },
     };
 
-    sc[api.method].parameters = [];
-    const bodySchema: Record<string, any> = {};
-    let example = api.examples && api.examples[0];
+    (sc[api.method as string] as Record<string, unknown>).parameters = [];
+    const bodySchema: Record<string, unknown> = {};
+    let example = api.examples?.[0];
     if (api.examples && api.examples.length > 1) {
       for (const item of api.examples) {
-        if (item.output!.success) {
+        if (item.output?.success) {
           example = item;
           break;
         }
@@ -120,34 +120,35 @@ export function buildSwagger(data: IDocData) {
     }
     example = example || { input: {}, output: {} };
     for (const place of ["params", "query", "body"]) {
-      for (const sKey in api[place]) {
+      for (const sKey in (api as Record<string, Record<string, ISchemaType>>)[place]) {
+        const fieldInfo = (api as Record<string, Record<string, ISchemaType>>)[place][sKey];
         const obj: ISwaggerResultParams = {
           name: sKey,
           in: place === "params" ? "path" : place,
-          description: api[place][sKey].comment,
+          description: fieldInfo.comment || "",
           required: sKey === "body" ? [] : false,
-          type: api[place][sKey].type.toLowerCase(),
-          example: place === "body" ? example.input![sKey] : undefined,
+          type: fieldInfo.type.toLowerCase(),
+          example: place === "body" ? example.input?.[sKey] : undefined,
         };
         if (place === "params") obj.required = true;
         if (api.required.has(sKey)) {
           if (place === "query") obj.required = true;
         }
-        if (api[place][sKey].type === "ENUM") {
+        if (fieldInfo.type === "ENUM") {
           obj.type = "string";
-          obj.enum = api[place][sKey].params;
+          obj.enum = fieldInfo.params as string[];
         }
-        if (api[place][sKey].type === "IntArray") {
+        if (fieldInfo.type === "IntArray") {
           obj.type = "array";
           obj.items = { type: "integer" };
         }
-        if (api[place][sKey].type === "Date") {
+        if (fieldInfo.type === "Date") {
           obj.type = "string";
           obj.format = "date";
         }
-        if (data.schema.has(api[place][sKey].type)) {
+        if ((data.schema as { has: (type: string) => boolean }).has(fieldInfo.type)) {
           delete obj.type;
-          obj.$ref = "#/definitions/" + api[place][sKey].type;
+          obj.$ref = `#/definitions/${fieldInfo.type}`;
         }
         if (place === "body") {
           delete obj.in;
@@ -158,7 +159,7 @@ export function buildSwagger(data: IDocData) {
             bodySchema.required.push(sKey);
           }
         } else {
-          sc[api.method].parameters.push(obj);
+          ((sc[api.method as string] as Record<string, unknown>).parameters as unknown[]).push(obj);
         }
       }
     }
@@ -166,7 +167,7 @@ export function buildSwagger(data: IDocData) {
     // sc[schema.method].responses[200].example = example.output;
     if (api.method === "post" && api.body) {
       const required = api.required && [...api.required].filter((it) => Object.keys(bodySchema).indexOf(it) > -1);
-      sc[api.method].parameters.push({
+      ((sc[api.method as string] as Record<string, unknown>).parameters as unknown[]).push({
         in: "body",
         name: "body",
         description: "请求体",

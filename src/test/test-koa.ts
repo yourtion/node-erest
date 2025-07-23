@@ -16,13 +16,13 @@ const setupERestWithGroup = () => {
   });
 };
 
-function returnJson(ctx: Koa.Context, data: any) {
+function returnJson(ctx: Koa.Context, data: unknown) {
   ctx.type = "application/json";
   ctx.body = JSON.stringify(data);
 }
 
 describe("ERest Koa Integration", () => {
-  let server: any;
+  let server: import("http").Server;
   afterAll(() => {
     server.close();
   });
@@ -32,11 +32,11 @@ describe("ERest Koa Integration", () => {
     app.use(async (ctx, next) => {
       try {
         await next();
-      } catch (err: any) {
-        ctx.status = err.status || 500;
+      } catch (err: unknown) {
+        ctx.status = (err as { status?: number }).status || 500;
         ctx.body = JSON.stringify({
-          message: err.message,
-          stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+          message: (err as Error).message,
+          stack: process.env.NODE_ENV === "development" ? (err as Error).stack : undefined,
         });
       }
     });

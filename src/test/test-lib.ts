@@ -20,10 +20,10 @@ describe("ERest - 基础测试", () => {
   });
 
   test("ERest - 注册文件输出函数", () => {
-    const org = (apiService as any).apiInfo.docOutputForamt;
-    const fn = (out: any) => out;
+    const org = (apiService as { apiInfo: { docOutputForamt: unknown } }).apiInfo.docOutputForamt;
+    const fn = (out: unknown) => out;
     apiService.setDocOutputForamt(fn);
-    const now = (apiService as any).apiInfo.docOutputForamt;
+    const now = (apiService as { apiInfo: { docOutputForamt: unknown } }).apiInfo.docOutputForamt;
     expect(org).not.toEqual(now);
     expect(now).toEqual(fn);
   });
@@ -37,7 +37,7 @@ describe("ERest - schema 注册与使用", () => {
   const apiService = lib();
 
   test("add Type", () => {
-    apiService.type.register("Any2", z.any());
+    apiService.type.register("Any2", z.unknown());
     expect(apiService.type.has("Any2")).toBeTruthy();
   });
 
@@ -88,8 +88,8 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
     test("error mamager modify", () => {
       apiService.errors.modify("PERMISSIONS_ERROR", { code: -999, isShow: false });
       const e = apiService.errors.get("PERMISSIONS_ERROR");
-      expect(e!.isShow).toEqual(false);
-      expect(e!.isDefault).toEqual(false);
+      expect(e?.isShow).toEqual(false);
+      expect(e?.isDefault).toEqual(false);
     });
   });
 

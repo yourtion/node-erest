@@ -4,7 +4,7 @@ import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
 
 export default function schemaDocs(data: IDocData) {
   function parseType(type: string) {
-    return !type || data.typeManager.has(type)
+    return !type || (data.typeManager as { has: (type: string) => boolean }).has(type)
       ? stringOrEmpty(type)
       : `[${type}](#${type.replace("[]", "").toLocaleLowerCase()})`;
   }
@@ -23,10 +23,10 @@ export default function schemaDocs(data: IDocData) {
     ]);
   }
 
-  function schemaInfo(schema: SchemaType): string {
+  function _schemaInfo(schema: SchemaType): string {
     const res: string[] = [];
     res.push(`## ${schema.name}`);
-    const fields = (schema as any).fields as ISchemaTypeFields;
+    const fields = (schema as unknown as { fields: ISchemaTypeFields }).fields;
     const tableHead = tableHeader(["字段", "类型", "备注", "格式化", "默认值", "必填", "参数"]);
     res.push(tableHead);
     for (const item of Object.keys(fields)) {

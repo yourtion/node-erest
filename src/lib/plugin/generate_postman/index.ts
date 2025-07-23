@@ -1,4 +1,4 @@
-import * as path from "path";
+import * as path from "node:path";
 import type { IDocOptions } from "../..";
 import { plugin as debug } from "../../debug";
 import type { IDocData, IDocWritter } from "../../extend/docs";
@@ -21,7 +21,7 @@ interface IPostManRequestBody {
   mode: "raw" | "urlencoded" | "formdata" | "file";
   raw?: string;
   urlencoded?: IPostManUrlEncodedParameter[];
-  formdat?: any[];
+  formdata?: unknown[];
   disabled?: boolean;
 }
 
@@ -58,7 +58,7 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
       {
         enabled: true,
         key: "HOST",
-        value: data.info.host! + data.info.basePath,
+        value: (data.info.host || "") + data.info.basePath,
         type: "text",
       },
     ],
@@ -71,18 +71,18 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
     item: [] as IPostManFolders[],
   };
 
-  const groups: any = {};
+  const groups: Record<string, { id: string; name: string; items: IPostManItem[] }> = {};
 
   for (const [g, name] of Object.entries(data.group)) {
-    groups[g] = { id: g, name, items: [] as IPostManItem[] };
+    groups[g] = { id: g, name, items: [] };
   }
 
   for (const item of Object.values(data.apis)) {
     const req: IPostManItem = {
-      name: item.title,
+      name: item.title as string,
       request: {
-        url: "{{HOST}}" + item.realPath,
-        method: String(item.method).toLocaleUpperCase(),
+        url: `{{HOST}}${item.realPath}`,
+        method: String(item.method).toUpperCase() as "GET" | "POST" | "PUT" | "DELETE",
         header: [],
       } as IPostManRequest,
     };
@@ -92,17 +92,17 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
         mode: "urlencoded",
         urlencoded: [],
       };
-      for (const sKey in item.body) {
-        req.request.body.urlencoded!.push({
+      for (const sKey in item.body as Record<string, unknown>) {
+        req.request.body.urlencoded?.push({
           key: sKey,
-          description: item.body[sKey].comment,
+          description: (item.body as Record<string, { comment?: string }>)[sKey].comment,
         });
       }
     }
     groups[item.group].items.push(req);
   }
 
-  for (const gg of Object.values(groups) as any) {
+  for (const gg of Object.values(groups)) {
     postman.item.push({ name: gg.name, item: gg.items });
   }
 

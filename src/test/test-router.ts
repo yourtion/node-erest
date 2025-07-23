@@ -52,7 +52,7 @@ test("Router - Hook测试", () => {
     .title("Get")
     .before(beforHook)
     .middlewares(middleware)
-    .register(function fn(req, res) {
+    .register(function fn(_req, res) {
       res.end("Hello, API Framework Index");
     });
   apiService.bindRouter(router, apiService.checkerExpress);
@@ -64,7 +64,7 @@ test("Router - Hook测试", () => {
     throw new Error("routerStack is undefined");
   }
   expect(routerStack.length).toBe(ORDER.length);
-  const hooksName = routerStack.map((r: any) => r.name);
+  const hooksName = routerStack.map((r: { name: string }) => r.name);
   expect(hooksName).toEqual(ORDER);
 });
 

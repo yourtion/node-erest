@@ -7,7 +7,7 @@ import KoaRouter from "koa-router";
 import { hook } from "./helper";
 import lib from "./lib";
 
-function reqFn(req: express.Request, res: express.Response) {
+function reqFn(_req: express.Request, res: express.Response) {
   res.json("Hello, API Framework Index");
 }
 
@@ -63,7 +63,7 @@ describe("Group - 绑定分组路由到App上", () => {
     const routerStack = appRoute.stack[0].route.stack;
 
     expect(routerStack.length).toBe(ORDER.length);
-    const hooksName = routerStack.map((r: any) => r.name);
+    const hooksName = routerStack.map((r: { name: string }) => r.name);
     expect(hooksName).toEqual(ORDER);
   });
 
@@ -107,7 +107,7 @@ describe("Group - 使用define定义路由", () => {
     const routerStack = apiRoute.stack[0].route.stack;
 
     expect(routerStack.length).toBe(ORDER.length);
-    const hooksName = routerStack.map((r: any) => r.name);
+    const hooksName = routerStack.map((r: { name: string }) => r.name);
     expect(hooksName).toEqual(ORDER);
   });
 
@@ -190,7 +190,7 @@ describe("Group - 高级分组配置", () => {
     const routerStack = apiRoute.stack[0].route.stack;
 
     expect(routerStack.length).toBe(ORDER_SUB.length);
-    const hooksName = routerStack.map((r: any) => r.name);
+    const hooksName = routerStack.map((r: { name: string }) => r.name);
     expect(hooksName).toEqual(ORDER_SUB);
   });
 

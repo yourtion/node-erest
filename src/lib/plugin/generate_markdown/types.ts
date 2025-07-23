@@ -43,5 +43,5 @@ export default function typeDocs(data: IDocData) {
   for (const item of customTypes) {
     typeList.push(typeString(item));
   }
-  return typeList.join("\n") + "\n";
+  return `${typeList.join("\n")}\n`;
 }

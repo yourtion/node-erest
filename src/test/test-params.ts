@@ -16,7 +16,7 @@ const intP = build(TYPES.Integer, "Integer");
 const enumP = build(TYPES.ENUM, "ENUM", true, undefined, ["A", "B", 1]);
 const jsonP = build(TYPES.JSON, "JSON");
 
-const schema1: Record<string, any> = { stringP2, stringP3, numP, intP };
+const schema1: Record<string, unknown> = { stringP2, stringP3, numP, intP };
 const array1 = build(TYPES.Array, "Array with String param", true, undefined, TYPES.Integer);
 const array2 = build(TYPES.Array, "Array with Type param", true, undefined, jsonP);
 
@@ -61,7 +61,7 @@ describe("SchemaChecker", () => {
 
   test("remove not in schema success", () => {
     const data = { numP: 1.02, a: "xxx" };
-    const res = schemaChecker(data, schema1) as any;
+    const res = schemaChecker(data, schema1) as Record<string, unknown>;
     expect(res.a).toBeUndefined();
   });
 
@@ -72,7 +72,7 @@ describe("SchemaChecker", () => {
   });
 
   test("requiedOneOf check ok", () => {
-    const data = { numP: 123 } as any;
+    const data = { numP: 123 } as Record<string, unknown>;
     const res = schemaChecker(data, schema1, ["numP", "stringP3"]);
     data.stringP2 = "Hello";
     expect(res).toEqual(data);
