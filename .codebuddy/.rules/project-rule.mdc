@@ -1,0 +1,15 @@
+---
+description: 
+globs:
+alwaysApply: true
+---
+# project-rule
+
+1. Product Plan 统一放在 `.codebuddy/project` 目录下
+2. 完成代码编写后，需要根据情况增加测试，并运行 `pnpm test` 确保代码通过测试
+3. 每次执行完任务，都需要反复执行 `pnpm format` 和 `pnpm build` 确保代码风格符合要求
+
+## 代码编写规范
+
+1. 不要使用 any，通过泛型和 Record 类型对参数类型进行正确约束
+2. 除了测试场景外，尽可能不要通过 as 对代码进行强制类型转换

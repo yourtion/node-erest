@@ -35,7 +35,74 @@ export default function schemaDocs(data: IDocData) {
           .typeName ||
         (zodSchema as ZodType & { _def: { typeName?: string; type?: string; shape?: Record<string, ZodType> } })._def
           .type;
-      if (
+      // 处理lazy类型
+      const typeValue = (zodSchema._def as { type?: string }).type;
+      if (typeName === "ZodLazy" || typeName === "lazy" || typeValue === "lazy") {
+        const getter = (zodSchema._def as unknown as { getter?: () => ZodType }).getter;
+        if (getter) {
+          try {
+            const innerSchema = getter();
+            const innerTypeName =
+              (innerSchema._def as { typeName?: string; type?: string }).typeName ||
+              (innerSchema._def as { typeName?: string; type?: string }).type;
+            if (
+              (innerTypeName === "ZodObject" || innerTypeName === "object") &&
+              (innerSchema as ZodType & { _def: { shape?: Record<string, ZodType> | (() => Record<string, ZodType>) } })
+                ._def.shape
+            ) {
+              let shape = (
+                innerSchema as ZodType & { _def: { shape: Record<string, ZodType> | (() => Record<string, ZodType>) } }
+              )._def.shape;
+              // 如果shape是函数，调用它获取实际的shape
+              if (typeof shape === "function") {
+                shape = shape();
+              }
+              for (const [fieldName, fieldSchema] of Object.entries(shape as Record<string, ZodType>)) {
+                const fieldInfo = extractZodFieldInfo(fieldName, fieldSchema);
+                res.push(
+                  fieldString([
+                    stringOrEmpty(fieldName),
+                    stringOrEmpty(fieldInfo.type),
+                    stringOrEmpty(fieldInfo.description),
+                    itemTF(true),
+                    stringOrEmpty(fieldInfo.defaultValue),
+                    itemTF(fieldInfo.required),
+                    stringOrEmpty(fieldInfo.params),
+                  ])
+                );
+              }
+            } else {
+              // 非对象的lazy类型
+              const fieldInfo = extractZodFieldInfo(schemaName, innerSchema);
+              res.push(
+                fieldString([
+                  stringOrEmpty(schemaName),
+                  stringOrEmpty(fieldInfo.type),
+                  stringOrEmpty(fieldInfo.description),
+                  itemTF(true),
+                  stringOrEmpty(fieldInfo.defaultValue),
+                  itemTF(fieldInfo.required),
+                  stringOrEmpty(fieldInfo.params),
+                ])
+              );
+            }
+          } catch (e) {
+            // 如果无法解析lazy类型，显示为lazy类型
+            const fieldInfo = extractZodFieldInfo(schemaName, zodSchema);
+            res.push(
+              fieldString([
+                stringOrEmpty(schemaName),
+                stringOrEmpty(fieldInfo.type),
+                stringOrEmpty(fieldInfo.description),
+                itemTF(true),
+                stringOrEmpty(fieldInfo.defaultValue),
+                itemTF(fieldInfo.required),
+                stringOrEmpty(fieldInfo.params),
+              ])
+            );
+          }
+        }
+      } else if (
         (typeName === "ZodObject" || typeName === "object") &&
         (zodSchema as ZodType & { _def: { shape?: Record<string, ZodType> } })._def.shape
       ) {
@@ -87,47 +154,55 @@ export default function schemaDocs(data: IDocData) {
       return info;
     }
 
+    // 首先尝试获取describe信息
+    const zodSchemaWithDescription = zodSchema as ZodType & { description?: string };
+    if (zodSchemaWithDescription.description) {
+      info.description = zodSchemaWithDescription.description;
+    }
+
     const typeName =
       (zodSchema._def as { typeName?: string; type?: string }).typeName ||
       (zodSchema._def as { typeName?: string; type?: string }).type;
+
+    const typeValue = (zodSchema.def as { type?: string }).type;
     switch (typeName) {
       case "ZodString":
       case "string":
         info.type = "string";
-        info.description = "字符串类型";
+        if (!info.description) info.description = "字符串类型";
         break;
       case "ZodNumber":
       case "number":
         info.type = "number";
-        info.description = "数字类型";
+        if (!info.description) info.description = "数字类型";
         break;
       case "ZodBoolean":
       case "boolean":
         info.type = "boolean";
-        info.description = "布尔类型";
+        if (!info.description) info.description = "布尔类型";
         break;
       case "ZodDate":
       case "date":
         info.type = "Date";
-        info.description = "日期类型";
+        if (!info.description) info.description = "日期类型";
         break;
       case "ZodArray":
       case "array": {
         const typeField = (zodSchema._def as unknown as { type?: ZodType }).type;
         const innerType = typeField ? extractZodFieldInfo("", typeField) : { type: "unknown" };
         info.type = `${innerType.type}[]`;
-        info.description = "数组类型";
+        if (!info.description) info.description = "数组类型";
         break;
       }
       case "ZodObject":
       case "object":
         info.type = "object";
-        info.description = "对象类型";
+        if (!info.description) info.description = "对象类型";
         break;
       case "ZodEnum":
       case "enum":
         info.type = "enum";
-        info.description = "枚举类型";
+        if (!info.description) info.description = "枚举类型";
         if ((zodSchema._def as { values?: unknown }).values) {
           const values = (zodSchema._def as unknown as { values: unknown }).values;
           info.params = Array.isArray(values) ? values.join(", ") : String(values);
@@ -140,7 +215,7 @@ export default function schemaDocs(data: IDocData) {
           (zodSchema._def as unknown as { innerType: ZodType }).innerType
         );
         info.type = innerInfo.type;
-        info.description = innerInfo.description;
+        info.description = info.description || innerInfo.description;
         info.required = false;
         info.params = innerInfo.params;
         break;
@@ -152,7 +227,7 @@ export default function schemaDocs(data: IDocData) {
           (zodSchema._def as unknown as { innerType: ZodType }).innerType
         );
         info.type = defaultInnerInfo.type;
-        info.description = defaultInnerInfo.description;
+        info.description = info.description || defaultInnerInfo.description;
         info.required = false;
         const defValue = (zodSchema._def as { defaultValue?: unknown }).defaultValue;
         if (typeof defValue === "function") {
@@ -169,17 +244,43 @@ export default function schemaDocs(data: IDocData) {
       }
       case "ZodUnion":
       case "union": {
-        const unionTypes = (zodSchema._def as { options?: ZodType[] }).options;
-        if (Array.isArray(unionTypes)) {
-          const types = unionTypes.map((t: ZodType) => extractZodFieldInfo("", t).type);
+        const options = (zodSchema._def as unknown as { options: ZodType[] }).options;
+        if (options && options.length > 0) {
+          const types = options.map((opt) => extractZodFieldInfo("", opt).type);
           info.type = types.join(" | ");
-          info.description = "联合类型";
+        } else {
+          info.type = "union";
+        }
+        if (!info.description) info.description = "联合类型";
+        break;
+      }
+      case "ZodLazy":
+      case "lazy": {
+        // 检查是否为lazy类型
+        if (typeValue === "lazy" || typeName === "ZodLazy" || typeName === "lazy") {
+          // 对于lazy类型，尝试获取内部的getter函数返回的schema
+          const getter = (zodSchema.def as unknown as { getter?: () => ZodType }).getter;
+          if (getter) {
+            try {
+              const innerSchema = getter();
+              const innerInfo = extractZodFieldInfo(fieldName, innerSchema);
+              info.type = innerInfo.type;
+              info.description = info.description || innerInfo.description;
+              info.params = innerInfo.params;
+            } catch (e) {
+              info.type = "lazy";
+              if (!info.description) info.description = "延迟类型";
+            }
+          } else {
+            info.type = "lazy";
+            if (!info.description) info.description = "延迟类型";
+          }
         }
         break;
       }
       default:
         info.type = typeName ? typeName.replace("Zod", "").toLowerCase() : "unknown";
-        info.description = `${typeName} 类型`;
+        if (!info.description) info.description = `${typeName} 类型`;
     }
 
     return info;

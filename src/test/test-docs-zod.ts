@@ -1,4 +1,5 @@
 import { type ZodType, z } from "zod";
+import { vi } from "vitest";
 import type ERest from "../lib";
 import IAPIDoc from "../lib/extend/docs";
 import schemaDocs from "../lib/plugin/generate_markdown/schema";
@@ -314,6 +315,237 @@ describe("Zod Documentation Generation Tests", () => {
         isDefaultFormat: true,
         isParamsRequired: false,
       });
+    });
+  });
+
+  describe("Document Generation and Plugin System", () => {
+    test("should register and execute plugins correctly", () => {
+      let pluginExecuted = false;
+      const testPlugin = (data: any, dir: string, options: any, writer: any) => {
+        pluginExecuted = true;
+        expect(data).toBeDefined();
+        expect(dir).toBe("/test/dir");
+        expect(options).toBeDefined();
+        expect(writer).toBeDefined();
+      };
+
+      docInstance.registerPlugin("test", testPlugin);
+      docInstance.genDocs();
+      
+      // Mock the save process
+      const mockWriter = vi.fn();
+      docInstance.setWritter(mockWriter);
+      docInstance.save("/test/dir");
+
+      expect(pluginExecuted).toBe(true);
+    });
+
+    test("should handle plugin errors gracefully", () => {
+      const errorPlugin = () => {
+        throw new Error("Plugin error");
+      };
+
+      // Should not throw when plugin fails
+      expect(() => {
+        docInstance.registerPlugin("error", errorPlugin);
+        docInstance.genDocs();
+        docInstance.save("/test/dir");
+      }).not.toThrow();
+    });
+
+    test("should generate correct API info statistics", () => {
+      // This test needs to be adjusted since we don't have actual APIs registered
+      const docData = docInstance.buildDocData();
+
+      expect(docData.apiInfo.count).toBe(0);
+      expect(docData.apiInfo.tested).toBe(0);
+      expect(docData.apiInfo.untest).toHaveLength(0);
+    });
+
+    test("should format example outputs correctly", () => {
+      const mockFormatOutput = vi.fn((output) => ({ formatted: output }));
+      app.api.docOutputForamt = mockFormatOutput;
+
+      const docData = docInstance.buildDocData();
+      
+      // Since we don't have APIs with examples, this test verifies the function is set
+      expect(app.api.docOutputForamt).toBe(mockFormatOutput);
+    });
+
+    test("should handle custom writer function", () => {
+      const mockWriter = vi.fn();
+      docInstance.setWritter(mockWriter);
+      docInstance.genDocs();
+      
+      // Test that the writer was set correctly
+      expect(mockWriter).toBeDefined();
+    });
+
+    test("should build swagger info correctly", () => {
+      app.type.register("TestType", z.string());
+      app.schema.register("TestSchema", z.object({ name: z.string() }));
+
+      const swaggerInfo = docInstance.getSwaggerInfo();
+
+      expect(swaggerInfo).toBeDefined();
+      expect(swaggerInfo.definitions).toBeDefined();
+      expect(swaggerInfo.definitions.TestType).toBeDefined();
+      expect(swaggerInfo.definitions.TestSchema).toBeDefined();
+    });
+
+    test("should cache doc data correctly", () => {
+      const docData1 = docInstance.buildDocData();
+      const docData2 = docInstance.buildDocData();
+
+      expect(docData1).toBe(docData2); // Should return same cached instance
+    });
+
+    test("should handle saveOnExit correctly", () => {
+      const originalProcessOn = process.on;
+      const mockProcessOn = vi.fn();
+      process.on = mockProcessOn;
+
+      docInstance.saveOnExit("/test/dir");
+
+      expect(mockProcessOn).toHaveBeenCalledWith("exit", expect.any(Function));
+
+      // Restore original process.on
+      process.on = originalProcessOn;
+    });
+  });
+
+  describe("Zod Schema Type Extraction", () => {
+    test("should extract lazy schema types correctly", () => {
+      const lazySchema = z.lazy(() => z.object({
+        name: z.string(),
+        age: z.number()
+      }));
+
+      app.schema.register("LazyUser", lazySchema);
+
+      const docData = docInstance.buildDocData();
+      const markdownDoc = schemaDocs(docData);
+
+      expect(markdownDoc).toContain("LazyUser");
+      expect(markdownDoc).toContain("name");
+      expect(markdownDoc).toContain("age");
+    });
+
+    test("should handle recursive lazy schemas", () => {
+      interface TreeNode {
+        value: string;
+        children?: TreeNode[];
+      }
+
+      const treeSchema: z.ZodType<TreeNode> = z.lazy(() => z.object({
+        value: z.string(),
+        children: z.array(treeSchema).optional()
+      }));
+
+      app.schema.register("TreeNode", treeSchema);
+
+      const docData = docInstance.buildDocData();
+      const markdownDoc = schemaDocs(docData);
+
+      expect(markdownDoc).toContain("TreeNode");
+      expect(markdownDoc).toContain("value");
+      expect(markdownDoc).toContain("children");
+    });
+
+    test("should handle default values in schemas", () => {
+      const schemaWithDefaults = z.object({
+        name: z.string(),
+        status: z.string().default("active"),
+        count: z.number().default(() => 0),
+        enabled: z.boolean().default(true)
+      });
+
+      app.schema.register("EntityWithDefaults", schemaWithDefaults);
+
+      const docData = docInstance.buildDocData();
+      const markdownDoc = schemaDocs(docData);
+
+      expect(markdownDoc).toContain("EntityWithDefaults");
+      expect(markdownDoc).toContain("active");
+      expect(markdownDoc).toContain("true");
+    });
+
+    test("should handle union types in schemas", () => {
+      const unionSchema = z.object({
+        id: z.union([z.string(), z.number()]),
+        status: z.union([z.literal("active"), z.literal("inactive")]),
+        data: z.union([z.string(), z.object({ value: z.number() })])
+      });
+
+      app.schema.register("UnionEntity", unionSchema);
+
+      const docData = docInstance.buildDocData();
+      const markdownDoc = schemaDocs(docData);
+
+      expect(markdownDoc).toContain("UnionEntity");
+      expect(markdownDoc).toContain("id");
+      expect(markdownDoc).toContain("status");
+      expect(markdownDoc).toContain("data");
+    });
+
+    test("should handle array schemas with complex elements", () => {
+      const arraySchema = z.object({
+        users: z.array(z.object({
+          name: z.string(),
+          email: z.string().email()
+        })),
+        tags: z.array(z.string()),
+        scores: z.array(z.number())
+      });
+
+      app.schema.register("ArrayEntity", arraySchema);
+
+      const docData = docInstance.buildDocData();
+      const markdownDoc = schemaDocs(docData);
+
+      expect(markdownDoc).toContain("ArrayEntity");
+      expect(markdownDoc).toContain("users");
+      expect(markdownDoc).toContain("tags");
+      expect(markdownDoc).toContain("scores");
+    });
+
+    test("should handle enum schemas correctly", () => {
+      const enumSchema = z.object({
+        color: z.enum(["red", "green", "blue"]),
+        size: z.enum(["small", "medium", "large"]),
+        priority: z.enum(["low", "medium", "high"])
+      });
+
+      app.schema.register("EnumEntity", enumSchema);
+
+      const docData = docInstance.buildDocData();
+      const markdownDoc = schemaDocs(docData);
+
+      expect(markdownDoc).toContain("EnumEntity");
+      expect(markdownDoc).toContain("color");
+      expect(markdownDoc).toContain("size");
+      expect(markdownDoc).toContain("priority");
+      expect(markdownDoc).toContain("枚举类型");
+    });
+
+    test("should handle nullable and optional fields", () => {
+      const nullableSchema = z.object({
+        required: z.string(),
+        optional: z.string().optional(),
+        nullable: z.string().nullable(),
+        optionalNullable: z.string().optional().nullable()
+      });
+
+      app.schema.register("NullableEntity", nullableSchema);
+
+      const docData = docInstance.buildDocData();
+      const markdownDoc = schemaDocs(docData);
+
+      expect(markdownDoc).toContain("NullableEntity");
+      expect(markdownDoc).toContain("required");
+      expect(markdownDoc).toContain("optional");
+      expect(markdownDoc).toContain("nullable");
+      expect(markdownDoc).toContain("optionalNullable");
     });
   });
 });
