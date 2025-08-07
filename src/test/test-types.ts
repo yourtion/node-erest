@@ -1,14 +1,14 @@
 import { vi } from "vitest";
 import lib from "./lib";
 import typeDocs from "../lib/plugin/generate_markdown/types";
-import { 
-  trimSpaces, 
-  stringToString, 
-  stringOrEmpty, 
-  itemTF, 
-  itemTFEmoji, 
-  tableHeader, 
-  fieldString 
+import {
+  trimSpaces,
+  stringToString,
+  stringOrEmpty,
+  itemTF,
+  itemTFEmoji,
+  tableHeader,
+  fieldString,
 } from "../lib/plugin/generate_markdown/utils";
 import type { IDocData, IDocTypes } from "../lib/extend/docs";
 
@@ -122,7 +122,7 @@ describe("Type Documentation Generation", () => {
             parser: true,
             tsType: "string",
             isDefaultFormat: true,
-            isParamsRequired: false
+            isParamsRequired: false,
           },
           CustomType: {
             name: "CustomType",
@@ -133,13 +133,13 @@ describe("Type Documentation Generation", () => {
             parser: true,
             tsType: "custom",
             isDefaultFormat: false,
-            isParamsRequired: true
-          }
+            isParamsRequired: true,
+          },
         },
         schema: {},
         erest: null,
         typeManager: null,
-        apiInfo: { count: 0, tested: 0, untest: [] }
+        apiInfo: { count: 0, tested: 0, untest: [] },
       };
 
       const result = typeDocs(mockData);
@@ -158,7 +158,7 @@ describe("Type Documentation Generation", () => {
         schema: {},
         erest: null,
         typeManager: null,
-        apiInfo: { count: 0, tested: 0, untest: [] }
+        apiInfo: { count: 0, tested: 0, untest: [] },
       };
 
       const result = typeDocs(mockData);
@@ -180,7 +180,7 @@ describe("Type Documentation Generation", () => {
             parser: true,
             tsType: "string",
             isDefaultFormat: true,
-            isParamsRequired: false
+            isParamsRequired: false,
           },
           AType: {
             name: "AType",
@@ -191,13 +191,13 @@ describe("Type Documentation Generation", () => {
             parser: false,
             tsType: "string",
             isDefaultFormat: true,
-            isParamsRequired: false
-          }
+            isParamsRequired: false,
+          },
         },
         schema: {},
         erest: null,
         typeManager: null,
-        apiInfo: { count: 0, tested: 0, untest: [] }
+        apiInfo: { count: 0, tested: 0, untest: [] },
       };
 
       const result = typeDocs(mockData);
@@ -220,13 +220,13 @@ describe("Type Documentation Generation", () => {
             parser: false,
             tsType: "test",
             isDefaultFormat: false,
-            isParamsRequired: true
-          }
+            isParamsRequired: true,
+          },
         },
         schema: {},
         erest: null,
         typeManager: null,
-        apiInfo: { count: 0, tested: 0, untest: [] }
+        apiInfo: { count: 0, tested: 0, untest: [] },
       };
 
       const result = typeDocs(mockData);

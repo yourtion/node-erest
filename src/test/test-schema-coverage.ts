@@ -30,10 +30,10 @@ describe("Schema Coverage Tests", function () {
       // Mock the _def to simulate missing type field
       (arraySchema._def as any).type = undefined;
       app.schema.register("ArrayUnknownSchema", z.object({ field: arraySchema }));
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## ArrayUnknownSchema"));
     });
 
@@ -45,18 +45,18 @@ describe("Schema Coverage Tests", function () {
             enumField: {
               _def: {
                 typeName: "ZodEnum",
-                values: "single_value"
-              }
-            }
-          })
-        }
+                values: "single_value",
+              },
+            },
+          }),
+        },
       } as any;
-      
+
       app.schema.register("EnumNonArraySchema", mockEnumSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## EnumNonArraySchema"));
     });
 
@@ -68,18 +68,18 @@ describe("Schema Coverage Tests", function () {
             enumField: {
               _def: {
                 typeName: "ZodEnum",
-                values: undefined
-              }
-            }
-          })
-        }
+                values: undefined,
+              },
+            },
+          }),
+        },
       } as any;
-      
+
       app.schema.register("EnumNoValuesSchema", mockEnumSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## EnumNoValuesSchema"));
     });
 
@@ -92,20 +92,20 @@ describe("Schema Coverage Tests", function () {
               _def: {
                 typeName: "ZodDefault",
                 innerType: {
-                  _def: { typeName: "ZodString" }
+                  _def: { typeName: "ZodString" },
                 },
-                defaultValue: undefined
-              }
-            }
-          })
-        }
+                defaultValue: undefined,
+              },
+            },
+          }),
+        },
       } as any;
-      
+
       app.schema.register("DefaultUndefinedSchema", mockDefaultSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## DefaultUndefinedSchema"));
     });
 
@@ -117,18 +117,18 @@ describe("Schema Coverage Tests", function () {
             unionField: {
               _def: {
                 typeName: "ZodUnion",
-                options: undefined
-              }
-            }
-          })
-        }
+                options: undefined,
+              },
+            },
+          }),
+        },
       } as any;
-      
+
       app.schema.register("UnionNoOptionsSchema", mockUnionSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## UnionNoOptionsSchema"));
     });
 
@@ -140,18 +140,18 @@ describe("Schema Coverage Tests", function () {
             lazyField: {
               _def: {
                 typeName: "ZodLazy",
-                getter: undefined
-              }
-            }
-          })
-        }
+                getter: undefined,
+              },
+            },
+          }),
+        },
       } as any;
-      
+
       app.schema.register("LazyNoGetterSchema", mockLazySchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## LazyNoGetterSchema"));
     });
 
@@ -159,51 +159,51 @@ describe("Schema Coverage Tests", function () {
       const mockUnknownSchema = {
         _def: {
           typeName: undefined,
-          type: undefined
-        }
+          type: undefined,
+        },
       } as any;
-      
+
       app.schema.register("UnknownNoTypeNameSchema", mockUnknownSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("# 数据类型"));
     });
 
     it("should handle schema with description property", function () {
-       const mockSchemaWithDesc = {
-         _def: {
-           typeName: "ZodObject",
-           shape: () => ({
-             field: {
-               _def: { typeName: "ZodString" }
-             }
-           })
-         },
-         description: "Direct description"
-       } as any;
-       
-       app.schema.register("DescPropertySchema", mockSchemaWithDesc);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## DescPropertySchema"));
-     });
+      const mockSchemaWithDesc = {
+        _def: {
+          typeName: "ZodObject",
+          shape: () => ({
+            field: {
+              _def: { typeName: "ZodString" },
+            },
+          }),
+        },
+        description: "Direct description",
+      } as any;
+
+      app.schema.register("DescPropertySchema", mockSchemaWithDesc);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## DescPropertySchema"));
+    });
 
     it("should handle undefined zodSchema", function () {
       const docData = {
         types: {},
         schema: {
           get: () => undefined,
-          has: () => false
+          has: () => false,
         },
         erest: {
-          schemaRegistry: new Map()
-        }
+          schemaRegistry: new Map(),
+        },
       };
-      
+
       const result = schemaDocs(docData);
       assert.ok(result.includes("# 数据类型"));
     });
@@ -211,24 +211,26 @@ describe("Schema Coverage Tests", function () {
     it("should handle zodSchema without _def", function () {
       const invalidSchema = {} as any;
       app.schema.register("InvalidSchema", invalidSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("# 数据类型"));
     });
 
     it("should handle ZodLazy with getter function", function () {
-      const lazySchema = z.lazy(() => z.object({
-        id: z.string(),
-        name: z.string()
-      }));
-      
+      const lazySchema = z.lazy(() =>
+        z.object({
+          id: z.string(),
+          name: z.string(),
+        })
+      );
+
       app.schema.register("LazySchema", lazySchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## LazySchema"));
     });
 
@@ -236,26 +238,26 @@ describe("Schema Coverage Tests", function () {
       const failingLazySchema = z.lazy(() => {
         throw new Error("Getter failed");
       });
-      
+
       app.schema.register("FailingLazySchema", failingLazySchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## FailingLazySchema"));
     });
 
     it("should handle ZodDefault with function defaultValue", function () {
       const defaultSchema = z.object({
         timestamp: z.number().default(() => Date.now()),
-        uuid: z.string().default(() => "generated-uuid")
+        uuid: z.string().default(() => "generated-uuid"),
       });
-      
+
       app.schema.register("DefaultSchema", defaultSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## DefaultSchema"));
       assert.ok(result.includes("timestamp"));
       assert.ok(result.includes("uuid"));
@@ -271,22 +273,22 @@ describe("Schema Coverage Tests", function () {
               _def: {
                 typeName: "ZodDefault",
                 innerType: {
-                  _def: { typeName: "ZodString" }
+                  _def: { typeName: "ZodString" },
                 },
                 defaultValue: () => {
                   throw new Error("Default function failed");
-                }
-              }
-            }
-          })
-        }
+                },
+              },
+            },
+          }),
+        },
       } as any;
-      
+
       app.schema.register("FailingDefaultSchema", mockSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## FailingDefaultSchema"));
     });
 
@@ -295,29 +297,29 @@ describe("Schema Coverage Tests", function () {
       const emptyUnionSchema = {
         _def: {
           typeName: "ZodUnion",
-          options: []
-        }
+          options: [],
+        },
       } as any;
-      
+
       app.schema.register("EmptyUnionSchema", emptyUnionSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("# 数据类型"));
     });
 
     it("should handle ZodEnum with values", function () {
       const enumSchema = z.object({
         status: z.enum(["active", "inactive", "pending"]),
-        priority: z.enum(["low", "medium", "high"])
+        priority: z.enum(["low", "medium", "high"]),
       });
-      
+
       app.schema.register("EnumSchema", enumSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## EnumSchema"));
       assert.ok(result.includes("status"));
       assert.ok(result.includes("priority"));
@@ -326,29 +328,29 @@ describe("Schema Coverage Tests", function () {
     it("should handle unknown type names", function () {
       const unknownTypeSchema = {
         _def: {
-          typeName: "ZodUnknownType"
-        }
+          typeName: "ZodUnknownType",
+        },
       } as any;
-      
+
       app.schema.register("UnknownTypeSchema", unknownTypeSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("# 数据类型"));
     });
 
     it("should handle schema with description", function () {
       const describedSchema = z.object({
         field1: z.string().describe("这是一个字符串字段"),
-        field2: z.number().describe("这是一个数字字段")
+        field2: z.number().describe("这是一个数字字段"),
       });
-      
+
       app.schema.register("DescribedSchema", describedSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## DescribedSchema"));
       assert.ok(result.includes("这是一个字符串字段"));
       assert.ok(result.includes("这是一个数字字段"));
@@ -360,9 +362,9 @@ describe("Schema Coverage Tests", function () {
       const docData = {
         types: {},
         schema: {},
-        erest: {}
+        erest: {},
       };
-      
+
       const result = schemaDocs(docData);
       assert.ok(result.includes("# 数据类型"));
     });
@@ -371,32 +373,35 @@ describe("Schema Coverage Tests", function () {
       const docData = {
         types: {},
         schema: {
-          someProperty: "not a map"
+          someProperty: "not a map",
         },
         erest: {
-          schemaRegistry: "not a map"
-        }
+          schemaRegistry: "not a map",
+        },
       };
-      
+
       const result = schemaDocs(docData);
       assert.ok(result.includes("# 数据类型"));
     });
 
     it("should find schemaRegistry in schemaManager properties", function () {
       const schemaRegistry = new Map();
-      schemaRegistry.set("TestSchema", z.object({
-        id: z.string(),
-        name: z.string()
-      }));
-      
+      schemaRegistry.set(
+        "TestSchema",
+        z.object({
+          id: z.string(),
+          name: z.string(),
+        })
+      );
+
       const docData = {
         types: {},
         schema: {
-          registryProperty: schemaRegistry
+          registryProperty: schemaRegistry,
         },
-        erest: {}
+        erest: {},
       };
-      
+
       const result = schemaDocs(docData);
       assert.ok(result.includes("# 数据类型"));
       assert.ok(result.includes("## Schema定义"));
@@ -408,10 +413,10 @@ describe("Schema Coverage Tests", function () {
         types: {},
         schema: {},
         erest: {
-          schemaRegistry: new Map()
-        }
+          schemaRegistry: new Map(),
+        },
       };
-      
+
       const result = schemaDocs(docData);
       assert.ok(result.includes("# 数据类型"));
       assert.ok(!result.includes("## Schema定义"));
@@ -423,9 +428,9 @@ describe("Schema Coverage Tests", function () {
       const docData = {
         types: {},
         schema: {},
-        erest: {}
+        erest: {},
       };
-      
+
       const result = schemaDocs(docData);
       assert.ok(result.includes("# 数据类型"));
       assert.ok(!result.includes("## 注册类型"));
@@ -440,13 +445,13 @@ describe("Schema Coverage Tests", function () {
             isBuiltin: false,
             checker: true,
             formatter: true,
-            parser: true
-          }
+            parser: true,
+          },
         },
         schema: {},
-        erest: {}
+        erest: {},
       };
-      
+
       const result = schemaDocs(docData);
       assert.ok(result.includes("# 数据类型"));
       assert.ok(result.includes("## 注册类型"));
@@ -460,17 +465,17 @@ describe("Schema Coverage Tests", function () {
         level1: z.object({
           level2: z.object({
             level3: z.object({
-              level4: z.string()
-            })
-          })
-        })
+              level4: z.string(),
+            }),
+          }),
+        }),
       });
-      
+
       app.schema.register("DeepSchema", deepSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## DeepSchema"));
       assert.ok(result.includes("level1"));
     });
@@ -486,14 +491,14 @@ describe("Schema Coverage Tests", function () {
         enumField: z.enum(["a", "b", "c"]),
         optionalField: z.string().optional(),
         defaultField: z.string().default("default"),
-        unionField: z.union([z.string(), z.number()])
+        unionField: z.union([z.string(), z.number()]),
       });
-      
+
       app.schema.register("AllTypesSchema", allTypesSchema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("## AllTypesSchema"));
       assert.ok(result.includes("stringField"));
       assert.ok(result.includes("numberField"));
@@ -513,14 +518,14 @@ describe("Schema Coverage Tests", function () {
       const schema = z.object({
         name: z.string().describe("User name"),
         age: z.number().optional(),
-        email: z.string().default("test@example.com")
+        email: z.string().default("test@example.com"),
       });
-      
+
       app.schema.register("User", schema);
-      
+
       const docData = docInstance.buildDocData();
       const result = schemaDocs(docData);
-      
+
       assert.ok(result.includes("# 数据类型"));
       assert.ok(result.includes("## User"));
       assert.ok(result.includes("name"));
@@ -533,13 +538,13 @@ describe("Schema Coverage Tests", function () {
         types: {},
         schema: {
           get: () => undefined,
-          has: () => false
+          has: () => false,
         },
-        erest: null
+        erest: null,
       };
-      
+
       const result = schemaDocs(docData as any);
-      
+
       assert.ok(result.includes("# 数据类型"));
     });
 
@@ -548,34 +553,34 @@ describe("Schema Coverage Tests", function () {
         types: {},
         schema: {
           get: () => undefined,
-          has: () => false
+          has: () => false,
         },
         erest: {
           // No schemaRegistry property
-        }
+        },
       };
-      
+
       const result = schemaDocs(docData as any);
-      
+
       assert.ok(result.includes("# 数据类型"));
     });
 
     it("should handle schemaManager with Map property", function () {
       const testMap = new Map();
       testMap.set("TestSchema", z.string());
-      
+
       const docData = {
         types: {},
         schema: {
           get: () => undefined,
           has: () => false,
-          someMapProperty: testMap
+          someMapProperty: testMap,
         },
-        erest: null
+        erest: null,
       };
-      
+
       const result = schemaDocs(docData as any);
-      
+
       assert.ok(result.includes("# 数据类型"));
       assert.ok(result.includes("## TestSchema"));
     });
@@ -585,448 +590,451 @@ describe("Schema Coverage Tests", function () {
         types: {},
         schema: {
           get: () => undefined,
-          has: () => false
+          has: () => false,
         },
         erest: {
-          schemaRegistry: new Map()
-        }
+          schemaRegistry: new Map(),
+        },
       };
-      
+
       const result = schemaDocs(docData as any);
-      
+
       assert.ok(result.includes("# 数据类型"));
     });
 
     it("should handle non-Map schemaRegistry", function () {
-       const docData = {
-         types: {},
-         schema: {
-           get: () => undefined,
-           has: () => false
-         },
-         erest: {
-           schemaRegistry: "not a map"
-         }
-       };
-       
-       const result = schemaDocs(docData as any);
-       
-       assert.ok(result.includes("# 数据类型"));
-     });
-   });
+      const docData = {
+        types: {},
+        schema: {
+          get: () => undefined,
+          has: () => false,
+        },
+        erest: {
+          schemaRegistry: "not a map",
+        },
+      };
 
-   describe("generateZodSchemaInfo function", function () {
-     it("should handle ZodLazy with object inner schema", function () {
-       const lazyObjectSchema = z.lazy(() => z.object({
-         name: z.string(),
-         age: z.number()
-       }));
-       
-       app.schema.register("LazyObjectSchema", lazyObjectSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## LazyObjectSchema"));
-       assert.ok(result.includes("name"));
-       assert.ok(result.includes("age"));
-     });
+      const result = schemaDocs(docData as any);
 
-     it("should handle ZodLazy with function shape", function () {
-       const mockLazySchema = {
-         _def: {
-           typeName: "ZodLazy",
-           getter: () => ({
-             _def: {
-               typeName: "ZodObject",
-               shape: () => ({
-                 dynamicField: {
-                   _def: { typeName: "ZodString" }
-                 }
-               })
-             }
-           })
-         }
-       } as any;
-       
-       app.schema.register("LazyFunctionShapeSchema", mockLazySchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## LazyFunctionShapeSchema"));
-     });
+      assert.ok(result.includes("# 数据类型"));
+    });
+  });
 
-     it("should handle ZodLazy with non-object inner schema", function () {
-       const lazyStringSchema = z.lazy(() => z.string());
-       
-       app.schema.register("LazyStringSchema", lazyStringSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## LazyStringSchema"));
-     });
+  describe("generateZodSchemaInfo function", function () {
+    it("should handle ZodLazy with object inner schema", function () {
+      const lazyObjectSchema = z.lazy(() =>
+        z.object({
+          name: z.string(),
+          age: z.number(),
+        })
+      );
 
-     it("should handle ZodLazy with getter exception", function () {
-       const mockLazySchema = {
-         _def: {
-           typeName: "ZodLazy",
-           getter: () => {
-             throw new Error("Getter error");
-           }
-         }
-       } as any;
-       
-       app.schema.register("LazyErrorSchema", mockLazySchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## LazyErrorSchema"));
-     });
+      app.schema.register("LazyObjectSchema", lazyObjectSchema);
 
-     it("should handle non-object schema", function () {
-       const stringSchema = z.string().describe("Simple string");
-       
-       app.schema.register("SimpleStringSchema", stringSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## SimpleStringSchema"));
-     });
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
 
-     it("should handle schema without _def", function () {
-       const mockSchema = {} as any;
-       
-       app.schema.register("NoDefSchema", mockSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("# 数据类型"));
-     });
+      assert.ok(result.includes("## LazyObjectSchema"));
+      assert.ok(result.includes("name"));
+      assert.ok(result.includes("age"));
+    });
 
-     it("should handle ZodLazy with type value lazy", function () {
-       const mockSchema = {
-         _def: {
-           type: "lazy",
-           getter: () => z.object({
-             field: z.string()
-           })
-         }
-       } as any;
-       
-       app.schema.register("TypeValueLazySchema", mockSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## TypeValueLazySchema"));
-     });
+    it("should handle ZodLazy with function shape", function () {
+      const mockLazySchema = {
+        _def: {
+          typeName: "ZodLazy",
+          getter: () => ({
+            _def: {
+              typeName: "ZodObject",
+              shape: () => ({
+                dynamicField: {
+                  _def: { typeName: "ZodString" },
+                },
+              }),
+            },
+          }),
+        },
+      } as any;
 
-     it("should handle ZodLazy with def.getter instead of _def.getter", function () {
-       const mockSchema = {
-         _def: {
-           typeName: "ZodLazy"
-         },
-         def: {
-           type: "lazy",
-           getter: () => ({
-             _def: {
-               typeName: "ZodString"
-             }
-           })
-         }
-       } as any;
-       
-       app.schema.register("DefGetterSchema", mockSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## DefGetterSchema"));
-     });
+      app.schema.register("LazyFunctionShapeSchema", mockLazySchema);
 
-     it("should handle ZodLazy without getter", function () {
-       const mockSchema = {
-         _def: {
-           typeName: "ZodLazy"
-         },
-         def: {
-           type: "lazy"
-         }
-       } as any;
-       
-       app.schema.register("NoGetterSchema", mockSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## NoGetterSchema"));
-     });
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
 
-     it("should handle default case in switch statement", function () {
-       const mockSchema = {
-         _def: {
-           typeName: "ZodCustomType"
-         }
-       } as any;
-       
-       app.schema.register("CustomTypeSchema", mockSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## CustomTypeSchema"));
-     });
+      assert.ok(result.includes("## LazyFunctionShapeSchema"));
+    });
 
-     it("should handle schema with no typeName", function () {
-       const mockSchema = {
-         _def: {}
-       } as any;
-       
-       app.schema.register("NoTypeNameSchema", mockSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## NoTypeNameSchema"));
-     });
+    it("should handle ZodLazy with non-object inner schema", function () {
+      const lazyStringSchema = z.lazy(() => z.string());
 
-     it("should handle ZodDefault with function defaultValue that throws", function () {
-       const mockSchema = {
-         _def: {
-           typeName: "ZodDefault",
-           innerType: {
-             _def: {
-               typeName: "ZodString"
-             }
-           },
-           defaultValue: () => {
-             throw new Error("Default value error");
-           }
-         }
-       } as any;
-       
-       app.schema.register("ThrowingDefaultSchema", mockSchema);
-       
-       const docData = docInstance.buildDocData();
-       const result = schemaDocs(docData);
-       
-       assert.ok(result.includes("## ThrowingDefaultSchema"));
-     });
+      app.schema.register("LazyStringSchema", lazyStringSchema);
 
-     it("should handle type that exists in typeManager", function () {
-       const docData = {
-         types: {
-           "TestType": {
-             name: "TestType",
-             tsType: "string",
-             description: "Test type",
-             isDefaultFormat: true,
-             isParamsRequired: false
-           }
-         },
-         schema: {},
-         erest: {}
-       };
-       
-       const result = schemaDocs(docData);
-       assert.ok(result.includes("## 注册类型"));
-       assert.ok(result.includes("TestType"));
-     });
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
 
-     it("should handle empty type string", function () {
-        const docData = {
-          types: {
-            "EmptyType": {
-              name: "",
-              tsType: "",
-              description: "",
-              isDefaultFormat: false,
-              isParamsRequired: true
-            }
+      assert.ok(result.includes("## LazyStringSchema"));
+    });
+
+    it("should handle ZodLazy with getter exception", function () {
+      const mockLazySchema = {
+        _def: {
+          typeName: "ZodLazy",
+          getter: () => {
+            throw new Error("Getter error");
           },
-          schema: {},
-          erest: {}
-        };
-        
-        const result = schemaDocs(docData);
-        assert.ok(result.includes("## 注册类型"));
-      });
+        },
+      } as any;
 
-      // Test _parseType function coverage - this function is not directly called in current implementation
-       // The _parseType function exists but is not used in the current code path
-       // We need to test the actual code paths that are executed
-       
-       it("should handle types with tsType field", function () {
-         const docData = {
-           typeManager: { has: (type: string) => type === 'KnownType' },
-           types: {
-             "TestType": {
-               name: "TestType",
-               tsType: "string",
-               description: "Test type",
-               isDefaultFormat: true,
-               isParamsRequired: false
-             }
-           },
-           schema: {},
-           erest: {}
-         };
-         
-         const result = schemaDocs(docData);
-         assert.ok(result.includes("TestType"));
-         assert.ok(result.includes("string"));
-       });
+      app.schema.register("LazyErrorSchema", mockLazySchema);
 
-       it("should handle types without tsType field", function () {
-         const docData = {
-           typeManager: { has: () => false },
-           types: {
-             "TestType": {
-               name: "TestType",
-               tsType: undefined,
-               description: "Test type",
-               isDefaultFormat: true,
-               isParamsRequired: false
-             }
-           },
-           schema: {},
-           erest: {}
-         };
-         
-         const result = schemaDocs(docData);
-         assert.ok(result.includes("TestType"));
-         assert.ok(result.includes("unknown"));
-       });
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
 
-      // Test ZodLazy with getter in generateZodSchemaInfo
-      it("should handle ZodLazy with getter in generateZodSchemaInfo", function () {
-        const mockLazySchema = {
-          _def: {
-            typeName: "ZodLazy",
-            getter: () => ({
-              _def: {
-                typeName: "ZodObject",
-                shape: {
-                  field1: { _def: { typeName: "ZodString" } },
-                  field2: { _def: { typeName: "ZodNumber" } }
-                }
-              }
-            })
-          }
-        } as any;
-        
-        app.schema.register("LazyObjectSchema", mockLazySchema);
-        
-        const docData = docInstance.buildDocData();
-        const result = schemaDocs(docData);
-        
-        assert.ok(result.includes("## LazyObjectSchema"));
-      });
+      assert.ok(result.includes("## LazyErrorSchema"));
+    });
 
-      it("should handle ZodLazy with function shape", function () {
-        const mockLazySchema = {
-          _def: {
-            typeName: "ZodLazy",
-            getter: () => ({
-              _def: {
-                typeName: "ZodObject",
-                shape: () => ({
-                  dynamicField: { _def: { typeName: "ZodString" } }
-                })
-              }
-            })
-          }
-        } as any;
-        
-        app.schema.register("LazyFunctionShapeSchema", mockLazySchema);
-        
-        const docData = docInstance.buildDocData();
-        const result = schemaDocs(docData);
-        
-        assert.ok(result.includes("## LazyFunctionShapeSchema"));
-      });
+    it("should handle non-object schema", function () {
+      const stringSchema = z.string().describe("Simple string");
 
-      it("should handle ZodLazy with non-object inner type", function () {
-        const mockLazySchema = {
-          _def: {
-            typeName: "ZodLazy",
-            getter: () => ({
-              _def: {
-                typeName: "ZodString"
-              }
-            })
-          }
-        } as any;
-        
-        app.schema.register("LazyStringSchema", mockLazySchema);
-        
-        const docData = docInstance.buildDocData();
-        const result = schemaDocs(docData);
-        
-        assert.ok(result.includes("## LazyStringSchema"));
-      });
+      app.schema.register("SimpleStringSchema", stringSchema);
 
-      it("should handle ZodLazy with getter that throws", function () {
-        const mockLazySchema = {
-          _def: {
-            typeName: "ZodLazy",
-            getter: () => {
-              throw new Error("Getter failed");
-            }
-          }
-        } as any;
-        
-        app.schema.register("LazyErrorSchema", mockLazySchema);
-        
-        const docData = docInstance.buildDocData();
-        const result = schemaDocs(docData);
-        
-        assert.ok(result.includes("## LazyErrorSchema"));
-      });
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
 
-      it("should handle ZodLazy with type value lazy", function () {
-        const mockLazySchema = {
-          _def: {
-            type: "lazy",
-            getter: () => ({
-              _def: {
-                typeName: "ZodString"
-              }
-            })
-          }
-        } as any;
-        
-        app.schema.register("TypeLazySchema", mockLazySchema);
-        
-        const docData = docInstance.buildDocData();
-        const result = schemaDocs(docData);
-        
-        assert.ok(result.includes("## TypeLazySchema"));
-      });
+      assert.ok(result.includes("## SimpleStringSchema"));
+    });
 
-      it("should handle ZodLazy with typeName lazy", function () {
-        const mockLazySchema = {
-          _def: {
-            typeName: "lazy",
-            getter: () => ({
-              _def: {
-                typeName: "ZodString"
-              }
-            })
-          }
-        } as any;
-        
-        app.schema.register("TypeNameLazySchema", mockLazySchema);
-        
-        const docData = docInstance.buildDocData();
-        const result = schemaDocs(docData);
-        
-        assert.ok(result.includes("## TypeNameLazySchema"));
-      });
-   });
- });
+    it("should handle schema without _def", function () {
+      const mockSchema = {} as any;
+
+      app.schema.register("NoDefSchema", mockSchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("# 数据类型"));
+    });
+
+    it("should handle ZodLazy with type value lazy", function () {
+      const mockSchema = {
+        _def: {
+          type: "lazy",
+          getter: () =>
+            z.object({
+              field: z.string(),
+            }),
+        },
+      } as any;
+
+      app.schema.register("TypeValueLazySchema", mockSchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## TypeValueLazySchema"));
+    });
+
+    it("should handle ZodLazy with def.getter instead of _def.getter", function () {
+      const mockSchema = {
+        _def: {
+          typeName: "ZodLazy",
+        },
+        def: {
+          type: "lazy",
+          getter: () => ({
+            _def: {
+              typeName: "ZodString",
+            },
+          }),
+        },
+      } as any;
+
+      app.schema.register("DefGetterSchema", mockSchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## DefGetterSchema"));
+    });
+
+    it("should handle ZodLazy without getter", function () {
+      const mockSchema = {
+        _def: {
+          typeName: "ZodLazy",
+        },
+        def: {
+          type: "lazy",
+        },
+      } as any;
+
+      app.schema.register("NoGetterSchema", mockSchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## NoGetterSchema"));
+    });
+
+    it("should handle default case in switch statement", function () {
+      const mockSchema = {
+        _def: {
+          typeName: "ZodCustomType",
+        },
+      } as any;
+
+      app.schema.register("CustomTypeSchema", mockSchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## CustomTypeSchema"));
+    });
+
+    it("should handle schema with no typeName", function () {
+      const mockSchema = {
+        _def: {},
+      } as any;
+
+      app.schema.register("NoTypeNameSchema", mockSchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## NoTypeNameSchema"));
+    });
+
+    it("should handle ZodDefault with function defaultValue that throws", function () {
+      const mockSchema = {
+        _def: {
+          typeName: "ZodDefault",
+          innerType: {
+            _def: {
+              typeName: "ZodString",
+            },
+          },
+          defaultValue: () => {
+            throw new Error("Default value error");
+          },
+        },
+      } as any;
+
+      app.schema.register("ThrowingDefaultSchema", mockSchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## ThrowingDefaultSchema"));
+    });
+
+    it("should handle type that exists in typeManager", function () {
+      const docData = {
+        types: {
+          TestType: {
+            name: "TestType",
+            tsType: "string",
+            description: "Test type",
+            isDefaultFormat: true,
+            isParamsRequired: false,
+          },
+        },
+        schema: {},
+        erest: {},
+      };
+
+      const result = schemaDocs(docData);
+      assert.ok(result.includes("## 注册类型"));
+      assert.ok(result.includes("TestType"));
+    });
+
+    it("should handle empty type string", function () {
+      const docData = {
+        types: {
+          EmptyType: {
+            name: "",
+            tsType: "",
+            description: "",
+            isDefaultFormat: false,
+            isParamsRequired: true,
+          },
+        },
+        schema: {},
+        erest: {},
+      };
+
+      const result = schemaDocs(docData);
+      assert.ok(result.includes("## 注册类型"));
+    });
+
+    // Test _parseType function coverage - this function is not directly called in current implementation
+    // The _parseType function exists but is not used in the current code path
+    // We need to test the actual code paths that are executed
+
+    it("should handle types with tsType field", function () {
+      const docData = {
+        typeManager: { has: (type: string) => type === "KnownType" },
+        types: {
+          TestType: {
+            name: "TestType",
+            tsType: "string",
+            description: "Test type",
+            isDefaultFormat: true,
+            isParamsRequired: false,
+          },
+        },
+        schema: {},
+        erest: {},
+      };
+
+      const result = schemaDocs(docData);
+      assert.ok(result.includes("TestType"));
+      assert.ok(result.includes("string"));
+    });
+
+    it("should handle types without tsType field", function () {
+      const docData = {
+        typeManager: { has: () => false },
+        types: {
+          TestType: {
+            name: "TestType",
+            tsType: undefined,
+            description: "Test type",
+            isDefaultFormat: true,
+            isParamsRequired: false,
+          },
+        },
+        schema: {},
+        erest: {},
+      };
+
+      const result = schemaDocs(docData);
+      assert.ok(result.includes("TestType"));
+      assert.ok(result.includes("unknown"));
+    });
+
+    // Test ZodLazy with getter in generateZodSchemaInfo
+    it("should handle ZodLazy with getter in generateZodSchemaInfo", function () {
+      const mockLazySchema = {
+        _def: {
+          typeName: "ZodLazy",
+          getter: () => ({
+            _def: {
+              typeName: "ZodObject",
+              shape: {
+                field1: { _def: { typeName: "ZodString" } },
+                field2: { _def: { typeName: "ZodNumber" } },
+              },
+            },
+          }),
+        },
+      } as any;
+
+      app.schema.register("LazyObjectSchema", mockLazySchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## LazyObjectSchema"));
+    });
+
+    it("should handle ZodLazy with function shape", function () {
+      const mockLazySchema = {
+        _def: {
+          typeName: "ZodLazy",
+          getter: () => ({
+            _def: {
+              typeName: "ZodObject",
+              shape: () => ({
+                dynamicField: { _def: { typeName: "ZodString" } },
+              }),
+            },
+          }),
+        },
+      } as any;
+
+      app.schema.register("LazyFunctionShapeSchema", mockLazySchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## LazyFunctionShapeSchema"));
+    });
+
+    it("should handle ZodLazy with non-object inner type", function () {
+      const mockLazySchema = {
+        _def: {
+          typeName: "ZodLazy",
+          getter: () => ({
+            _def: {
+              typeName: "ZodString",
+            },
+          }),
+        },
+      } as any;
+
+      app.schema.register("LazyStringSchema", mockLazySchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## LazyStringSchema"));
+    });
+
+    it("should handle ZodLazy with getter that throws", function () {
+      const mockLazySchema = {
+        _def: {
+          typeName: "ZodLazy",
+          getter: () => {
+            throw new Error("Getter failed");
+          },
+        },
+      } as any;
+
+      app.schema.register("LazyErrorSchema", mockLazySchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## LazyErrorSchema"));
+    });
+
+    it("should handle ZodLazy with type value lazy", function () {
+      const mockLazySchema = {
+        _def: {
+          type: "lazy",
+          getter: () => ({
+            _def: {
+              typeName: "ZodString",
+            },
+          }),
+        },
+      } as any;
+
+      app.schema.register("TypeLazySchema", mockLazySchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## TypeLazySchema"));
+    });
+
+    it("should handle ZodLazy with typeName lazy", function () {
+      const mockLazySchema = {
+        _def: {
+          typeName: "lazy",
+          getter: () => ({
+            _def: {
+              typeName: "ZodString",
+            },
+          }),
+        },
+      } as any;
+
+      app.schema.register("TypeNameLazySchema", mockLazySchema);
+
+      const docData = docInstance.buildDocData();
+      const result = schemaDocs(docData);
+
+      assert.ok(result.includes("## TypeNameLazySchema"));
+    });
+  });
+});

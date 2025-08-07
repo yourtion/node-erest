@@ -331,7 +331,7 @@ describe("Zod Documentation Generation Tests", () => {
 
       docInstance.registerPlugin("test", testPlugin);
       docInstance.genDocs();
-      
+
       // Mock the save process
       const mockWriter = vi.fn();
       docInstance.setWritter(mockWriter);
@@ -367,7 +367,7 @@ describe("Zod Documentation Generation Tests", () => {
       app.api.docOutputForamt = mockFormatOutput;
 
       const docData = docInstance.buildDocData();
-      
+
       // Since we don't have APIs with examples, this test verifies the function is set
       expect(app.api.docOutputForamt).toBe(mockFormatOutput);
     });
@@ -376,7 +376,7 @@ describe("Zod Documentation Generation Tests", () => {
       const mockWriter = vi.fn();
       docInstance.setWritter(mockWriter);
       docInstance.genDocs();
-      
+
       // Test that the writer was set correctly
       expect(mockWriter).toBeDefined();
     });
@@ -416,10 +416,12 @@ describe("Zod Documentation Generation Tests", () => {
 
   describe("Zod Schema Type Extraction", () => {
     test("should extract lazy schema types correctly", () => {
-      const lazySchema = z.lazy(() => z.object({
-        name: z.string(),
-        age: z.number()
-      }));
+      const lazySchema = z.lazy(() =>
+        z.object({
+          name: z.string(),
+          age: z.number(),
+        })
+      );
 
       app.schema.register("LazyUser", lazySchema);
 
@@ -437,10 +439,12 @@ describe("Zod Documentation Generation Tests", () => {
         children?: TreeNode[];
       }
 
-      const treeSchema: z.ZodType<TreeNode> = z.lazy(() => z.object({
-        value: z.string(),
-        children: z.array(treeSchema).optional()
-      }));
+      const treeSchema: z.ZodType<TreeNode> = z.lazy(() =>
+        z.object({
+          value: z.string(),
+          children: z.array(treeSchema).optional(),
+        })
+      );
 
       app.schema.register("TreeNode", treeSchema);
 
@@ -457,7 +461,7 @@ describe("Zod Documentation Generation Tests", () => {
         name: z.string(),
         status: z.string().default("active"),
         count: z.number().default(() => 0),
-        enabled: z.boolean().default(true)
+        enabled: z.boolean().default(true),
       });
 
       app.schema.register("EntityWithDefaults", schemaWithDefaults);
@@ -474,7 +478,7 @@ describe("Zod Documentation Generation Tests", () => {
       const unionSchema = z.object({
         id: z.union([z.string(), z.number()]),
         status: z.union([z.literal("active"), z.literal("inactive")]),
-        data: z.union([z.string(), z.object({ value: z.number() })])
+        data: z.union([z.string(), z.object({ value: z.number() })]),
       });
 
       app.schema.register("UnionEntity", unionSchema);
@@ -490,12 +494,14 @@ describe("Zod Documentation Generation Tests", () => {
 
     test("should handle array schemas with complex elements", () => {
       const arraySchema = z.object({
-        users: z.array(z.object({
-          name: z.string(),
-          email: z.string().email()
-        })),
+        users: z.array(
+          z.object({
+            name: z.string(),
+            email: z.string().email(),
+          })
+        ),
         tags: z.array(z.string()),
-        scores: z.array(z.number())
+        scores: z.array(z.number()),
       });
 
       app.schema.register("ArrayEntity", arraySchema);
@@ -513,7 +519,7 @@ describe("Zod Documentation Generation Tests", () => {
       const enumSchema = z.object({
         color: z.enum(["red", "green", "blue"]),
         size: z.enum(["small", "medium", "large"]),
-        priority: z.enum(["low", "medium", "high"])
+        priority: z.enum(["low", "medium", "high"]),
       });
 
       app.schema.register("EnumEntity", enumSchema);
@@ -533,7 +539,7 @@ describe("Zod Documentation Generation Tests", () => {
         required: z.string(),
         optional: z.string().optional(),
         nullable: z.string().nullable(),
-        optionalNullable: z.string().optional().nullable()
+        optionalNullable: z.string().optional().nullable(),
       });
 
       app.schema.register("NullableEntity", nullableSchema);
