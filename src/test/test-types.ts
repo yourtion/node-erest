@@ -1,16 +1,16 @@
 import { vi } from "vitest";
-import lib from "./lib";
+import type { IDocData, IDocTypes } from "../lib/extend/docs";
 import typeDocs from "../lib/plugin/generate_markdown/types";
 import {
-  trimSpaces,
-  stringToString,
-  stringOrEmpty,
+  fieldString,
   itemTF,
   itemTFEmoji,
+  stringOrEmpty,
+  stringToString,
   tableHeader,
-  fieldString,
+  trimSpaces,
 } from "../lib/plugin/generate_markdown/utils";
-import type { IDocData, IDocTypes } from "../lib/extend/docs";
+import lib from "./lib";
 
 const apiService = lib();
 const paramsChecker = apiService.paramsChecker();

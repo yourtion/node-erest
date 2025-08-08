@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { type ZodType, z } from "zod";
-import { vi } from "vitest";
 import type ERest from "../lib";
 import IAPIDoc from "../lib/extend/docs";
 import schemaDocs from "../lib/plugin/generate_markdown/schema";
@@ -15,13 +15,9 @@ describe("Zod Documentation Generation Tests", () => {
 
   beforeEach(() => {
     // 重置注册表
-    (
-      app as ERest<unknown> & { typeRegistry: Map<string, ZodType>; schemaRegistry: Map<string, ZodType> }
-    ).typeRegistry = new Map();
-    (
-      app as ERest<unknown> & { typeRegistry: Map<string, ZodType>; schemaRegistry: Map<string, ZodType> }
-    ).schemaRegistry = new Map();
-    docInstance = new IAPIDoc(app);
+    (app as any).typeRegistry = new Map();
+    (app as any).schemaRegistry = new Map();
+    docInstance = new IAPIDoc(app as any);
   });
 
   describe("Type Documentation Generation", () => {
@@ -293,8 +289,8 @@ describe("Zod Documentation Generation Tests", () => {
 
     test("should handle invalid Zod schemas gracefully", () => {
       // 模拟无效的schema
-      (app as Record<string, unknown>).typeRegistry.set("InvalidType", null);
-      (app as Record<string, unknown>).schemaRegistry.set("InvalidSchema", { _def: null });
+      (app as any).typeRegistry.set("InvalidType", null);
+      (app as any).schemaRegistry.set("InvalidSchema", { _def: null });
 
       const docData = docInstance.buildDocData();
 
@@ -345,12 +341,18 @@ describe("Zod Documentation Generation Tests", () => {
         throw new Error("Plugin error");
       };
 
+      // 静默错误输出以避免测试中的 stderr 噪音
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
       // Should not throw when plugin fails
       expect(() => {
         docInstance.registerPlugin("error", errorPlugin);
         docInstance.genDocs();
         docInstance.save("/test/dir");
       }).not.toThrow();
+
+      // 恢复 console.error
+      consoleErrorSpy.mockRestore();
     });
 
     test("should generate correct API info statistics", () => {
@@ -385,7 +387,7 @@ describe("Zod Documentation Generation Tests", () => {
       app.type.register("TestType", z.string());
       app.schema.register("TestSchema", z.object({ name: z.string() }));
 
-      const swaggerInfo = docInstance.getSwaggerInfo();
+      const swaggerInfo = docInstance.getSwaggerInfo() as any;
 
       expect(swaggerInfo).toBeDefined();
       expect(swaggerInfo.definitions).toBeDefined();

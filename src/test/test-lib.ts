@@ -1,11 +1,11 @@
 import express from "express";
 import { vi } from "vitest";
 import { z } from "zod";
+import type { IApiOption } from "../lib";
+import ERest from "../lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";
 import { build, TYPES } from "./helper";
 import lib, { GROUPS, INFO } from "./lib";
-import ERest from "../lib";
-import type { IApiOption } from "../lib";
 
 describe("ERest - 基础测试", () => {
   const apiService = lib();

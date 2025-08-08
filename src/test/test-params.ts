@@ -4,8 +4,9 @@
  * Refactored to use shared utilities and improve readability
  */
 
-import { describe, test, expect } from "vitest";
+import { describe, expect, test } from "vitest";
 import { z } from "zod";
+import { iSchemaFixtures, schemaErrorPatterns, schemaTestData } from "./fixtures/schema-fixtures";
 import { build, TYPES } from "./helper";
 import lib from "./lib";
 import {
@@ -17,7 +18,6 @@ import {
 } from "./utils/assertion-helpers";
 import { createTestERestInstance } from "./utils/test-setup";
 import { commonTypes, typeTestData, zodSchemas } from "./utils/type-helpers";
-import { iSchemaFixtures, schemaTestData, schemaErrorPatterns } from "./fixtures/schema-fixtures";
 
 // Create test instance
 const apiService = lib();

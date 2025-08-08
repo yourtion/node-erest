@@ -3,7 +3,7 @@
  * Provides common test setup and teardown functions
  */
 
-import { vi, beforeEach, afterEach, afterAll } from "vitest";
+import { afterAll, afterEach, beforeEach, vi } from "vitest";
 import type ERest from "../../lib";
 import lib from "../lib";
 
@@ -46,17 +46,17 @@ export function createTestERestInstance(config: TestSetupConfig = {}): ERest {
  * Setup test environment with server cleanup
  */
 export function setupTestEnvironment() {
-  let server: any;
+  let server: unknown;
 
   afterEach(() => {
-    if (server && typeof server.close === "function") {
-      server.close();
+    if (server && typeof (server as any).close === "function") {
+      (server as any).close();
       server = null;
     }
   });
 
   return {
-    setServer: (s: any) => {
+    setServer: (s: unknown) => {
       server = s;
     },
     getServer: () => server,
@@ -68,15 +68,15 @@ export function setupTestEnvironment() {
  */
 export function setupERestTest(config: TestSetupConfig = {}) {
   let apiService: ERest;
-  let server: any;
+  let server: unknown;
 
   beforeEach(() => {
     apiService = createTestERestInstance(config);
   });
 
   afterEach(() => {
-    if (server && typeof server.close === "function") {
-      server.close();
+    if (server && typeof (server as any).close === "function") {
+      (server as any).close();
       server = null;
     }
   });
@@ -87,7 +87,7 @@ export function setupERestTest(config: TestSetupConfig = {}) {
 
   return {
     getApiService: () => apiService,
-    setServer: (s: any) => {
+    setServer: (s: unknown) => {
       server = s;
     },
     getServer: () => server,

@@ -4,5 +4,5 @@
  */
 
 export * from "./api-fixtures";
-export * from "./schema-fixtures";
 export * from "./data-fixtures";
+export * from "./schema-fixtures";

@@ -9,7 +9,7 @@ import { vi } from "vitest";
  * Create a mock hook function with specified name
  */
 export function createMockHook(name: string, value: unknown = 1) {
-  const mockFn = vi.fn((req: any, _res: any, next: any) => {
+  const mockFn = vi.fn((req: unknown, _res: unknown, next: () => void) => {
     req[`$${name}`] = value;
     next();
   });
@@ -23,7 +23,7 @@ export function createMockHook(name: string, value: unknown = 1) {
 /**
  * Create a mock Express request object
  */
-export function createMockRequest(params: Record<string, any> = {}, headers: Record<string, any> = {}) {
+export function createMockRequest(params: Record<string, unknown> = {}, headers: Record<string, unknown> = {}) {
   return {
     $params: params,
     headers,
@@ -52,7 +52,7 @@ export function createMockResponse() {
 /**
  * Create a mock Koa context object
  */
-export function createMockKoaContext(params: Record<string, any> = {}) {
+export function createMockKoaContext(params: Record<string, unknown> = {}) {
   return {
     $params: params,
     request: {
@@ -74,11 +74,11 @@ export function createMockKoaContext(params: Record<string, any> = {}) {
  * Create a mock router with stack tracking
  */
 export function createMockRouter() {
-  const stack: any[] = [];
+  const stack: unknown[] = [];
 
   return {
     stack,
-    get: vi.fn((path: string, ...handlers: any[]) => {
+    get: vi.fn((path: string, ...handlers: unknown[]) => {
       stack.push({
         route: {
           path,
@@ -99,7 +99,7 @@ export function createMockRouter() {
  */
 export function createMockExpressApp() {
   const router = {
-    stack: [] as any[],
+    stack: [] as unknown[],
   };
 
   return {
@@ -128,11 +128,11 @@ export function createMockServer() {
 /**
  * Create mock Zod schema
  */
-export function createMockZodSchema(parseResult: any = { success: true, data: {} }) {
+export function createMockZodSchema(parseResult: unknown = { success: true, data: {} }) {
   return {
-    parse: vi.fn((data: any) => {
-      if (parseResult.success) {
-        return parseResult.data || data;
+    parse: vi.fn((data: unknown) => {
+      if ((parseResult as any).success) {
+        return (parseResult as any).data || data;
       }
       throw new Error("Validation failed");
     }),

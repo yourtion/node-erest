@@ -4,14 +4,14 @@
  * Refactored to use shared utilities and improve readability
  */
 
-import { describe, test, expect } from "vitest";
 import express from "express";
+import { describe, expect, test } from "vitest";
 import { build, TYPES } from "./helper";
 import lib from "./lib";
+import { commonParams, createAllCrudApis, createGetApi, createPostApi } from "./utils/api-helpers";
 import { assertApiRegistered, assertRouterStackOrder, assertThrowsWithMessage } from "./utils/assertion-helpers";
 import { createMockHook, createStandardHooks, STANDARD_HOOK_ORDER } from "./utils/mock-factories";
 import { createTestERestInstance, setupExpressTest } from "./utils/test-setup";
-import { createGetApi, createPostApi, createAllCrudApis, commonParams } from "./utils/api-helpers";
 
 describe("Router - Basic Binding Functionality", () => {
   describe("Empty Router Binding", () => {

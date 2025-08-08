@@ -124,7 +124,7 @@ export const typeTestData = {
 /**
  * Create parameter validation test cases
  */
-export function createParamTestCases(type: string, validValues: any[], invalidValues: any[]) {
+export function createParamTestCases(type: string, validValues: unknown[], invalidValues: unknown[]) {
   return {
     type,
     validCases: validValues.map((value) => ({ value, expected: value })),
@@ -135,7 +135,7 @@ export function createParamTestCases(type: string, validValues: any[], invalidVa
 /**
  * Create schema validation test cases
  */
-export function createSchemaTestCases(schema: any, validData: any[], invalidData: any[]) {
+export function createSchemaTestCases(schema: unknown, validData: unknown[], invalidData: unknown[]) {
   return {
     schema,
     validCases: validData.map((data) => ({ data, expected: data })),
@@ -203,7 +203,11 @@ export function createMockSchemaRegistry() {
 /**
  * Validate type transformation results
  */
-export function validateTypeTransformation(input: any, expected: any, transformer: (value: any) => any) {
+export function validateTypeTransformation(
+  input: unknown,
+  expected: unknown,
+  transformer: (value: unknown) => unknown
+) {
   const result = transformer(input);
   return {
     input,
