@@ -3,31 +3,31 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import { strict as assert } from "node:assert";
-import type { SuperTest, Test } from "supertest";
-import type ERest from "..";
-import type { IApiOptionInfo } from "..";
+import assert from "assert";
 import { TestAgent } from "../agent";
-import type { SUPPORT_METHODS } from "../api";
 import { test as debug } from "../debug";
-import { getCallerSourceLine, getSchemaKey, type ISupportMethds, type SourceResult } from "../utils";
+import ERest, { IApiOptionInfo } from "..";
+import { getCallerSourceLine, getSchemaKey, ISupportMethds } from "../utils";
+
+import { SuperTest } from "supertest";
+import { SUPPORT_METHODS } from "../api";
 
 /** 测试Agent */
 export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
 
 export interface ITestSession extends IAgent {
   /** 原始SuperTestAgent */
-  readonly $agent: SuperTest<Test>;
+  readonly $agent: SuperTest<any>;
 }
 
 export default class IAPITest {
-  private erest: ERest<unknown>;
+  private erest: ERest<any>;
   private info: IApiOptionInfo;
-  private app: unknown;
+  private app: any;
   private testPath: string;
-  private supertest?: unknown;
+  private supertest?: any;
 
-  constructor(erestIns: ERest<unknown>, path: string) {
+  constructor(erestIns: ERest<any>, path: string) {
     this.erest = erestIns;
     const { info, app } = this.erest.privateInfo;
     this.info = info;
@@ -61,14 +61,14 @@ export default class IAPITest {
     assert(this.app, "请先调用 setApp() 设置 app 实例");
     assert(this.supertest, "请先安装 supertest");
 
-    const agent = (this.supertest as { agent: (app: unknown) => SuperTest<Test> }).agent(this.app);
+    const agent = this.supertest.agent(this.app);
 
     const buildSession = (method: SUPPORT_METHODS) => {
       return (path: string) => {
         const s = this.findApi(method, path);
         if (!s || !s.key) throw new Error(`尝试请求未注册的API：${method} ${path}`);
 
-        const a = new TestAgent(method, path, s.key, s.options.sourceFile as SourceResult, this.erest);
+        const a = new TestAgent(method, path, s.key, s.options.sourceFile, this.erest);
         a.setAgent(agent[method](path));
         return a.agent();
       };
@@ -87,7 +87,7 @@ export default class IAPITest {
   /** 根据请求方法和请求路径查找对应的API */
   private findApi(method: SUPPORT_METHODS, path: string) {
     // 如果定义了 API 的 basePath，需要在测试时替换掉
-    const routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
+    let routerPath = this.info.basePath ? path.replace(this.info.basePath, "") : path;
 
     const key = getSchemaKey(method, routerPath);
     debug(method, path, key);

@@ -2,7 +2,7 @@
  * @file API Utils
  * @author Yourtion Guo <yourtion@gmail.com>
  */
-import { resolve as pathResolve } from "node:path";
+import { resolve as pathResolve } from "path";
 
 export interface ISupportMethds<T> {
   get: T;
@@ -34,7 +34,7 @@ export function getCallerSourceLine(dir: string): SourceResult {
 
 /** 获取API的Key */
 export function getSchemaKey(method: string, path: string, prefix?: string): string {
-  const pf = prefix ? (prefix.indexOf("/") === 0 ? prefix : `/${camelCase2underscore(prefix)}`) : "/";
+  const pf = prefix ? (prefix.indexOf("/") === 0 ? prefix : "/" + camelCase2underscore(prefix)) : "/";
   return `${method.toUpperCase()}_${(pf + path).replace(/\/\//g, "/").replace(/\/$/, "") || "/"}`;
 }
 

@@ -3,7 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import type { ErrorManager } from "../manager/error";
+import { ErrorManager } from "../manager/error";
 
 export function defaultErrors(error: ErrorManager) {
   error.import([

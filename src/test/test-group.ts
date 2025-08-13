@@ -1,13 +1,13 @@
-import { Application, type Context as LeiContext, Router } from "@leizm/web";
 import express from "express";
-import Koa, { type Context as KoaContext } from "koa";
-import KoaRouter from "koa-router";
+import { Application, Router, Context as LeiContext } from "@leizm/web";
+import Koa ,{Context as KoaContext} from 'koa';
+import KoaRouter from 'koa-router'; // or import Router from 'koa-router';
 // import bodyParser from 'koa-bodyparser'; // Add this
 
 import { hook } from "./helper";
 import lib from "./lib";
 
-function reqFn(_req: express.Request, res: express.Response) {
+function reqFn(req: express.Request, res: express.Response) {
   res.json("Hello, API Framework Index");
 }
 
@@ -63,7 +63,7 @@ describe("Group - 绑定分组路由到App上", () => {
     const routerStack = appRoute.stack[0].route.stack;
 
     expect(routerStack.length).toBe(ORDER.length);
-    const hooksName = routerStack.map((r: { name: string }) => r.name);
+    const hooksName = routerStack.map((r: any) => r.name);
     expect(hooksName).toEqual(ORDER);
   });
 
@@ -107,7 +107,7 @@ describe("Group - 使用define定义路由", () => {
     const routerStack = apiRoute.stack[0].route.stack;
 
     expect(routerStack.length).toBe(ORDER.length);
-    const hooksName = routerStack.map((r: { name: string }) => r.name);
+    const hooksName = routerStack.map((r: any) => r.name);
     expect(hooksName).toEqual(ORDER);
   });
 
@@ -148,6 +148,7 @@ describe("Group - 使用koa框架", () => {
     expect(ret).toBe("Hello, API Framework Index");
   });
 });
+
 
 describe("Group - 高级分组配置", () => {
   const apiService = lib({
@@ -190,7 +191,7 @@ describe("Group - 高级分组配置", () => {
     const routerStack = apiRoute.stack[0].route.stack;
 
     expect(routerStack.length).toBe(ORDER_SUB.length);
-    const hooksName = routerStack.map((r: { name: string }) => r.name);
+    const hooksName = routerStack.map((r: any) => r.name);
     expect(hooksName).toEqual(ORDER_SUB);
   });
 

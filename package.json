@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "2.0.0",
+  "version": "1.11.7",
   "description": "Easy to build api server depend on @leizm/web and express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
@@ -8,17 +8,16 @@
     "dist/lib"
   ],
   "scripts": {
-    "doc": "pnpx typedoc --excludeExternals --out docs/ src/lib/",
-    "dev": "export ISLIB=1 && vitest --watch",
-    "test": "npm run build && vitest run",
-    "test:lib": "export ISLIB=1 && vitest run",
+    "doc": "pnpm typedoc --out docs/ src/lib/",
+    "dev": "export ISLIB=1 && jest --verbose --watch",
+    "test": "npm run compile && jest",
+    "test:lib": "export ISLIB=1 && jest --logHeapUsage",
     "test:cov": "npm run test:lib -- --coverage",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
-    "format": "biome format --write src",
-    "format-dist": "biome format --write dist",
-    "check": "biome check --write src",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format-dist": "prettier --single-quote --write \"dist/**/*.{js,ts}\"",
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc",
+    "compile": "npm run clean && tsc",
     "prepublishOnly": "npm run format && npm run test:cov && coveralls < coverage/lcov.info && npm test && npm run format-dist",
     "postpublish": "npm run tag && git push && git push --tags"
   },
@@ -40,33 +39,55 @@
   },
   "homepage": "https://github.com/yourtion/node-erest#readme",
   "dependencies": {
-    "debug": "^4.4.1",
-    "path-to-regexp": "^6.3.0",
-    "zod": "^4.0.5"
+    "@tuzhanai/schema-manager": "^1.3.0",
+    "debug": "^4.3.4",
+    "path-to-regexp": "^6.2.1"
   },
   "peerDependencies": {
     "@types/node": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.1.2",
     "@leizm/web": "^2.7.3",
     "@types/debug": "^4.1.12",
-    "@types/express": "^4.17.23",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^27.5.2",
     "@types/koa": "^2.15.0",
     "@types/koa-bodyparser": "^4.3.12",
     "@types/koa-router": "^7.4.8",
-    "@types/node": "^24.0.15",
     "@types/supertest": "^2.0.16",
-    "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
     "coveralls": "^3.1.1",
-    "express": "^4.21.2",
+    "express": "^4.18.2",
+    "jest": "^27.5.1",
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
-    "koa-router": "^13.1.1",
-    "memfs": "^4.36.0",
+    "koa-router": "^13.0.1",
+    "prettier": "^2.8.8",
     "supertest": "^6.3.4",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "ts-jest": "^27.1.5",
+    "ts-node": "^10.9.2",
+    "typedoc": "^0.25.7",
+    "typescript": "^4"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+    "testRegex": "./src/test/test",
+    "collectCoverageFrom": [
+      "src/lib/**/*.ts"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 95,
+        "lines": 80,
+        "statements": 80
+      }
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ]
   }
 }

@@ -1,4 +1,4 @@
-import type { IDocData, IDocTypes } from "../../extend/docs";
+import { IDocData, IDocTypes } from "../../extend/docs";
 import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
 
 function typeString(item: IDocTypes) {
@@ -43,5 +43,5 @@ export default function typeDocs(data: IDocData) {
   for (const item of customTypes) {
     typeList.push(typeString(item));
   }
-  return `${typeList.join("\n")}\n`;
+  return typeList.join("\n") + "\n";
 }

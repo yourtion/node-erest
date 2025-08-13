@@ -12,7 +12,7 @@ import Debug from "debug";
  * @return {Debug.IDebugger}
  */
 export const create = (name: string) => {
-  return Debug(`erest:${name}`);
+  return Debug("erest:" + name);
 };
 
 export const core = create("core");

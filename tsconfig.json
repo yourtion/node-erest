@@ -1,25 +1,15 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
-    "outDir": "./dist",
+    "rootDir": "src",
+    "outDir": "dist",
     "module": "commonjs",
-    "target": "es2022",
-    "lib": ["es2022"],
+    "moduleResolution": "node",
     "declaration": true,
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
-    "baseUrl": "./",
-    "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  },
-  "exclude": ["dist","vitest.config.ts", "src/test/**/*"]
+    "target": "esnext",
+    "esModuleInterop": true,
+    "sourceMap": false,
+    "allowUnusedLabels": false,
+    "noUnusedLocals": true
+  }
 }

@@ -3,37 +3,37 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import { strict as assert } from "node:assert";
-import * as stream from "node:stream";
-import * as util from "node:util";
-import type { IDebugger } from "debug";
-import type { Test } from "supertest";
-import type ERest from ".";
-import { SUPPORT_METHOD, type SUPPORT_METHODS } from "./api";
+import assert from "assert";
+import { IDebugger } from "debug";
+import stream from "stream";
+import { Test } from "supertest";
+import util from "util";
 import { create as createDebug, test as debug } from "./debug";
-import type { SourceResult } from "./utils";
+import { SUPPORT_METHOD, SUPPORT_METHODS } from "./api";
+import { SourceResult } from "./utils";
+import ERest from ".";
 
-const defaultFormatOutput = (data: unknown) => [null, data];
+const defaultFormatOutput = (data: any) => [null, data];
 
 /** 返回对象结构字符串 */
-function inspect(obj: unknown) {
+function inspect(obj: any) {
   return util.inspect(obj, { depth: 5, colors: true });
 }
 
 export interface ITestAgentOption {
-  erest: ERest<unknown>;
+  erest: ERest<any>;
   sourceFile: SourceResult;
   method: SUPPORT_METHODS;
   path: string;
   agent?: Test;
   takeExample: boolean;
   agentTestName?: string;
-  headers?: Record<string, string>;
-  input?: Record<string, unknown>;
-  output?: Record<string, unknown>;
-  agentHeader?: Record<string, unknown>;
-  agentInput: Record<string, unknown>;
-  agentOutput?: Record<string, unknown>;
+  headers?: Record<string, any>;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+  agentHeader?: Record<string, any>;
+  agentInput: Record<string, any>;
+  agentOutput?: Record<string, any>;
 }
 
 /**
@@ -53,12 +53,9 @@ export class TestAgent {
    * @param sourceFile 源文件路径描述对象
    * @param erestIns hojs实例
    */
-  constructor(method: SUPPORT_METHODS, path: string, key: string, sourceFile: SourceResult, erestIns: ERest<unknown>) {
+  constructor(method: SUPPORT_METHODS, path: string, key: string, sourceFile: SourceResult, erestIns: any) {
     assert(typeof method === "string", "`method` must be string");
-    assert(
-      SUPPORT_METHOD.indexOf(method.toLowerCase() as SUPPORT_METHODS) !== -1,
-      `\`method\` must be one of ${SUPPORT_METHOD}`
-    );
+    assert(SUPPORT_METHOD.indexOf(method.toLowerCase() as SUPPORT_METHODS) !== -1, "`method` must be one of " + SUPPORT_METHOD);
     assert(typeof path === "string", "`path` must be string");
     assert(path[0] === "/", '`path` must be start with "/"');
     this.options = {
@@ -67,7 +64,7 @@ export class TestAgent {
       method: method.toLowerCase() as SUPPORT_METHODS,
       path,
       takeExample: false,
-      agentInput: {} as Record<string, unknown>,
+      agentInput: {} as Record<string, any>,
     };
     this.key = key;
     this.debug = createDebug(`agent:${this.key}`);
@@ -81,7 +78,7 @@ export class TestAgent {
   }
 
   /** 初始化`supertest.Agent`实例 */
-  public initAgent(app: unknown) {
+  public initAgent(app: any) {
     const request = require("supertest");
     assert(request, "Install `supertest` first");
     assert(app, `express app instance could not be empty`);
@@ -104,42 +101,42 @@ export class TestAgent {
   }
 
   /** 设置请求header */
-  public headers(data: Record<string, string>) {
+  public headers(data: Record<string, any>) {
     this.debug("headers: %j", data);
     this.options.agentHeader = data;
-    Object.keys(data).forEach((k) => this.options.agent?.set(k, data[k]));
+    Object.keys(data).forEach((k) => this.options.agent!.set(k, data[k]));
     return this;
   }
 
   /** 添加 query 参数 */
-  public query(data: Record<string, unknown>) {
+  public query(data: Record<string, any>) {
     this.debug("query: %j", data);
     Object.assign(this.options.agentInput, data);
-    this.options.agent?.query(data);
+    this.options.agent!.query(data);
     return this;
   }
 
   /** 添加输入参数 */
-  public input(data: Record<string, unknown>) {
+  public input(data: Record<string, any>) {
     this.debug("input: %j", data);
     Object.assign(this.options.agentInput, data);
     if (this.options.method === "get" || this.options.method === "delete") {
-      this.options.agent?.query(data);
+      this.options.agent!.query(data);
     } else {
-      this.options.agent?.send(data);
+      this.options.agent!.send(data);
     }
     return this;
   }
 
   /** 添加 POST 参数 */
-  public attach(data: Record<string, unknown>) {
+  public attach(data: Record<string, any>) {
     this.debug("attach: %j", data);
     for (const i in data) {
       if (data[i] instanceof stream.Readable) {
-        this.options.agent?.attach(i, data[i] as never);
+        this.options.agent!.attach(i, data[i]);
         delete data[i];
       } else {
-        this.options.agent?.field(i, data[i] as string | number | boolean);
+        this.options.agent!.field(i, data[i]);
       }
     }
     Object.assign(this.options.agentInput, data);
@@ -150,9 +147,9 @@ export class TestAgent {
   private saveExample() {
     this.debug("Save Example: %o", this.options.takeExample);
     if (this.options.takeExample) {
-      this.options.erest.api.$apis.get(this.key)?.example({
+      this.options.erest.api.$apis.get(this.key)!.example({
         name: this.options.agentTestName,
-        path: (this.options.agent as { req: { path: string } }).req.path,
+        path: (this.options.agent as any).req.path,
         headers: this.options.agentHeader,
         input: this.options.agentInput || {},
         output: this.options.agentOutput,
@@ -162,11 +159,8 @@ export class TestAgent {
 
   /** 获取输出结果 */
   private output(raw = false, save = false) {
-    const api = this.options.erest.api.$apis.get(this.key);
-    if (api) {
-      api.options.tested = true;
-    }
-    return this.options.agent?.then((res) => {
+    this.options.erest.api.$apis.get(this.key)!.options.tested = true;
+    return this.options.agent!.then((res) => {
       this.options.agentOutput = res.body;
       if (raw) return res;
       const formatOutputReverse = this.options.erest.api.formatOutputReverse || defaultFormatOutput;
@@ -180,7 +174,7 @@ export class TestAgent {
   /** 期望输出成功结果 */
   public success() {
     this.debug("success");
-    return this.output(false, true)?.catch((err) => {
+    return this.output(false, true).catch((err) => {
       throw new Error(`${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`);
     });
   }
@@ -189,7 +183,7 @@ export class TestAgent {
   public error() {
     this.debug("error");
     return this.output()
-      ?.then((ret) => {
+      .then((ret) => {
         throw new Error(`${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`);
       })
       .catch((err) => {

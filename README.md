@@ -21,161 +21,75 @@
 [download-url]: https://npmjs.org/package/erest
 [license-image]: https://img.shields.io/npm/l/erest.svg
 
-# ERest
+# node-erest
 
-🚀 **现代化的 TypeScript API 框架** - 通过简单的方式构建优秀的 API 服务
+通过简单的方式构建一个优秀的 API 服务（基于 express、@leizm/web 等）。
 
-基于 Express、@leizm/web 等主流框架，ERest 提供了一套完整的 API 开发解决方案。支持自动文档生成、类型安全验证、测试脚手架等功能，让 API 开发更加高效和可靠。
+一个优秀的 API 必须要有优秀的文档、较完整的测试，同时便于开发部署与联调。在文档方面，最大的问题在于，随着 API 的发展需要找人同步更新文档。有个更好的方案是不脱离代码自更新文档。
 
-## ✨ 核心特性
+通过 ERest，你可以在定义 API 的同时，完成参数模型的定义、API格式的定义，同时生成便于写 API 测试的脚手架，像调用本地方法一样写 API 测试，并自动完成 API 文档的生成（包括示例数据），同时生成 Swagger、Postman、基于 axios 的 js-sdk（更多功能支持自定义）。
 
-* 🔷 **TypeScript 原生支持** - 完整的类型推导和类型安全
+使用 (generator-erest)[https://github.com/yourtion/node-generator-erest] 帮助你快速生成一个 API 项目框架。
 
-* 🔧 **原生 Zod 集成** - 高性能的参数验证和类型推导
-
-* 📚 **自动文档生成** - 支持 Swagger、Postman、Markdown 等多种格式
-
-* 🧪 **测试脚手架** - 像调用本地方法一样编写 API 测试
-
-* 🔌 **多框架支持** - 兼容 Express、Koa、@leizm/web 等主流框架
-
-* 📦 **SDK 自动生成** - 自动生成基于 axios 的客户端 SDK
-
-* 🎯 **零配置启动** - 开箱即用的开发体验
-
-## 🛠️ 技术栈
-
-* **语言**: TypeScript 5.8+
-
-* **运行时**: Node.js 18+
-
-* **验证库**: Zod 4.0+
-
-* **支持框架**: Express 4.x, Koa 3.x, @leizm/web 2.x
-
-* **构建工具**: Vite, Biome
-
-* **测试框架**: Vitest
-
-## 📦 安装
+## Install
 
 ```bash
-# npm
-npm install erest
-
-# yarn
-yarn add erest
-
-# pnpm
-pnpm add erest
+$ npm install erest --save
 ```
 
-### 快速开始脚手架
-
-使用  快速生成项目框架：
+### Use yeoman generator
 
 ```bash
-npm install generator-erest -g
-
-# Express 项目
-yo erest:express
-
-# @leizm/web 项目
-yo erest:lei-web
+$ npm install generator-erest -g
+# Express
+$ yo erest:express
+# @leizm/web
+$ yo erest:lei-web
 ```
 
-## 🚀 快速开始
+## How to use
 
-### 基础用法
+```javascript
+'use strict';
 
-```typescript
-import ERest, { z } from 'erest';
-import express from 'express';
+const API = require('erest').default;
 
-// 创建 ERest 实例
-const api = new ERest({
-  info: {
-    title: 'My API',
-    description: 'A powerful API built with ERest',
-    version: new Date(),
-    host: 'http://localhost:3000',
-    basePath: '/api',
-  },
-  groups: {
-    user: '用户管理',
-    post: '文章管理',
-  },
+// API info for document
+const INFO = {
+  title: 'erest-demo',
+  description: 'Easy to write, easy to test, easy to generate document.',
+  version: new Date(),
+  host: 'http://127.0.0.1:3000',
+  basePath: '/api',
+};
+
+// API group info
+const GROUPS = {
+  Index: '首页',
+};
+
+// Init API
+const apiService = new API({
+  info: INFO,
+  groups: GROUPS,
 });
 
-// 定义 API 接口
-api.api.get('/users/:id')
-  .group('user')
-  .title('获取用户信息')
-  .params(z.object({
-    id: z.string().describe('用户ID'),
-  }))
-  .query(z.object({
-    include: z.string().optional().describe('包含的关联数据'),
-  }))
-  .register(async (req, res) => {
-    const { id } = req.params;
-    const { include } = req.query;
-
-    // 业务逻辑
-    const user = await getUserById(id, include);
-    res.json({ success: true, data: user });
+apiService.api.get('/index')
+  .group('Index')
+  .title('Test api')
+  .register((req, res) => {
+    res.end('Hello, API Framework Index');
   });
 
-// 绑定到 Express
+const express = require('express');
 const app = express();
-const router = express.Router();
+const router = new express.Router();
 app.use('/api', router);
 
-api.bindRouter(router, api.checkerExpress);
+// bing express router
+apiService.bindRouter(router, apiService.checkerExpress);
 
-app.listen(3000, () => {
-  console.log('🚀 Server running on http://localhost:3000');
-});
-```
-
-### 原生 Zod 类型支持
-
-```typescript
-import { z } from 'erest';
-
-// 定义复杂的数据模型
-const CreateUserSchema = z.object({
-  name: z.string().min(1).max(50),
-  email: z.string().email(),
-  age: z.number().int().min(18).max(120),
-  tags: z.array(z.string()).optional(),
-  profile: z.object({
-    bio: z.string().optional(),
-    avatar: z.string().url().optional(),
-  }).optional(),
-});
-
-api.api.post('/users')
-  .group('user')
-  .title('创建用户')
-  .body(CreateUserSchema)
-  .register(async (req, res) => {
-    // req.body 自动获得完整的类型推导
-    const userData = req.body; // 类型安全！
-
-    const user = await createUser(userData);
-    res.json({ success: true, data: user });
-  });
-```
-
-### 自动文档生成
-
-```typescript
-// 生成多种格式的文档
-api.docs.generateDocs({
-  swagger: './docs/swagger.json',
-  markdown: './docs/api.md',
-  postman: './docs/postman.json',
-  axios: './sdk/api-client.js',
+app.listen(3000, function () {
+  console.log('erest-demo listening started');
 });
 ```

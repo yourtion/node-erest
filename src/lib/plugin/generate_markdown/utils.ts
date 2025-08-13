@@ -5,20 +5,20 @@ export function trimSpaces(text: string) {
     .replace(/\n\s+\n/g, "\n\n");
 }
 
-export function stringToString(str: string | undefined, defaultStr = "") {
+export function toString(str: string | undefined, defaultStr = "") {
   return typeof str !== "undefined" ? String(str) : defaultStr;
 }
 
 export function stringOrEmpty(str: string | undefined, comm = false) {
-  const res = stringToString(str, "（无）");
-  return comm ? `\`${res}\`` : res;
+  const res = toString(str, "（无）");
+  return comm ? "`" + res + "`" : res;
 }
 
-export function itemTF(obj: unknown) {
+export function itemTF(obj: any) {
   return obj ? "是" : "否";
 }
 
-export function itemTFEmoji(obj: unknown) {
+export function itemTFEmoji(obj: any) {
   return obj ? "✅" : "❌";
 }
 
