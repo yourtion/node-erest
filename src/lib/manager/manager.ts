@@ -2,7 +2,7 @@
  * @file 管理器
  * @author Yourtion Guo <yourtion@gmail.com>
  */
-export class Manager<T = any> {
+export class Manager<T = unknown> {
   protected map: Map<string, T> = new Map();
 
   /** 获取 */

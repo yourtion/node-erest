@@ -1,9 +1,9 @@
-import * as path from "path";
+import * as path from "node:path";
+import type { IDocOptions } from "../..";
+import type { APIOption } from "../../api";
 import { plugin as debug } from "../../debug";
-import { IDocData, IDocWritter } from "../../extend/docs";
-import { IDocOptions } from "../..";
+import type { IDocData, IDocWritter } from "../../extend/docs";
 import * as utils from "../../utils";
-import { APIOption } from "../../api";
 
 export default function generateAsiox(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
   debug("generateAsiox: %s - %o", dir, options);
@@ -18,13 +18,13 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
     return path.replace(/:([a-z]+)/gi, "$1");
   }
 
-  function getReqFuncName(req: APIOption<any>) {
+  function getReqFuncName(req: APIOption<unknown>) {
     return `${req.method}${slashToCamel(rmPathParam(req.realPath))}`;
   }
 
-  function getFuncParams(req: APIOption<any>) {
-    let parseData = req.method === "get" ? req.query : req.body;
-    let dataKeys = Object.keys(parseData);
+  function getFuncParams(req: APIOption<unknown>) {
+    const parseData = req.method === "get" ? req.query : req.body;
+    const dataKeys = Object.keys(parseData as Record<string, unknown>);
     if (!dataKeys.length) {
       return "";
     }
@@ -37,14 +37,14 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
 
   function getReqSendPath(path: string) {
     if (hasUrlParam(path)) {
-      return "`" + path.replace(/:([a-z]+)/gi, "${$1}") + "`";
+      return `\`${path.replace(/:([a-z]+)/gi, "\\$\\{$1\\}")}\``;
     }
     return `'${path}'`;
   }
 
-  function getPathParams(req: APIOption<any>) {
+  function getPathParams(req: APIOption<unknown>) {
     if (req.params) {
-      let params = Object.keys(req.params)
+      const params = Object.keys(req.params as Record<string, unknown>)
         .map((key) => `${key},`)
         .join("");
       return params;
@@ -52,10 +52,10 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
     return "";
   }
 
-  function getReqSendData(req: APIOption<any>) {
-    let isGetReq = req.method === "get";
-    let parseData = isGetReq ? req.query : req.body;
-    let dataKeys = Object.keys(parseData);
+  function getReqSendData(req: APIOption<unknown>) {
+    const isGetReq = req.method === "get";
+    const parseData = isGetReq ? req.query : req.body;
+    const dataKeys = Object.keys(parseData as Record<string, unknown>);
     if (!dataKeys.length) {
       return "";
     }
@@ -67,14 +67,14 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
     return `{ ${dataKeys.join(", ")} }`;
   }
 
-  const baseURL = data.info.host! + data.info.basePath;
+  const baseURL = `${data.info.host || ""}${data.info.basePath}`;
 
   const { apis } = data;
   const request = Object.keys(apis).map((key) => {
-    let req = apis[key];
+    const req = apis[key];
     let reqSendData = getReqSendData(req);
     if (reqSendData) {
-      reqSendData = ", " + reqSendData;
+      reqSendData = `, ${reqSendData}`;
     }
     return `
     // ${req.title}
@@ -102,7 +102,7 @@ export default function generateAsiox(data: IDocData, dir: string, options: IDoc
     export default api;
   `;
 
-  const filename = utils.getPath("jssdk.js", options.swagger);
+  const filename = utils.getPath("jssdk.js", options.axios);
 
   writter(path.resolve(dir, filename), template);
 }
