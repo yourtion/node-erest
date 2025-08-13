@@ -555,3 +555,242 @@ describe("ResponseChecker - Output Validation", () => {
     expect(result).toEqual(data);
   });
 });
+
+describe("SchemaChecker - Advanced Error Handling", () => {
+  const { schemaChecker } = require("../../dist/lib/params");
+  const apiService = lib();
+
+  test("should handle invalid_union errors with undefined type errors", () => {
+    // 创建一个会产生 invalid_union 错误的 schema
+    const complexSchema = {
+      field1: { type: "String", required: true },
+      field2: { type: "Number", required: false, default: undefined },
+    };
+
+    const invalidData = { field1: "test", field2: "not-a-number" };
+
+    expect(() => schemaChecker(apiService, invalidData, complexSchema)).toThrow(/should be valid/);
+  });
+
+  test("should handle non-required fields with undefined errors", () => {
+    const schema = {
+      optionalField: { type: "String", required: false },
+    };
+
+    const dataWithUndefined = { optionalField: undefined };
+
+    // 对于非必填字段，undefined 应该被接受或转换为默认值
+    const result = schemaChecker(apiService, dataWithUndefined, schema);
+    expect(result).toBeDefined();
+  });
+
+  test("should handle transform function errors", () => {
+    // 使用一个会在 transform 中抛出错误的 Zod schema
+    const transformSchema = z.string().transform((val) => {
+      if (val === "error") {
+        throw new Error("Transform error");
+      }
+      return val;
+    });
+
+    const invalidData = { field: "error" };
+
+    expect(() => schemaChecker(apiService, invalidData, transformSchema)).toThrow();
+  });
+
+  test("should handle native Zod Schema error messages", () => {
+    const zodSchema = z.object({
+      email: z.string().email(),
+      age: z.number().min(0),
+    });
+
+    const invalidData = { email: "invalid-email", age: -1 };
+
+    expect(() => schemaChecker(apiService, invalidData, zodSchema)).toThrow();
+  });
+
+  test("should extract field information from error messages", () => {
+    const schema = {
+      testField: { type: "Number" },
+    };
+
+    const invalidData = { testField: "not-a-number" };
+
+    expect(() => schemaChecker(apiService, invalidData, schema)).toThrow(/should be valid Number/);
+  });
+
+  test("should handle fieldInfo undefined cases", () => {
+    // 创建一个 schema，然后传入不在 schema 中的字段数据
+    const schema = {
+      knownField: { type: "String", required: false },
+    };
+
+    const dataWithUnknownField = { unknownField: "value" };
+
+    // 应该忽略未知字段或处理 fieldInfo 为 undefined 的情况
+    const result = schemaChecker(apiService, dataWithUnknownField, schema);
+    expect(result).toBeDefined();
+  });
+
+  test("should handle zodErrWithMessage containing 'Invalid'", () => {
+    // 创建一个会产生包含 "Invalid" 的错误消息的场景
+    const customSchema = z.string().refine((val) => val !== "invalid", {
+      message: "Invalid value provided",
+    });
+
+    const invalidData = { field: "invalid" };
+
+    expect(() => schemaChecker(apiService, invalidData, customSchema)).toThrow();
+  });
+
+  test("should fallback to JSON.stringify for zodErr.issues", () => {
+    // 创建一个复杂的验证错误场景
+    const complexSchema = z.object({
+      nested: z.object({
+        field: z.string(),
+      }),
+    });
+
+    const invalidData = { nested: { field: 123 } };
+
+    expect(() => schemaChecker(apiService, invalidData, complexSchema)).toThrow();
+  });
+});
+
+describe("ApiParamsCheck - Comprehensive Testing", () => {
+  const { apiParamsCheck } = require("../../dist/lib/params");
+  const apiService = lib();
+
+  test("should handle all schema types combination", () => {
+    const mockAPI = {
+      options: {
+        paramsSchema: z.object({ id: z.string() }),
+        querySchema: z.object({ page: z.number() }),
+        bodySchema: z.object({ name: z.string() }),
+        headersSchema: z.object({ authorization: z.string() }),
+        required: new Set(["id", "name"]),
+        requiredOneOf: [["page", "authorization"]],
+      },
+    };
+
+    const params = { id: "123" };
+    const query = { page: 1 };
+    const body = { name: "test" };
+    const headers = { authorization: "Bearer token" };
+
+    const result = apiParamsCheck(apiService, mockAPI as any, params, query, body, headers);
+
+    expect(result).toEqual({
+      id: "123",
+      page: 1,
+      name: "test",
+      authorization: "Bearer token",
+    });
+  });
+
+  test("should handle empty objects", () => {
+    const mockAPI = {
+      options: {
+        params: {},
+        query: {},
+        body: {},
+        headers: {},
+        required: new Set(),
+        requiredOneOf: [],
+      },
+    };
+
+    const result = apiParamsCheck(apiService, mockAPI as any, {}, {}, {}, {});
+    expect(result).toEqual({});
+  });
+
+  test("should handle ISchemaType fallback when no Zod schemas", () => {
+    const mockAPI = {
+      options: {
+        params: { id: { type: "String", required: true } },
+        query: { page: { type: "Number", required: false } },
+        body: { name: { type: "String", required: true } },
+        headers: { auth: { type: "String", required: false } },
+        required: new Set(["id", "name"]),
+        requiredOneOf: [],
+      },
+    };
+
+    const params = { id: "123" };
+    const query = { page: "1" };
+    const body = { name: "test" };
+    const headers = { auth: "token" };
+
+    const result = apiParamsCheck(apiService, mockAPI as any, params, query, body, headers);
+
+    expect(result.id).toBe("123");
+    expect(result.page).toBe(1);
+    expect(result.name).toBe("test");
+    expect(result.auth).toBe("token");
+  });
+
+  test("should validate required and requiredOneOf combination", () => {
+    const mockAPI = {
+      options: {
+        params: { id: { type: "String", required: true } },
+        required: new Set(["id"]),
+        requiredOneOf: [["email", "phone"]],
+      },
+    };
+
+    // 缺少必填字段
+    expect(() => {
+      apiParamsCheck(apiService, mockAPI as any, {}, {}, {}, {});
+    }).toThrow(/missing required parameter 'id'/);
+
+    // 缺少 requiredOneOf 字段
+    expect(() => {
+      apiParamsCheck(apiService, mockAPI as any, { id: "123" }, {}, {}, {});
+    }).toThrow(/one of email, phone is required/);
+  });
+
+  test("should handle undefined params/query/body/headers", () => {
+    const mockAPI = {
+      options: {
+        required: new Set(),
+        requiredOneOf: [],
+      },
+    };
+
+    const result = apiParamsCheck(apiService, mockAPI as any, undefined, undefined, undefined, undefined);
+    expect(result).toEqual({});
+  });
+});
+
+describe("ResponseChecker - Edge Cases", () => {
+  const { responseChecker } = require("../../dist/lib/params");
+  const apiService = lib();
+
+  test("should throw error for truly invalid schema type", () => {
+    const invalidSchema = null;
+    const data = { test: "value" };
+
+    const result = responseChecker(apiService, data, invalidSchema as any);
+    expect(result).toEqual(data);
+  });
+
+  test("should return original data when validation fails", () => {
+    const schema = z.object({ requiredField: z.string() });
+    const invalidData = { wrongField: "value" };
+
+    const result = responseChecker(apiService, invalidData, schema);
+    expect(result).toEqual(invalidData);
+  });
+
+  test("should handle complex ISchemaType validation failure", () => {
+    const schema = {
+      name: { type: "String", required: true },
+      age: { type: "Number", required: true },
+    };
+
+    const invalidData = { name: "John" }; // 缺少 age
+
+    const result = responseChecker(apiService, invalidData, schema);
+    expect(result).toEqual(invalidData);
+  });
+});

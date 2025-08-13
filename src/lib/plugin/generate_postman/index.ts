@@ -99,6 +99,12 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
         });
       }
     }
+
+    // Create group if it doesn't exist
+    if (!groups[item.group]) {
+      groups[item.group] = { id: item.group, name: item.group, items: [] };
+    }
+
     groups[item.group].items.push(req);
   }
 

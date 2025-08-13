@@ -46,17 +46,17 @@ export function createTestERestInstance(config: TestSetupConfig = {}): ERest {
  * Setup test environment with server cleanup
  */
 export function setupTestEnvironment() {
-  let server: unknown;
+  let server: { close?: () => void } | null = null;
 
   afterEach(() => {
-    if (server && typeof (server as any).close === "function") {
-      (server as any).close();
+    if (server && typeof server.close === "function") {
+      server.close();
       server = null;
     }
   });
 
   return {
-    setServer: (s: unknown) => {
+    setServer: (s: { close?: () => void } | null) => {
       server = s;
     },
     getServer: () => server,
@@ -68,15 +68,15 @@ export function setupTestEnvironment() {
  */
 export function setupERestTest(config: TestSetupConfig = {}) {
   let apiService: ERest;
-  let server: unknown;
+  let server: { close?: () => void } | null = null;
 
   beforeEach(() => {
     apiService = createTestERestInstance(config);
   });
 
   afterEach(() => {
-    if (server && typeof (server as any).close === "function") {
-      (server as any).close();
+    if (server && typeof server.close === "function") {
+      server.close();
       server = null;
     }
   });
@@ -87,7 +87,7 @@ export function setupERestTest(config: TestSetupConfig = {}) {
 
   return {
     getApiService: () => apiService,
-    setServer: (s: unknown) => {
+    setServer: (s: { close?: () => void } | null) => {
       server = s;
     },
     getServer: () => server,

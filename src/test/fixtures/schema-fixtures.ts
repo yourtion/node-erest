@@ -111,21 +111,27 @@ export const zodFixtures = {
       children: z.array(z.lazy(() => zodFixtures.lazyTest)).optional(),
     })
   ),
-
-  complexNested: z.object({
-    user: zodFixtures.user,
-    products: z.array(zodFixtures.product),
-    settings: z.object({
-      theme: z.enum(["light", "dark"]).default("light"),
-      notifications: z.object({
-        email: z.boolean().default(true),
-        push: z.boolean().default(false),
-        sms: z.boolean().default(false),
-      }),
-      preferences: z.record(z.string(), z.any()).optional(),
-    }),
-  }),
 } as const;
+
+/**
+ * Complex nested schema that references other schemas
+ */
+const complexNested = z.object({
+  user: zodFixtures.user,
+  products: z.array(zodFixtures.product),
+  settings: z.object({
+    theme: z.enum(["light", "dark"]).default("light"),
+    notifications: z.object({
+      email: z.boolean().default(true),
+      push: z.boolean().default(false),
+      sms: z.boolean().default(false),
+    }),
+    preferences: z.record(z.string(), z.any()).optional(),
+  }),
+});
+
+// Add complexNested to zodFixtures
+(zodFixtures as any).complexNested = complexNested;
 
 /**
  * Test data for schema validation

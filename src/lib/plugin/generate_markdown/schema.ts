@@ -13,7 +13,7 @@ export default function schemaDocs(data: IDocData) {
   function typeDocString(typeDoc: IDocTypes) {
     return fieldString([
       stringOrEmpty(typeDoc.name),
-      stringOrEmpty(typeDoc.tsType || "unknown"),
+      _parseType(typeDoc.tsType || "unknown"),
       stringOrEmpty(typeDoc.description),
       itemTF(typeDoc.isDefaultFormat),
       stringOrEmpty(""), // 默认值暂时为空
@@ -86,7 +86,7 @@ export default function schemaDocs(data: IDocData) {
                 ])
               );
             }
-          } catch (e) {
+          } catch (_e) {
             // 如果无法解析lazy类型，显示为lazy类型
             const fieldInfo = extractZodFieldInfo(schemaName, zodSchema);
             res.push(
@@ -267,7 +267,7 @@ export default function schemaDocs(data: IDocData) {
               info.type = innerInfo.type;
               info.description = info.description || innerInfo.description;
               info.params = innerInfo.params;
-            } catch (e) {
+            } catch (_e) {
               info.type = "lazy";
               if (!info.description) info.description = "延迟类型";
             }
