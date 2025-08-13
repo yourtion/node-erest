@@ -8,7 +8,7 @@
     "dist/lib"
   ],
   "scripts": {
-    "doc": "pnpm typedoc --out docs/ src/lib/",
+    "doc": "pnpx typedoc --excludeExternals --out docs/ src/lib/",
     "dev": "export ISLIB=1 && vitest --watch",
     "test": "npm run build && vitest run",
     "test:lib": "export ISLIB=1 && vitest run",
