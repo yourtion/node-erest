@@ -15,11 +15,10 @@
     "test:cov": "npm run test:lib -- --coverage",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "biome format --write src",
-    "format-dist": "biome format --write dist",
     "check": "biome check --write src",
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
-    "prepublishOnly": "npm run format && npm run test:cov && coveralls < coverage/lcov.info && npm test && npm run format-dist",
+    "prepublishOnly": "npm run format && npm run test:cov && npm test",
     "postpublish": "npm run tag && git push && git push --tags"
   },
   "repository": {
