@@ -1,7 +1,7 @@
-import { SchemaType } from "@tuzhanai/schema-manager";
 import type { APIOption, IExample, TYPE_RESPONSE } from "../../api";
 import type { IDocData } from "../../extend/docs";
-import type { ISchemaType } from "../../params";
+import type { ISchemaType, SchemaType } from "../../params";
+import { isZodSchema } from "../../params";
 import { jsonStringify } from "../../utils";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
 
@@ -68,7 +68,7 @@ export default function apiDocs(data: IDocData) {
       return `[${response}](/schema#${response.replace("[]", "").toLocaleLowerCase()})`;
     }
     // FIXME: 处理更多返回类型
-    if (response instanceof SchemaType || typeof response.type === "string") return;
+    if (isZodSchema(response) || typeof response.type === "string") return;
     const paramsList: string[] = [];
     paramsList.push(tableHeader(["参数名", "类型", "必填", "说明"]));
     // 参数输出
