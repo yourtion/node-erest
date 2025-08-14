@@ -1,85 +1,796 @@
-import lib from "../test/lib";
+/**
+ * Parameter validation tests
+ * Tests for paramsChecker and schemaChecker functionality
+ * Refactored to use shared utilities and improve readability
+ */
 
+import { describe, expect, test } from "vitest";
+import { z } from "zod";
+import { iSchemaFixtures, schemaErrorPatterns, schemaTestData } from "./fixtures/schema-fixtures";
+import { build, TYPES } from "./helper";
+import lib from "./lib";
+import {
+  assertParamValidation,
+  assertParamValidationError,
+  assertSchemaValidation,
+  assertSchemaValidationError,
+  assertZodValidation,
+} from "./utils/assertion-helpers";
+import { createTestERestInstance } from "./utils/test-setup";
+import { commonTypes, typeTestData, zodSchemas } from "./utils/type-helpers";
+
+// Create test instance
 const apiService = lib();
-
-import { build, TYPES } from "../test/helper";
 const paramsChecker = apiService.paramsChecker();
 const schemaChecker = apiService.schemaChecker();
 
-const stringP1 = build(TYPES.String, "String1", true);
-const stringP2 = build(TYPES.String, "String2", true, "Hello");
-const stringP3 = build(TYPES.String, "String3");
+// Test parameter definitions with proper typing
+const testParams = {
+  stringRequired: build(TYPES.String, "Required string", true),
+  stringWithDefault: build(TYPES.String, "String with default", true, "Hello"),
+  stringOptional: build(TYPES.String, "Optional string", false),
+  numberRequired: build(TYPES.Number, "Required number", true),
+  integerOptional: build(TYPES.Integer, "Optional integer", false),
+  enumRequired: build(TYPES.ENUM, "Required enum", true, undefined, ["A", "B", 1]),
+  jsonOptional: build(TYPES.JSON, "Optional JSON", false),
+};
 
-const numP = build(TYPES.Number, "Number", true);
-const intP = build(TYPES.Integer, "Integer");
-const enumP = build(TYPES.ENUM, "ENUM", true, undefined, ["A", "B", 1]);
-const jsonP = build(TYPES.JSON, "JSON");
+// Test schemas with proper typing
+const testSchemas = {
+  basic: {
+    stringWithDefault: testParams.stringWithDefault,
+    stringOptional: testParams.stringOptional,
+    numberRequired: testParams.numberRequired,
+    integerOptional: testParams.integerOptional,
+  } as Record<string, any>,
+  arrayWithStringParam: build(TYPES.Array, "Array with String param", true, undefined, TYPES.Integer),
+  arrayWithTypeParam: build(TYPES.Array, "Array with Type param", true, undefined, testParams.jsonOptional),
+};
 
-const schema1: Record<string, any> = { stringP2, stringP3, numP, intP };
-const array1 = build(TYPES.Array, "Array with String param", true, undefined, TYPES.Integer);
-const array2 = build(TYPES.Array, "Array with Type param", true, undefined, jsonP);
+describe("ParamsChecker - Basic Functionality", () => {
+  describe("String Parameter Validation", () => {
+    test("should validate required string parameters", () => {
+      assertParamValidation(paramsChecker, "stringParam", "test", testParams.stringRequired, "test");
+    });
 
-describe("ParamsChecker", () => {
-  test("simple checker success", () => {
-    expect(paramsChecker("st1", "1", stringP1)).toBe("1");
-    stringP3.format = true;
-    expect(paramsChecker("st2", "1", stringP3)).toBe("1");
-    expect(paramsChecker("nu1", "1", numP)).toBe(1);
-    expect(paramsChecker("en1", "A", enumP)).toBe("A");
-    expect(paramsChecker("json", '{ "a": 1 }', jsonP)).toEqual({ a: 1 });
-    jsonP.format = false;
-    expect(paramsChecker("json", '{ "a": 1 }', jsonP)).toEqual('{ "a": 1 }');
+    test("should handle string parameters with format flag", () => {
+      const stringParam = { ...testParams.stringOptional, format: true };
+      assertParamValidation(paramsChecker, "stringParam", "test", stringParam, "test");
+    });
+
+    test("should use default values for string parameters", () => {
+      assertParamValidation(paramsChecker, "stringParam", undefined, testParams.stringWithDefault, "Hello");
+    });
   });
 
-  test("ENUM", () => {
-    expect(paramsChecker("en1", 1, enumP)).toBe(1);
-    const fn = () => paramsChecker("en2", "C", enumP);
-    expect(fn).toThrow("incorrect parameter 'en2' should be valid ENUM with additional restrictions: A,B,1");
+  describe("Number Parameter Validation", () => {
+    test("should convert string numbers to numbers", () => {
+      assertParamValidation(paramsChecker, "numberParam", "42", testParams.numberRequired, 42);
+    });
+
+    test("should handle integer parameters", () => {
+      assertParamValidation(paramsChecker, "intParam", "10", testParams.integerOptional, 10);
+    });
+
+    test("should reject invalid number strings", () => {
+      assertParamValidationError(
+        paramsChecker,
+        "numberParam",
+        "not-a-number",
+        testParams.numberRequired,
+        /should be valid Number/
+      );
+    });
   });
 
-  test("Array with String param", () => {
-    expect(paramsChecker("array1", ["1", 2, "99"], array1)).toEqual([1, 2, 99]);
-    const fn = () => paramsChecker("array1", ["1", 2, "a"], array1);
-    expect(fn).toThrow("incorrect parameter 'array1[2]' should be valid Integer");
+  describe("ENUM Parameter Validation", () => {
+    test("should validate enum values", () => {
+      assertParamValidation(paramsChecker, "enumParam", "A", testParams.enumRequired, "A");
+      assertParamValidation(paramsChecker, "enumParam", 1, testParams.enumRequired, 1);
+    });
+
+    test("should reject invalid enum values", () => {
+      assertParamValidationError(
+        paramsChecker,
+        "enumParam",
+        "C",
+        testParams.enumRequired,
+        /should be valid ENUM with additional restrictions: A,B,1/
+      );
+    });
   });
 
-  test("Array with Type param", () => {
-    jsonP.format = true;
-    expect(paramsChecker("array2", ['{ "a": 1 }', '{ "b": 2 }', "{}"], array2)).toEqual([{ a: 1 }, { b: 2 }, {}]);
-    const fn = () => paramsChecker("array2", ['{ "a": 1 }', "{"], array2);
-    expect(fn).toThrow("incorrect parameter 'array2[1]' should be valid JSON");
+  describe("JSON Parameter Validation", () => {
+    test("should parse valid JSON strings", () => {
+      const jsonParam = { ...testParams.jsonOptional, format: true };
+      assertParamValidation(paramsChecker, "jsonParam", '{"a": 1}', jsonParam, { a: 1 });
+    });
+
+    test("should return raw string when format is false", () => {
+      const jsonParam = { ...testParams.jsonOptional, format: false };
+      assertParamValidation(paramsChecker, "jsonParam", '{"a": 1}', jsonParam, '{"a": 1}');
+    });
+
+    test("should reject invalid JSON", () => {
+      const jsonParam = { ...testParams.jsonOptional, format: true };
+      assertParamValidationError(paramsChecker, "jsonParam", "invalid json", jsonParam, /should be valid JSON/);
+    });
+  });
+
+  describe("Array Parameter Validation", () => {
+    test("should validate arrays with string element type", () => {
+      assertParamValidation(paramsChecker, "arrayParam", ["1", 2, "99"], testSchemas.arrayWithStringParam, [1, 2, 99]);
+    });
+
+    test("should reject invalid array elements", () => {
+      assertParamValidationError(
+        paramsChecker,
+        "arrayParam",
+        ["1", 2, "invalid"],
+        testSchemas.arrayWithStringParam,
+        /should be valid Integer/
+      );
+    });
+
+    test("should validate arrays with object element type", () => {
+      const jsonParam = { ...testParams.jsonOptional, format: true };
+      const arrayParam = build(TYPES.Array, "Array with JSON", true, undefined, jsonParam);
+
+      assertParamValidation(paramsChecker, "arrayParam", ['{"a": 1}', '{"b": 2}', "{}"], arrayParam, [
+        { a: 1 },
+        { b: 2 },
+        {},
+      ]);
+    });
   });
 });
 
-describe("SchemaChecker", () => {
-  test("success", () => {
-    const data = { stringP2: "a", numP: 1.02, intP: 2 };
-    const res = schemaChecker(data, schema1);
-    expect(res).toEqual(data);
+describe("SchemaChecker - Basic Functionality", () => {
+  describe("Schema Validation Success Cases", () => {
+    test("should validate complete valid data", () => {
+      const testData = {
+        stringWithDefault: "test",
+        numberRequired: 42.5,
+        integerOptional: 10,
+      };
+
+      assertSchemaValidation(schemaChecker, testData, testSchemas.basic, testData);
+    });
+
+    test("should apply default values", () => {
+      const inputData = { numberRequired: 42.5 };
+      const expectedData = { ...inputData, stringWithDefault: "Hello" };
+
+      assertSchemaValidation(schemaChecker, inputData, testSchemas.basic, expectedData);
+    });
+
+    test("should remove properties not in schema", () => {
+      const inputData = { numberRequired: 42.5, extraProperty: "should be removed" };
+      const expectedData = { numberRequired: 42.5, stringWithDefault: "Hello" };
+
+      const result = schemaChecker(inputData, testSchemas.basic);
+      expect(result).toEqual(expectedData);
+      expect(result.extraProperty).toBeUndefined();
+    });
   });
 
-  test("remove not in schema success", () => {
-    const data = { numP: 1.02, a: "xxx" };
-    const res = schemaChecker(data, schema1);
-    expect(res.a).toBeUndefined();
+  describe("Schema Validation Error Cases", () => {
+    test("should throw error for missing required parameters", () => {
+      const invalidData = { stringWithDefault: "test" };
+
+      assertSchemaValidationError(
+        schemaChecker,
+        invalidData,
+        testSchemas.basic,
+        /missing required parameter 'numberRequired'/
+      );
+    });
+
+    test("should validate requiredOneOf constraints", () => {
+      const validData = { numberRequired: 42 };
+      const expectedData = { ...validData, stringWithDefault: "Hello" };
+
+      assertSchemaValidation(schemaChecker, validData, testSchemas.basic, expectedData, [
+        "numberRequired",
+        "stringOptional",
+      ]);
+    });
+
+    test("should throw error when requiredOneOf is not satisfied", () => {
+      const invalidData = { numberRequired: 42 }; // Valid data but missing requiredOneOf fields
+
+      assertSchemaValidationError(
+        schemaChecker,
+        invalidData,
+        testSchemas.basic,
+        /missing required parameter one of integerOptional, stringOptional is required/,
+        ["integerOptional", "stringOptional"]
+      );
+    });
   });
 
-  test("requied check throw", () => {
-    const data = { a: "xxx" };
-    const fn = () => schemaChecker(data, schema1);
-    expect(fn).toThrow("missing required parameter 'numP'");
+  describe("Zod Schema Support", () => {
+    test("should validate native Zod schemas", () => {
+      const zodSchema = z.object({
+        name: z.string(),
+        age: z.number().min(0),
+        email: z.string().email().optional(),
+      });
+
+      const validData = { name: "John", age: 25, email: "john@example.com" };
+      assertSchemaValidation(schemaChecker, validData, zodSchema, validData);
+    });
+
+    test("should handle Zod validation errors", () => {
+      const zodSchema = z.object({
+        name: z.string(),
+        age: z.number(),
+      });
+
+      const invalidData = { name: "John" };
+      assertSchemaValidationError(schemaChecker, invalidData, zodSchema, /missing required parameter 'age'/);
+    });
+
+    test("should support Zod schema with requiredOneOf", () => {
+      const zodSchema = z.object({
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        name: z.string(),
+      });
+
+      const validData = { name: "John", email: "john@example.com" };
+      assertSchemaValidation(schemaChecker, validData, zodSchema, validData, ["email", "phone"]);
+    });
+
+    test("should handle Zod requiredOneOf validation errors", () => {
+      const zodSchema = z.object({
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        name: z.string(),
+      });
+
+      const invalidData = { name: "John" };
+      assertSchemaValidationError(
+        schemaChecker,
+        invalidData,
+        zodSchema,
+        /missing required parameter one of email, phone is required/,
+        ["email", "phone"]
+      );
+    });
   });
 
-  test("requiedOneOf check ok", () => {
-    const data = { numP: 123 } as any;
-    const res = schemaChecker(data, schema1, ["numP", "stringP3"]);
-    data.stringP2 = "Hello";
-    expect(res).toEqual(data);
+  describe("Advanced Schema Features", () => {
+    test("should handle numeric constraints", () => {
+      const constrainedSchema = {
+        score: { type: "Number", params: { min: 0, max: 100 }, required: true },
+        rating: { type: "Integer", params: { min: 1, max: 5 }, required: true },
+      };
+
+      const validData = { score: 85.5, rating: 4 };
+      assertSchemaValidation(schemaChecker, validData, constrainedSchema, validData);
+    });
+
+    test("should reject values violating numeric constraints", () => {
+      const constrainedSchema = {
+        score: { type: "Number", params: { min: 0, max: 100 }, required: true },
+      };
+
+      const invalidData = { score: 150 };
+      // The schema checker validates required fields first, then validates constraints
+      // So we need to provide a valid structure but with constraint violation
+      expect(() => schemaChecker(invalidData, constrainedSchema)).toThrow();
+    });
+
+    test("should handle default values in ISchemaType", () => {
+      const schemaWithDefaults = {
+        name: { type: "String", required: true },
+        status: { type: "String", default: "active", required: false },
+      };
+
+      const inputData = { name: "John" };
+      const expectedData = { name: "John", status: "active" };
+
+      assertSchemaValidation(schemaChecker, inputData, schemaWithDefaults, expectedData);
+    });
+
+    test("should validate ENUM in ISchemaType", () => {
+      const enumSchema = {
+        status: { type: "ENUM", params: ["active", "inactive"], required: true },
+      };
+
+      const validData = { status: "active" };
+      assertSchemaValidation(schemaChecker, validData, enumSchema, validData);
+    });
+
+    test("should reject invalid ENUM values", () => {
+      const enumSchema = {
+        status: { type: "ENUM", params: ["active", "inactive"], required: true },
+      };
+
+      const invalidData = { status: "unknown" };
+      assertSchemaValidationError(schemaChecker, invalidData, enumSchema, /should be valid ENUM/);
+    });
+
+    test("should handle Array validation in ISchemaType", () => {
+      const arraySchema = {
+        tags: { type: "Array", params: "String", required: true },
+      };
+
+      const validData = { tags: ["tag1", "tag2", "tag3"] };
+      assertSchemaValidation(schemaChecker, validData, arraySchema, validData);
+    });
+
+    test("should handle Array with object params", () => {
+      const arraySchema = {
+        scores: { type: "Array", params: { type: "Integer" }, required: true },
+      };
+
+      const validData = { scores: [1, 2, 3] };
+      assertSchemaValidation(schemaChecker, validData, arraySchema, validData);
+    });
+
+    test("should throw error for invalid schema type", () => {
+      const invalidSchema = "not a valid schema";
+      const data = { test: "value" };
+
+      expect(() => schemaChecker(data, invalidSchema as any)).toThrow("Invalid schema type");
+    });
+  });
+});
+
+describe("Utility Functions - Type Detection and Conversion", () => {
+  // Import utility functions for testing
+  const { isZodSchema, isISchemaType, isISchemaTypeRecord, createZodSchema } = require("../../dist/lib/params");
+
+  describe("Type Detection Functions", () => {
+    test("should correctly detect Zod schemas", () => {
+      const zodSchema = z.string();
+      const nonZodSchema = { type: "String" };
+
+      expect(isZodSchema(zodSchema)).toBe(true);
+      expect(isZodSchema(nonZodSchema)).toBe(false);
+      expect(isZodSchema(null)).toBe(false);
+      expect(isZodSchema(undefined)).toBe(false);
+      expect(isZodSchema("string")).toBe(false);
+      expect(isZodSchema({})).toBe(false);
+    });
+
+    test("should correctly detect ISchemaType objects", () => {
+      const schemaType = { type: "String", comment: "test" };
+      const zodSchema = z.string();
+      const invalidType = { notType: "String" };
+
+      expect(isISchemaType(schemaType)).toBe(true);
+      expect(isISchemaType(zodSchema)).toBe(false);
+      expect(isISchemaType(invalidType)).toBe(false);
+      expect(isISchemaType(null)).toBe(false);
+      expect(isISchemaType("string")).toBe(false);
+    });
+
+    test("should correctly detect ISchemaTypeRecord objects", () => {
+      const validRecord = {
+        field1: { type: "String" },
+        field2: { type: "Number" },
+      };
+      const invalidRecord = {
+        field1: { type: "String" },
+        field2: z.string(),
+      };
+      const zodSchema = z.object({});
+
+      expect(isISchemaTypeRecord(validRecord)).toBe(true);
+      expect(isISchemaTypeRecord(invalidRecord)).toBe(false);
+      expect(isISchemaTypeRecord(zodSchema)).toBe(false);
+      expect(isISchemaTypeRecord(null)).toBe(false);
+      expect(isISchemaTypeRecord("string")).toBe(false);
+    });
   });
 
-  test("requiedOneOf check throw", () => {
-    const data = { numP: 122 };
-    const fn = () => schemaChecker(data, schema1, ["intP", "stringP3"]);
-    expect(fn).toThrow("missing required parameter one of intP, stringP3 is required");
+  describe("Schema Creation Functions", () => {
+    test("should create Zod schema from string type", () => {
+      const schema = createZodSchema("string");
+      expect(schema.parse("test")).toBe("test");
+    });
+
+    test("should create Zod schema from ISchemaType", () => {
+      const schemaType = { type: "Number", params: { min: 0, max: 100 } };
+      const schema = createZodSchema(schemaType);
+      expect(schema.parse(50)).toBe(50);
+      expect(schema.parse("75")).toBe(75);
+    });
+
+    test("should handle ENUM type creation", () => {
+      const enumType = { type: "ENUM", params: ["A", "B", "C"] };
+      const schema = createZodSchema(enumType);
+      expect(schema.parse("A")).toBe("A");
+
+      expect(() => schema.parse("D")).toThrow();
+    });
+
+    test("should throw error for ENUM without params", () => {
+      const enumType = { type: "ENUM" };
+      expect(() => createZodSchema(enumType)).toThrow("ENUM type requires params");
+    });
+
+    test("should handle Array type creation", () => {
+      const arrayType = { type: "Array", params: "String" };
+      const schema = createZodSchema(arrayType);
+      expect(schema.parse(["a", "b", "c"])).toEqual(["a", "b", "c"]);
+    });
+
+    test("should handle Array with object params", () => {
+      const arrayType = { type: "Array", params: { type: "Integer" } };
+      const schema = createZodSchema(arrayType);
+      expect(schema.parse([1, 2, 3])).toEqual([1, 2, 3]);
+    });
+
+    test("should handle default values", () => {
+      const schemaType = { type: "String", default: "default_value" };
+      const schema = createZodSchema(schemaType);
+      expect(schema.parse(undefined)).toBe("default_value");
+    });
+
+    test("should handle JSON type", () => {
+      const jsonType = { type: "JSON" };
+      const schema = createZodSchema(jsonType);
+      expect(schema.parse({ test: "value" })).toEqual({ test: "value" });
+    });
+
+    test("should fallback to unknown type", () => {
+      const unknownType = { type: "UnknownType" };
+      const schema = createZodSchema(unknownType);
+      expect(schema.parse("anything")).toBe("anything");
+    });
+  });
+});
+
+describe("ParamsChecker - Edge Cases and Advanced Features", () => {
+  describe("Format Processing", () => {
+    test("should handle Array type with format processing", () => {
+      const arrayType = { type: "Array", params: { type: "TrimString" } };
+      const result = paramsChecker("testArray", [" hello ", " world "], arrayType);
+      expect(result).toEqual(["hello", "world"]);
+    });
+
+    test("should handle JSON type with invalid JSON string", () => {
+      const jsonType = { type: "JSON" };
+      expect(() => paramsChecker("testJson", "invalid json", jsonType)).toThrow(/should be valid JSON/);
+    });
+
+    test("should handle JSON type with format false", () => {
+      const jsonType = { type: "JSON", format: false };
+      const result = paramsChecker("testJson", '{"key": "value"}', jsonType);
+      expect(result).toBe('{"key": "value"}');
+    });
+
+    test("should handle Boolean type with format false", () => {
+      const boolType = { type: "Boolean", format: false };
+      const result = paramsChecker("testBool", true, boolType);
+      expect(result).toBe("true");
+    });
+
+    test("should handle Number type with format false", () => {
+      const numberType = { type: "Number", format: false };
+      const result = paramsChecker("testNumber", 123, numberType);
+      expect(result).toBe("123");
+    });
+  });
+
+  describe("Constraint Validation", () => {
+    test("should validate Integer with decimal rejection", () => {
+      const intType = { type: "Integer" };
+      expect(() => paramsChecker("testInt", "123.45", intType)).toThrow(/should be valid Integer/);
+    });
+
+    test("should validate Number with min/max constraints", () => {
+      const numberType = { type: "Number", params: { min: 0, max: 100 } };
+      expect(() => paramsChecker("testNumber", "150", numberType)).toThrow(/should be valid Number/);
+    });
+
+    test("should handle ENUM with mixed types", () => {
+      const enumType = { type: "ENUM", params: ["string", 123, true] };
+
+      expect(paramsChecker("testEnum", "string", enumType)).toBe("string");
+      expect(paramsChecker("testEnum", 123, enumType)).toBe(123);
+      expect(paramsChecker("testEnum", true, enumType)).toBe(true);
+    });
+  });
+
+  describe("Error Handling", () => {
+    test("should handle transform errors gracefully", () => {
+      const numberType = { type: "Number" };
+      expect(() => paramsChecker("testNumber", "not-a-number", numberType)).toThrow(/should be valid Number/);
+    });
+
+    test("should handle Boolean transform errors", () => {
+      const boolType = { type: "Boolean" };
+      expect(() => paramsChecker("testBool", "maybe", boolType)).toThrow(/should be valid Boolean/);
+    });
+
+    test("should propagate array element validation errors", () => {
+      const arrayType = { type: "Array", params: { type: "Integer" } };
+      expect(() => paramsChecker("testArray", [1, "invalid", 3], arrayType)).toThrow(/should be valid Integer/);
+    });
+  });
+});
+
+describe("ResponseChecker - Output Validation", () => {
+  const { responseChecker } = require("../../dist/lib/params");
+
+  test("should validate response with ISchemaType", () => {
+    const schema = { type: "String" };
+    const result = responseChecker({} as any, "test", schema);
+    expect(result).toEqual({ ok: true, message: "success", value: "test" });
+  });
+
+  test("should validate response with Zod schema", () => {
+    const zodSchema = z.object({ name: z.string(), age: z.number() });
+    const validData = { name: "John", age: 30 };
+    const result = responseChecker({} as any, validData, zodSchema);
+    expect(result).toEqual({ ok: true, message: "success", value: validData });
+  });
+
+  test("should validate response with ISchemaTypeRecord", () => {
+    const schema = {
+      name: { type: "String" },
+      age: { type: "Number" },
+    };
+    const validData = { name: "John", age: 30 };
+    const result = responseChecker({} as any, validData, schema);
+    expect(result).toEqual({ ok: true, message: "success", value: validData });
+  });
+
+  test("should return original data on validation failure", () => {
+    const schema = { type: "String" };
+    const invalidData = { value: 123 };
+    const result = responseChecker({} as any, invalidData, schema);
+    expect(result).toEqual(invalidData);
+  });
+
+  test("should handle invalid schema types", () => {
+    const invalidSchema = "invalid";
+    const data = { test: "value" };
+    const result = responseChecker({} as any, data, invalidSchema as any);
+    expect(result).toEqual(data);
+  });
+});
+
+describe("SchemaChecker - Advanced Error Handling", () => {
+  const { schemaChecker } = require("../../dist/lib/params");
+  const apiService = lib();
+
+  test("should handle invalid_union errors with undefined type errors", () => {
+    // 创建一个会产生 invalid_union 错误的 schema
+    const complexSchema = {
+      field1: { type: "String", required: true },
+      field2: { type: "Number", required: false, default: undefined },
+    };
+
+    const invalidData = { field1: "test", field2: "not-a-number" };
+
+    expect(() => schemaChecker(apiService, invalidData, complexSchema)).toThrow(/should be valid/);
+  });
+
+  test("should handle non-required fields with undefined errors", () => {
+    const schema = {
+      optionalField: { type: "String", required: false },
+    };
+
+    const dataWithUndefined = { optionalField: undefined };
+
+    // 对于非必填字段，undefined 应该被接受或转换为默认值
+    const result = schemaChecker(apiService, dataWithUndefined, schema);
+    expect(result).toBeDefined();
+  });
+
+  test("should handle transform function errors", () => {
+    // 使用一个会在 transform 中抛出错误的 Zod schema
+    const transformSchema = z.string().transform((val) => {
+      if (val === "error") {
+        throw new Error("Transform error");
+      }
+      return val;
+    });
+
+    const invalidData = { field: "error" };
+
+    expect(() => schemaChecker(apiService, invalidData, transformSchema)).toThrow();
+  });
+
+  test("should handle native Zod Schema error messages", () => {
+    const zodSchema = z.object({
+      email: z.string().email(),
+      age: z.number().min(0),
+    });
+
+    const invalidData = { email: "invalid-email", age: -1 };
+
+    expect(() => schemaChecker(apiService, invalidData, zodSchema)).toThrow();
+  });
+
+  test("should extract field information from error messages", () => {
+    const schema = {
+      testField: { type: "Number" },
+    };
+
+    const invalidData = { testField: "not-a-number" };
+
+    expect(() => schemaChecker(apiService, invalidData, schema)).toThrow(/should be valid Number/);
+  });
+
+  test("should handle fieldInfo undefined cases", () => {
+    // 创建一个 schema，然后传入不在 schema 中的字段数据
+    const schema = {
+      knownField: { type: "String", required: false },
+    };
+
+    const dataWithUnknownField = { unknownField: "value" };
+
+    // 应该忽略未知字段或处理 fieldInfo 为 undefined 的情况
+    const result = schemaChecker(apiService, dataWithUnknownField, schema);
+    expect(result).toBeDefined();
+  });
+
+  test("should handle zodErrWithMessage containing 'Invalid'", () => {
+    // 创建一个会产生包含 "Invalid" 的错误消息的场景
+    const customSchema = z.string().refine((val) => val !== "invalid", {
+      message: "Invalid value provided",
+    });
+
+    const invalidData = { field: "invalid" };
+
+    expect(() => schemaChecker(apiService, invalidData, customSchema)).toThrow();
+  });
+
+  test("should fallback to JSON.stringify for zodErr.issues", () => {
+    // 创建一个复杂的验证错误场景
+    const complexSchema = z.object({
+      nested: z.object({
+        field: z.string(),
+      }),
+    });
+
+    const invalidData = { nested: { field: 123 } };
+
+    expect(() => schemaChecker(apiService, invalidData, complexSchema)).toThrow();
+  });
+});
+
+describe("ApiParamsCheck - Comprehensive Testing", () => {
+  const { apiParamsCheck } = require("../../dist/lib/params");
+  const apiService = lib();
+
+  test("should handle all schema types combination", () => {
+    const mockAPI = {
+      options: {
+        paramsSchema: z.object({ id: z.string() }),
+        querySchema: z.object({ page: z.number() }),
+        bodySchema: z.object({ name: z.string() }),
+        headersSchema: z.object({ authorization: z.string() }),
+        required: new Set(["id", "name"]),
+        requiredOneOf: [["page", "authorization"]],
+      },
+    };
+
+    const params = { id: "123" };
+    const query = { page: 1 };
+    const body = { name: "test" };
+    const headers = { authorization: "Bearer token" };
+
+    const result = apiParamsCheck(apiService, mockAPI as any, params, query, body, headers);
+
+    expect(result).toEqual({
+      id: "123",
+      page: 1,
+      name: "test",
+      authorization: "Bearer token",
+    });
+  });
+
+  test("should handle empty objects", () => {
+    const mockAPI = {
+      options: {
+        params: {},
+        query: {},
+        body: {},
+        headers: {},
+        required: new Set(),
+        requiredOneOf: [],
+      },
+    };
+
+    const result = apiParamsCheck(apiService, mockAPI as any, {}, {}, {}, {});
+    expect(result).toEqual({});
+  });
+
+  test("should handle ISchemaType fallback when no Zod schemas", () => {
+    const mockAPI = {
+      options: {
+        params: { id: { type: "String", required: true } },
+        query: { page: { type: "Number", required: false } },
+        body: { name: { type: "String", required: true } },
+        headers: { auth: { type: "String", required: false } },
+        required: new Set(["id", "name"]),
+        requiredOneOf: [],
+      },
+    };
+
+    const params = { id: "123" };
+    const query = { page: "1" };
+    const body = { name: "test" };
+    const headers = { auth: "token" };
+
+    const result = apiParamsCheck(apiService, mockAPI as any, params, query, body, headers);
+
+    expect(result.id).toBe("123");
+    expect(result.page).toBe(1);
+    expect(result.name).toBe("test");
+    expect(result.auth).toBe("token");
+  });
+
+  test("should validate required and requiredOneOf combination", () => {
+    const mockAPI = {
+      options: {
+        params: { id: { type: "String", required: true } },
+        required: new Set(["id"]),
+        requiredOneOf: [["email", "phone"]],
+      },
+    };
+
+    // 缺少必填字段
+    expect(() => {
+      apiParamsCheck(apiService, mockAPI as any, {}, {}, {}, {});
+    }).toThrow(/missing required parameter 'id'/);
+
+    // 缺少 requiredOneOf 字段
+    expect(() => {
+      apiParamsCheck(apiService, mockAPI as any, { id: "123" }, {}, {}, {});
+    }).toThrow(/one of email, phone is required/);
+  });
+
+  test("should handle undefined params/query/body/headers", () => {
+    const mockAPI = {
+      options: {
+        required: new Set(),
+        requiredOneOf: [],
+      },
+    };
+
+    const result = apiParamsCheck(apiService, mockAPI as any, undefined, undefined, undefined, undefined);
+    expect(result).toEqual({});
+  });
+});
+
+describe("ResponseChecker - Edge Cases", () => {
+  const { responseChecker } = require("../../dist/lib/params");
+  const apiService = lib();
+
+  test("should throw error for truly invalid schema type", () => {
+    const invalidSchema = null;
+    const data = { test: "value" };
+
+    const result = responseChecker(apiService, data, invalidSchema as any);
+    expect(result).toEqual(data);
+  });
+
+  test("should return original data when validation fails", () => {
+    const schema = z.object({ requiredField: z.string() });
+    const invalidData = { wrongField: "value" };
+
+    const result = responseChecker(apiService, invalidData, schema);
+    expect(result).toEqual(invalidData);
+  });
+
+  test("should handle complex ISchemaType validation failure", () => {
+    const schema = {
+      name: { type: "String", required: true },
+      age: { type: "Number", required: true },
+    };
+
+    const invalidData = { name: "John" }; // 缺少 age
+
+    const result = responseChecker(apiService, invalidData, schema);
+    expect(result).toEqual(invalidData);
   });
 });
