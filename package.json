@@ -40,7 +40,7 @@
   "homepage": "https://github.com/yourtion/node-erest#readme",
   "dependencies": {
     "debug": "^4.4.1",
-    "path-to-regexp": "^6.3.0",
+    "path-to-regexp": "^8.2.0",
     "zod": "^4.0.5"
   },
   "peerDependencies": {
