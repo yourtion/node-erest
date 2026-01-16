@@ -13,7 +13,7 @@ import type { IApiOptionInfo, IDocOptions } from "..";
 import type { APIOption, IExample } from "../api";
 import { docs as debug } from "../debug";
 import type { ErrorManager } from "../manager";
-import generateAsiox from "../plugin/generate_axios";
+import generateAxios from "../plugin/generate_axios";
 import generateMarkdown from "../plugin/generate_markdown";
 import generatePostman from "../plugin/generate_postman";
 import generateSwagger, { buildSwagger } from "../plugin/generate_swagger";
@@ -313,7 +313,7 @@ export default class IAPIDoc {
         schemaRegistry?: Map<string, ZodType>;
       }, // 添加erest实例引用
     };
-    const formatOutput = this.erest.api.docOutputForamt || docOutputFormat;
+    const formatOutput = this.erest.api.docOutputFormat || docOutputFormat;
 
     // 生成类型文档 - 支持新的 Zod 实现
     this.generateTypeDocumentation(data);
@@ -359,7 +359,7 @@ export default class IAPIDoc {
       this.registerPlugin("json", generateJosn);
     }
     if (this.docsOptions.axios) {
-      this.registerPlugin("axios", generateAsiox);
+      this.registerPlugin("axios", generateAxios);
     }
     if (this.docsOptions.all) {
       this.registerPlugin("all", generateAll);

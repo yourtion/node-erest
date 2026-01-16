@@ -5,8 +5,8 @@ import { plugin as debug } from "../../debug";
 import type { IDocData, IDocWritter } from "../../extend/docs";
 import * as utils from "../../utils";
 
-export default function generateAsiox(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
-  debug("generateAsiox: %s - %o", dir, options);
+export default function generateAxios(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
+  debug("generateAxios: %s - %o", dir, options);
 
   function slashToCamel(name: string) {
     return name.replace(/\/[a-z]/g, (match) => {

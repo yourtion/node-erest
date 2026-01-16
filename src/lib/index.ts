@@ -35,10 +35,10 @@ const internalError = (msg: string) => new Error(`internal error ${msg}`);
 export type genSchema<T> = Readonly<ISupportMethds<(path: string) => API<T>>>;
 
 /** 组方法 */
-export interface IGruop<T> extends Record<string, unknown>, genSchema<T> {
+export interface IGroup<T> extends Record<string, unknown>, genSchema<T> {
   define: (opt: APIDefine<T>) => API<T>;
-  before: (...fn: T[]) => IGruop<T>;
-  middleware: (...fn: T[]) => IGruop<T>;
+  before: (...fn: T[]) => IGroup<T>;
+  middleware: (...fn: T[]) => IGroup<T>;
 }
 
 /** API接口定义 */
@@ -49,7 +49,7 @@ export interface IApiInfo<T> extends Record<string, unknown>, genSchema<T> {
   afterHooks: Set<T>;
   docs?: IAPIDoc;
   formatOutputReverse?: (out: unknown) => [Error | null, unknown];
-  docOutputForamt?: (out: unknown) => unknown;
+  docOutputFormat?: (out: unknown) => unknown;
 }
 
 /** API基础信息 */
@@ -416,8 +416,8 @@ export default class ERest<T = DEFAULT_HANDLER> {
   /**
    * 设置文档格式化函数
    */
-  public setDocOutputForamt(fn: (out: unknown) => unknown) {
-    this.apiInfo.docOutputForamt = fn;
+  public setDocOutputFormat(fn: (out: unknown) => unknown) {
+    this.apiInfo.docOutputFormat = fn;
   }
 
   /**
@@ -467,9 +467,9 @@ export default class ERest<T = DEFAULT_HANDLER> {
   /**
    * 获取分组API实例
    */
-  public group(name: string, info?: IGroupInfoOpt): IGruop<T>;
-  public group(name: string, desc?: string): IGruop<T>;
-  public group(name: string, infoOrDesc?: IGroupInfoOpt | string): IGruop<T> {
+  public group(name: string, info?: IGroupInfoOpt): IGroup<T>;
+  public group(name: string, desc?: string): IGroup<T>;
+  public group(name: string, infoOrDesc?: IGroupInfoOpt | string): IGroup<T> {
     debug("using group: %s, desc: %j", name, infoOrDesc);
     // assert(this.groupInfo[name], `请先配置 ${name} 分组`);
     const info = !infoOrDesc || typeof infoOrDesc === "string" ? { name: infoOrDesc, prefix: "" } : infoOrDesc;

@@ -366,12 +366,12 @@ describe("Zod Documentation Generation Tests", () => {
 
     test("should format example outputs correctly", () => {
       const mockFormatOutput = vi.fn((output) => ({ formatted: output }));
-      app.api.docOutputForamt = mockFormatOutput;
+      app.api.docOutputFormat = mockFormatOutput;
 
       const docData = docInstance.buildDocData();
 
       // Since we don't have APIs with examples, this test verifies the function is set
-      expect(app.api.docOutputForamt).toBe(mockFormatOutput);
+      expect(app.api.docOutputFormat).toBe(mockFormatOutput);
     });
 
     test("should handle custom writer function", () => {

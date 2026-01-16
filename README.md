@@ -1,21 +1,9 @@
-[![NPM version][npm-image]][npm-url]
-[![codecov][codecov-image]][codecov-url]
-[![node version][node-image]][node-url]
-[![npm download][download-image]][download-url]
-[![npm license][license-image]][download-url]
-[![DeepScan grade](https://deepscan.io/api/projects/2707/branches/19046/badge/grade.svg)](https://deepscan.io/dashboard#view=project&pid=2707&bid=19046)
-
-[npm-image]: https://img.shields.io/npm/v/erest.svg?style=flat-square
-[npm-url]: https://npmjs.org/package/erest
-[travis-image]: https://img.shields.io/travis/yourtion/node-erest.svg?style=flat-square
-[codecov-image]: https://codecov.io/github/yourtion/node-erest/graph/badge.svg?token=HRY0R63I95
-[codecov-url]: https://codecov.io/github/yourtion/node-erest
-[david-url]: https://david-dm.org/yourtion/node-erest
-[node-image]: https://img.shields.io/badge/node.js-%3E=_10-green.svg?style=flat-square
-[node-url]: http://nodejs.org/download/
-[download-image]: https://img.shields.io/npm/dm/erest.svg?style=flat-square
-[download-url]: https://npmjs.org/package/erest
-[license-image]: https://img.shields.io/npm/l/erest.svg
+[!\[NPM version\](https://img.shields.io/npm/v/erest.svg?style=flat-square null)](https://npmjs.org/package/erest)
+[!\[codecov\](https://codecov.io/github/yourtion/node-erest/graph/badge.svg?token=HRY0R63I95 null)](https://codecov.io/github/yourtion/node-erest)
+[!\[node version\](https://img.shields.io/badge/node.js-%3E=\_10-green.svg?style=flat-square null)](http://nodejs.org/download/)
+[!\[npm download\](https://img.shields.io/npm/dm/erest.svg?style=flat-square null)](https://npmjs.org/package/erest)
+[!\[npm license\](https://img.shields.io/npm/l/erest.svg null)](https://npmjs.org/package/erest)
+[!\[DeepScan grade\](https://deepscan.io/api/projects/2707/branches/19046/badge/grade.svg null)](https://deepscan.io/dashboard#view=project\&pid=2707\&bid=19046)
 
 # ERest
 
@@ -175,3 +163,4 @@ api.docs.generateDocs({
   axios: './sdk/api-client.js',
 });
 ```
+

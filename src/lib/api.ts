@@ -9,7 +9,7 @@ import { type ZodTypeAny, z } from "zod";
 import type ERest from ".";
 import { api as debug } from "./debug";
 import type { ISchemaType, SchemaType } from "./params";
-import { isISchemaTypeRecord, isZodSchema } from "./params";
+import { buildZodObjectFromSchemaType, isISchemaTypeRecord, isZodSchema } from "./params";
 import { getRealPath, getSchemaKey, type SourceResult } from "./utils";
 
 export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
@@ -569,10 +569,43 @@ export default class API<T = DEFAULT_HANDLER> {
       }
     }
 
+    // 预编译 ISchemaType Record 为 ZodObject，提升运行时性能
+    this.precompileSchemas();
+
     if (this.options.mock && parent.privateInfo.mockHandler && !this.options.handler) {
       this.options.handler = parent.privateInfo.mockHandler(this.options.mock);
     }
 
     this.inited = true;
+  }
+
+  /**
+   * 预编译 ISchemaType Record 为 ZodObject
+   * 在 init 阶段执行，避免每次请求时重复创建 Zod schema
+   */
+  private precompileSchemas() {
+    // 预编译 query schema
+    if (!this.options.querySchema && this.options.query && Object.keys(this.options.query).length > 0) {
+      debug("precompile query schema for %s", this.key);
+      this.options.querySchema = buildZodObjectFromSchemaType(this.options.query as Record<string, ISchemaType>);
+    }
+
+    // 预编译 body schema
+    if (!this.options.bodySchema && this.options.body && Object.keys(this.options.body).length > 0) {
+      debug("precompile body schema for %s", this.key);
+      this.options.bodySchema = buildZodObjectFromSchemaType(this.options.body as Record<string, ISchemaType>);
+    }
+
+    // 预编译 params schema
+    if (!this.options.paramsSchema && this.options.params && Object.keys(this.options.params).length > 0) {
+      debug("precompile params schema for %s", this.key);
+      this.options.paramsSchema = buildZodObjectFromSchemaType(this.options.params as Record<string, ISchemaType>);
+    }
+
+    // 预编译 headers schema
+    if (!this.options.headersSchema && this.options.headers && Object.keys(this.options.headers).length > 0) {
+      debug("precompile headers schema for %s", this.key);
+      this.options.headersSchema = buildZodObjectFromSchemaType(this.options.headers as Record<string, ISchemaType>);
+    }
   }
 }

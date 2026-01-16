@@ -278,8 +278,8 @@ describe("ERest - 基础测试", () => {
         const erest = new ERest({});
         const docFormatFn = (out: unknown) => out;
 
-        erest.setDocOutputForamt(docFormatFn);
-        expect(erest.api.docOutputForamt).toBe(docFormatFn);
+        erest.setDocOutputFormat(docFormatFn);
+        expect(erest.api.docOutputFormat).toBe(docFormatFn);
       });
 
       test("should set mock handler", () => {
@@ -434,10 +434,10 @@ describe("ERest - 基础测试", () => {
   });
 
   test("ERest - 注册文件输出函数", () => {
-    const org = (apiService as { apiInfo: { docOutputForamt: unknown } }).apiInfo.docOutputForamt;
+    const org = (apiService as { apiInfo: { docOutputFormat: unknown } }).apiInfo.docOutputFormat;
     const fn = (out: unknown) => out;
-    apiService.setDocOutputForamt(fn);
-    const now = (apiService as { apiInfo: { docOutputForamt: unknown } }).apiInfo.docOutputForamt;
+    apiService.setDocOutputFormat(fn);
+    const now = (apiService as { apiInfo: { docOutputFormat: unknown } }).apiInfo.docOutputFormat;
     expect(org).not.toEqual(now);
     expect(now).toEqual(fn);
   });

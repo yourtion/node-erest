@@ -545,14 +545,18 @@ describe("ResponseChecker - Output Validation", () => {
     const schema = { type: "String" };
     const invalidData = { value: 123 };
     const result = responseChecker({} as any, invalidData, schema);
-    expect(result).toEqual(invalidData);
+    expect(result.ok).toBe(false);
+    expect(result.value).toEqual(invalidData);
+    expect(result.message).toBeTruthy();
   });
 
   test("should handle invalid schema types", () => {
     const invalidSchema = "invalid";
     const data = { test: "value" };
     const result = responseChecker({} as any, data, invalidSchema as any);
-    expect(result).toEqual(data);
+    expect(result.ok).toBe(false);
+    expect(result.value).toEqual(data);
+    expect(result.message).toBe("Invalid schema type");
   });
 });
 
@@ -766,20 +770,24 @@ describe("ResponseChecker - Edge Cases", () => {
   const { responseChecker } = require("../../dist/lib/params");
   const apiService = lib();
 
-  test("should throw error for truly invalid schema type", () => {
+  test("should return error result for truly invalid schema type", () => {
     const invalidSchema = null;
     const data = { test: "value" };
 
     const result = responseChecker(apiService, data, invalidSchema as any);
-    expect(result).toEqual(data);
+    expect(result.ok).toBe(false);
+    expect(result.value).toEqual(data);
+    expect(result.message).toBe("Invalid schema type");
   });
 
-  test("should return original data when validation fails", () => {
+  test("should return error result when validation fails", () => {
     const schema = z.object({ requiredField: z.string() });
     const invalidData = { wrongField: "value" };
 
     const result = responseChecker(apiService, invalidData, schema);
-    expect(result).toEqual(invalidData);
+    expect(result.ok).toBe(false);
+    expect(result.value).toEqual(invalidData);
+    expect(result.message).toBeTruthy();
   });
 
   test("should handle complex ISchemaType validation failure", () => {
@@ -791,6 +799,8 @@ describe("ResponseChecker - Edge Cases", () => {
     const invalidData = { name: "John" }; // 缺少 age
 
     const result = responseChecker(apiService, invalidData, schema);
-    expect(result).toEqual(invalidData);
+    expect(result.ok).toBe(false);
+    expect(result.value).toEqual(invalidData);
+    expect(result.message).toBeTruthy();
   });
 });
