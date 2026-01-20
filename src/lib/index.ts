@@ -25,6 +25,7 @@ import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type So
 
 export * from "./api";
 export * from "./params";
+export * from "./error";
 export { z, ZodRawShape, ZodType };
 
 const missingParameter = (msg: string) => new Error(`missing required parameter ${msg}`);

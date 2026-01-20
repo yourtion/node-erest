@@ -81,11 +81,15 @@ export interface IDocData {
     tested: number;
     untest: string[];
   };
-  /** ERest实例引用（用于访问内部属性） */
+  /** ERest实例引用（用于访问内部属性，如 schemaRegistry） */
   erest?: ERest<unknown> & {
     typeRegistry?: Map<string, ZodType>;
     schemaRegistry?: Map<string, ZodType>;
   };
+  /** 类型注册表快照（避免循环引用，用于序列化） */
+  typeRegistrySnapshot?: Record<string, { description: string; tsType: string }>;
+  /** Schema注册表快照（避免循环引用，用于序列化） */
+  schemaRegistrySnapshot?: Record<string, { description: string; tsType: string }>;
 }
 
 export interface IDocTypes {
@@ -131,7 +135,7 @@ export default class IAPIDoc {
   private info: IApiOptionInfo;
   private groups: Record<string, string>;
   private docsOptions: IDocOptions;
-  private plugins: IDocGeneratePlugin[] = [];
+  private plugins: Map<string, IDocGeneratePlugin> = new Map();
   private writer: IDocWritter = docWriteSync;
   private docDataCache: IDocData | null = null;
 
@@ -141,6 +145,11 @@ export default class IAPIDoc {
     this.info = info;
     this.groups = groups;
     this.docsOptions = docsOptions;
+  }
+
+  /** 使缓存失效（当 API/类型/Schema 变化时调用） */
+  public invalidateCache() {
+    this.docDataCache = null;
   }
 
   /** 生成类型文档 - 支持新的 Zod 实现 */
@@ -311,8 +320,32 @@ export default class IAPIDoc {
       erest: this.erest as ERest<unknown> & {
         typeRegistry?: Map<string, ZodType>;
         schemaRegistry?: Map<string, ZodType>;
-      }, // 添加erest实例引用
+      },
     };
+
+    // 创建注册表快照（避免循环引用，用于序列化输出）
+    const typeRegistry = (this.erest as unknown as { typeRegistry?: Map<string, ZodType> }).typeRegistry;
+    if (typeRegistry && typeRegistry.size > 0) {
+      data.typeRegistrySnapshot = {};
+      for (const [typeName, zodSchema] of typeRegistry.entries()) {
+        data.typeRegistrySnapshot[typeName] = {
+          description: this.extractZodSchemaDescription(zodSchema),
+          tsType: this.extractTypeScriptType(zodSchema),
+        };
+      }
+    }
+
+    const schemaRegistry = (this.erest as unknown as { schemaRegistry?: Map<string, ZodType> }).schemaRegistry;
+    if (schemaRegistry && schemaRegistry.size > 0) {
+      data.schemaRegistrySnapshot = {};
+      for (const [schemaName, zodSchema] of schemaRegistry.entries()) {
+        data.schemaRegistrySnapshot[schemaName] = {
+          description: this.extractZodSchemaDescription(zodSchema),
+          tsType: this.extractTypeScriptType(zodSchema),
+        };
+      }
+    }
+
     const formatOutput = this.erest.api.docOutputFormat || docOutputFormat;
 
     // 生成类型文档 - 支持新的 Zod 实现
@@ -372,8 +405,18 @@ export default class IAPIDoc {
   }
 
   public registerPlugin(name: string, plugin: IDocGeneratePlugin) {
-    debug(name);
-    this.plugins.push(plugin);
+    debug("registerPlugin: %s", name);
+    this.plugins.set(name, plugin);
+  }
+
+  /** 检查插件是否已注册 */
+  public hasPlugin(name: string): boolean {
+    return this.plugins.has(name);
+  }
+
+  /** 移除插件 */
+  public removePlugin(name: string): boolean {
+    return this.plugins.delete(name);
   }
 
   /** 保存文档 */
@@ -395,13 +438,13 @@ export default class IAPIDoc {
     debug("save: %s", dir);
 
     // 根据插件生成文档
-    for (const fn of this.plugins) {
-      debug("build doc: %s", fn);
+    for (const [name, fn] of this.plugins) {
+      debug("build doc: %s", name);
       // 防止文档生成插件报错
       try {
         fn(data, dir, this.docsOptions, this.writer);
       } catch (error) {
-        console.error(error);
+        console.error(`Plugin "${name}" failed:`, error);
       }
     }
 
