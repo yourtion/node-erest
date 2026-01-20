@@ -333,9 +333,13 @@ describe("Router Configuration", () => {
        .middlewares(hooks.middleware)
        .register(handler);
     
-    apiService.bindRouter(router, apiService.checkerExpress);
+    // Recommended: use bind() with framework type
+    apiService.bind({ framework: 'express', router });
+    
+    // Deprecated: apiService.bindRouter(router, apiService.checkerExpress);
     
     // Verify middleware order
+    // Order: beforeHooks -> groupBefore -> apiBeforeHooks -> checker -> groupMiddleware -> apiMiddlewares -> handler
     const routerStack = router.stack[0].route?.stack;
     assertRouterStackOrder(routerStack, [
       "beforHook",

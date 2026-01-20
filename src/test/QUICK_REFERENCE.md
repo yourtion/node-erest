@@ -45,9 +45,12 @@ const api = createPostApi(apiService.api, "/users", "Create User")
 
 ### Router Testing
 ```typescript
-// Test router binding
+// Test router binding (recommended)
 const router = express.Router();
-apiService.bindRouter(router, apiService.checkerExpress);
+apiService.bind({ framework: 'express', router });
+
+// Legacy method (deprecated)
+// apiService.bindRouter(router, apiService.checkerExpress);
 
 // Verify API registration
 assertApiRegistered(api, "get", "/users", "GET_/users");

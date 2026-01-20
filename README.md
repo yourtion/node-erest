@@ -110,16 +110,19 @@ api.api.get('/users/:id')
     res.json({ success: true, data: user });
   });
 
-// 绑定到 Express
+// 绑定到 Express（推荐方式）
 const app = express();
 const router = express.Router();
 app.use('/api', router);
 
-api.bindRouter(router, api.checkerExpress);
+api.bind({ framework: 'express', router });
 
 app.listen(3000, () => {
   console.log('🚀 Server running on http://localhost:3000');
 });
+
+// 旧方式（已废弃）
+// api.bindRouter(router, api.checkerExpress);
 ```
 
 ### 原生 Zod 类型支持
@@ -163,4 +166,54 @@ api.docs.generateDocs({
   axios: './sdk/api-client.js',
 });
 ```
+
+### 框架适配器
+
+ERest 提供统一的 `bind()` 方法支持多种框架：
+
+```typescript
+import ERest from 'erest';
+import express from 'express';
+import Koa from 'koa';
+import KoaRouter from '@koa/router';
+
+const api = new ERest({ /* options */ });
+
+// Express（非 forceGroup 模式）
+const expressApp = express();
+const expressRouter = express.Router();
+api.bind({ framework: 'express', router: expressRouter });
+expressApp.use('/api', expressRouter);
+
+// Koa（非 forceGroup 模式）
+const koaApp = new Koa();
+const koaRouter = new KoaRouter();
+api.bind({ framework: 'koa', router: koaRouter });
+koaApp.use(koaRouter.routes());
+
+// forceGroup 模式（需要 app 和 Router 构造函数）
+const apiForceGroup = new ERest({ forceGroup: true, groups: { user: '用户' } });
+apiForceGroup.bind({ 
+  framework: 'express', 
+  app: expressApp, 
+  router: express.Router 
+});
+```
+
+#### 可用适配器
+
+| 框架 | 类型值 | 适配器类 |
+|------|--------|----------|
+| Express | `'express'` | `ExpressAdapter` |
+| Koa | `'koa'` | `KoaAdapter` |
+| @leizm/web | `'leizmweb'` | `LeizmWebAdapter` |
+
+#### 已废弃方法
+
+以下方法已废弃，请使用 `bind()` 替代：
+
+- `bindRouter(router, checker)` → `bind({ framework: 'express', router })`
+- `bindRouterToApp(app, Router, checker)` → `bind({ framework: 'express', app, router: Router })`
+- `bindKoaRouterToApp(app, KoaRouter, checker)` → `bind({ framework: 'koa', app, router: KoaRouter })`
+- `checkerExpress` / `checkerKoa` / `checkerLeiWeb` → 内置于适配器中
 
