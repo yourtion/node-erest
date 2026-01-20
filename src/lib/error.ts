@@ -51,9 +51,7 @@ export class ERestError extends Error {
 
   /** 创建参数无效错误 */
   static invalidParam(paramName: string, expected?: string, received?: unknown): ERestError {
-    const message = expected
-      ? `'${paramName}' should be valid ${expected}`
-      : `incorrect parameter '${paramName}'`;
+    const message = expected ? `'${paramName}' should be valid ${expected}` : `incorrect parameter '${paramName}'`;
     return new ERestError("INVALID_PARAM", message, { field: paramName, expected, received });
   }
 

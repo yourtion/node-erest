@@ -535,3 +535,103 @@ describe("Router - Error Handling and Edge Cases", () => {
     });
   });
 });
+
+describe("Router - Unified bind() Method", () => {
+  describe("Express Framework", () => {
+    test("should bind router using unified bind() method", () => {
+      const apiService = createTestERestInstance();
+      const api = apiService.api;
+      const router = express.Router();
+
+      api
+        .get("/unified-test")
+        .group("Index")
+        .title("Unified Bind Test")
+        .register(function unifiedHandler(_req: any, res: any) {
+          res.end("Unified bind response");
+        });
+
+      apiService.bind({ framework: "express", router });
+
+      expect(router.stack.length).toBe(1);
+      expect(router.stack[0].route?.path).toBe("/unified-test");
+    });
+
+    test("should throw error when router is not provided in non-forceGroup mode", () => {
+      const apiService = createTestERestInstance();
+      const api = apiService.api;
+
+      api
+        .get("/test")
+        .group("Index")
+        .title("Test")
+        .register((_req: any, res: any) => res.end("ok"));
+
+      expect(() => {
+        apiService.bind({ framework: "express" });
+      }).toThrow();
+    });
+
+    test("should include params checker in handler chain", () => {
+      const apiService = createTestERestInstance();
+      const api = apiService.api;
+      const router = express.Router();
+
+      api
+        .get("/with-params")
+        .group("Index")
+        .title("Params Test")
+        .query({ name: { type: "String", comment: "Name" } })
+        .register(function paramsHandler(_req: any, res: any) {
+          res.end("ok");
+        });
+
+      apiService.bind({ framework: "express", router });
+
+      const routerStack = router.stack[0].route?.stack;
+      const hookNames = routerStack?.map((r: { name: string }) => r.name);
+      expect(hookNames).toContain("apiParamsChecker");
+    });
+  });
+
+  describe("Koa Framework", () => {
+    test("should use koa adapter for framework type koa", () => {
+      const apiService = createTestERestInstance();
+      const api = apiService.api;
+      const router = express.Router(); // Using express router for simplicity
+
+      api
+        .get("/koa-test")
+        .group("Index")
+        .title("Koa Test")
+        .register(function koaHandler(_req: any, res: any) {
+          res.end("ok");
+        });
+
+      // This tests that the adapter selection works
+      apiService.bind({ framework: "koa", router });
+
+      expect(router.stack.length).toBe(1);
+    });
+  });
+
+  describe("@leizm/web Framework", () => {
+    test("should use leizmweb adapter for framework type leizmweb", () => {
+      const apiService = createTestERestInstance();
+      const api = apiService.api;
+      const router = express.Router();
+
+      api
+        .get("/leizm-test")
+        .group("Index")
+        .title("Leizm Test")
+        .register(function leizmHandler(_req: any, res: any) {
+          res.end("ok");
+        });
+
+      apiService.bind({ framework: "leizmweb", router });
+
+      expect(router.stack.length).toBe(1);
+    });
+  });
+});

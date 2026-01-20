@@ -120,7 +120,7 @@ const docOutputFormat = (out: unknown) => out;
 /** 默认文档输出函数（直接写文件） */
 const docWriteSync: IDocWritter = (path: string, data: string) => fs.writeFileSync(path, data);
 
-function generateJosn(data: IDocData, dir: string, options: IDocOptions, writer: IDocWritter) {
+function generateJson(data: IDocData, dir: string, options: IDocOptions, writer: IDocWritter) {
   const filename = getPath("doc.json", options.json);
   // 创建一个没有循环引用的数据副本
   const cleanData = {
@@ -389,7 +389,7 @@ export default class IAPIDoc {
       this.registerPlugin("postman", generatePostman);
     }
     if (this.docsOptions.json) {
-      this.registerPlugin("json", generateJosn);
+      this.registerPlugin("json", generateJson);
     }
     if (this.docsOptions.axios) {
       this.registerPlugin("axios", generateAxios);

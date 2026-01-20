@@ -536,3 +536,65 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
     });
   });
 });
+
+describe("ERestError - 自定义错误类", () => {
+  // 使用 dist 版本以确保测试编译后的代码
+  const errorModule = require("../../dist/lib/error");
+  const ERestError = errorModule.ERestError;
+
+  test("should create ERestError with basic properties", () => {
+    const error = new ERestError("MISSING_PARAM", "missing required parameter 'name'", { field: "name" });
+    expect(error.code).toBe("MISSING_PARAM");
+    expect(error.message).toBe("missing required parameter 'name'");
+    expect(error.details?.field).toBe("name");
+    expect(error.statusCode).toBe(400);
+    expect(error.name).toBe("ERestError");
+  });
+
+  test("should create error with custom status code", () => {
+    const error = new ERestError("INTERNAL_ERROR", "internal error", undefined, 500);
+    expect(error.statusCode).toBe(500);
+  });
+
+  test("should create missingParam error using static method", () => {
+    const error = ERestError.missingParam("username");
+    expect(error.code).toBe("MISSING_PARAM");
+    expect(error.message).toContain("username");
+    expect(error.details?.field).toBe("username");
+  });
+
+  test("should create invalidParam error using static method", () => {
+    const error = ERestError.invalidParam("age", "Integer", "abc");
+    expect(error.code).toBe("INVALID_PARAM");
+    expect(error.message).toContain("age");
+    expect(error.details?.expected).toBe("Integer");
+    expect(error.details?.received).toBe("abc");
+  });
+
+  test("should create internal error using static method", () => {
+    const error = ERestError.internal("database connection failed");
+    expect(error.code).toBe("INTERNAL_ERROR");
+    expect(error.statusCode).toBe(500);
+  });
+
+  test("should create validation error using static method", () => {
+    const error = ERestError.validation("validation failed", { field: "email" });
+    expect(error.code).toBe("VALIDATION_ERROR");
+    expect(error.details?.field).toBe("email");
+  });
+
+  test("should convert to JSON correctly", () => {
+    const error = new ERestError("INVALID_PARAM", "test error", { field: "test" }, 422);
+    const json = error.toJSON();
+    expect(json.name).toBe("ERestError");
+    expect(json.code).toBe("INVALID_PARAM");
+    expect(json.message).toBe("test error");
+    expect(json.statusCode).toBe(422);
+  });
+
+  test("should be instanceof Error", () => {
+    const error = new ERestError("MISSING_PARAM", "test");
+    expect(error instanceof Error).toBe(true);
+    expect(error instanceof ERestError).toBe(true);
+  });
+});

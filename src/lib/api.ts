@@ -9,7 +9,7 @@ import { type ZodTypeAny, z } from "zod";
 import type ERest from ".";
 import { api as debug } from "./debug";
 import type { ISchemaType, SchemaType } from "./params";
-import { buildZodObjectFromSchemaType, isISchemaTypeRecord, isZodSchema } from "./params";
+import { buildZodObjectFromSchemaType, isISchemaTypeRecord, isZodSchema, zodTypeMap } from "./params";
 import { getRealPath, getSchemaKey, type SourceResult } from "./utils";
 
 export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
@@ -524,30 +524,13 @@ export default class API<T = DEFAULT_HANDLER> {
       const baseTypeName = typeName.endsWith("[]") ? typeName.slice(0, -2) : typeName;
 
       if (!parent.type.has(baseTypeName) && !parent.schema.has(baseTypeName)) {
-        // 检查是否为内置的 zod 类型
-        const builtinTypes = [
-          "string",
-          "number",
+        // 检查是否为内置的 zod 类型（从 zodTypeMap 派生，避免硬编码重复）
+        const builtinTypes = new Set([
+          ...Object.keys(zodTypeMap),
+          // 兼容小写别名
           "integer",
-          "boolean",
-          "date",
-          "email",
-          "url",
-          "uuid",
-          "array",
-          "object",
-          "any",
-          "JSON",
-          "ENUM",
-          "IntArray",
-          "Date",
-          "Array",
-          "Number",
-          "String",
-          "Boolean",
-          "Integer",
-        ];
-        if (!builtinTypes.includes(baseTypeName)) {
+        ]);
+        if (!builtinTypes.has(baseTypeName)) {
           throw new Error(`Unknown type: ${baseTypeName}. Please register this type first.`);
         }
       }
