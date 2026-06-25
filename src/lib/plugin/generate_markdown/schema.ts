@@ -1,7 +1,7 @@
 import type { ZodType } from "zod";
-import type { IDocData, IDocTypes } from "../../extend/docs";
-import { isZodSchema } from "../../params";
-import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
+import type { IDocData, IDocTypes } from "../../extend/docs.js";
+import { isZodSchema } from "../../params.js";
+import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils.js";
 
 export default function schemaDocs(data: IDocData) {
   function _parseType(type: string) {

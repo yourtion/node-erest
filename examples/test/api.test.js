@@ -8,8 +8,7 @@
  */
 import express from 'express';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createRequire } from 'node:module';
-import { z } from 'zod';
+import ERest, { z, ERestError } from 'erest';
 import { API_INFO, GROUPS, registerApi } from '../src/api.js';
 import { createStore } from '../src/store.js';
 import {
@@ -18,12 +17,6 @@ import {
   expressLogMiddleware,
   expressTimingBefore,
 } from '../src/hooks.js';
-
-// 注：vitest 的 Vite 解析器对 erest 的 CJS 默认导出互操作不稳定（Node 原生则正常），
-// 故测试中用 createRequire 走 Node 原生解析（与 entries 一致），取 .default 构造器。
-// 生产入口（entries/*.js）用 `import ERest from 'erest'` 即可，无需此处理。
-const require = createRequire(import.meta.url);
-const ERest = require('erest').default;
 
 let app;
 let api;

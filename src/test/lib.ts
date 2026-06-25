@@ -1,5 +1,9 @@
+import { createRequire } from "node:module";
 import type ERest from "../lib";
 import * as ERestModule from "../lib";
+
+/** CJS/ESM 兼容的 require（加载发布产物用） */
+const require = createRequire(import.meta.url);
 
 /** 错误信息 */
 export const ERROR_INFO = Object.freeze({

@@ -397,10 +397,10 @@ const { default: ERest, z } = require('erest');
 const api = new ERest({ groups: { user: '用户管理' } });
 ```
 
-> **NodeNext 类型说明**：在 `module: nodenext` 下，TypeScript 对 CJS 模块的默认导出按 Node
-> 实际互操作行为解析（不合成 synthetic default），可能导致 `import ERest from 'erest'` 出现
-> 类型报错（运行时不受影响）。如遇此情况，可在使用者侧补充模块增强声明，或参考
-> `examples/` 目录下的集成示例。
+erest 同时发布 ESM 与 CJS 两套产物（`dist/esm` 与 `dist/lib`），通过 `package.json` 的 `exports`
+字段按 `import`/`require` 自动选择。在 `module: nodenext` + `verbatimModuleSyntax` 的最严格
+ESM 工程下，`import ERest from 'erest'` 既有正确运行时（可直接 `new`）又有正确类型推导，无需
+任何 `createRequire` 绕过或模块增强声明。
 
 ## 高级用法
 

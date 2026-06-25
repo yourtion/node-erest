@@ -3,8 +3,8 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import type API from "../api";
-import type ERest from "../index";
+import type API from "../api.js";
+import type ERest from "../index.js";
 
 /** Supported framework types */
 export type FrameworkType = "express" | "koa" | "leizmweb";

@@ -1,9 +1,9 @@
 import * as path from "node:path";
-import type { IDocOptions } from "../..";
-import type { APIOption } from "../../api";
-import { plugin as debug } from "../../debug";
-import type { IDocData, IDocWritter } from "../../extend/docs";
-import * as utils from "../../utils";
+import type { IDocOptions } from "../../index.js";
+import type { APIOption } from "../../api.js";
+import { plugin as debug } from "../../debug.js";
+import type { IDocData, IDocWritter } from "../../extend/docs.js";
+import * as utils from "../../utils.js";
 
 export default function generateAxios(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
   debug("generateAxios: %s - %o", dir, options);

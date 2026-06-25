@@ -8,10 +8,11 @@ import * as stream from "node:stream";
 import * as util from "node:util";
 import type { IDebugger } from "debug";
 import type { Test } from "supertest";
-import type ERest from ".";
-import { SUPPORT_METHOD, type SUPPORT_METHODS } from "./api";
-import { create as createDebug, test as debug } from "./debug";
-import type { SourceResult } from "./utils";
+import type ERest from "./index.js";
+import { SUPPORT_METHOD, type SUPPORT_METHODS } from "./api.js";
+import { lazyRequire } from "./cjs-compat.js";
+import { create as createDebug, test as debug } from "./debug.js";
+import type { SourceResult } from "./utils.js";
 
 const defaultFormatOutput = (data: unknown) => [null, data];
 
@@ -82,7 +83,7 @@ export class TestAgent {
 
   /** 初始化`supertest.Agent`实例 */
   public initAgent(app: unknown) {
-    const request = require("supertest");
+    const request = lazyRequire("supertest");
     assert(request, "Install `supertest` first");
     assert(app, `express app instance could not be empty`);
     debug("create supertest agent");

@@ -3,8 +3,8 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import type API from "../api";
-import type { IAdapterGroupInfo } from "./types";
+import type API from "../api.js";
+import type { IAdapterGroupInfo } from "./types.js";
 
 export interface BuildHandlerChainOptions<T> {
   /** Global before hooks */

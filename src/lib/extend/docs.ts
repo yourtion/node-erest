@@ -8,15 +8,15 @@ import { strict as assert } from "node:assert";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ZodType } from "zod";
-import type ERest from "..";
-import type { IApiOptionInfo, IDocOptions } from "..";
-import type { APIOption, IExample } from "../api";
-import { docs as debug } from "../debug";
-import type { ErrorManager } from "../manager";
-import generateAxios from "../plugin/generate_axios";
-import generateMarkdown from "../plugin/generate_markdown";
-import generatePostman from "../plugin/generate_postman";
-import generateSwagger, { buildSwagger } from "../plugin/generate_swagger";
+import type ERest from "../index.js";
+import type { IApiOptionInfo, IDocOptions } from "../index.js";
+import type { APIOption, IExample } from "../api.js";
+import { docs as debug } from "../debug.js";
+import type { ErrorManager } from "../manager/index.js";
+import generateAxios from "../plugin/generate_axios/index.js";
+import generateMarkdown from "../plugin/generate_markdown/index.js";
+import generatePostman from "../plugin/generate_postman/index.js";
+import generateSwagger, { buildSwagger } from "../plugin/generate_swagger/index.js";
 
 // Generate all.json function
 function generateAll(data: IDocData, dir: string, options: IDocOptions, writer: IDocWritter) {
@@ -29,7 +29,7 @@ function generateAll(data: IDocData, dir: string, options: IDocOptions, writer: 
   writer(path.resolve(dir, filename), jsonStringify(cleanData, 2));
 }
 
-import { getPath, jsonStringify } from "../utils";
+import { getPath, jsonStringify } from "../utils.js";
 
 /** 文档输出写入方法 */
 export type IDocWritter = (path: string, data: string) => void;

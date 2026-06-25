@@ -1,8 +1,8 @@
 import * as path from "node:path";
-import type { IDocOptions } from "../..";
-import { plugin as debug } from "../../debug";
-import type { IDocData, IDocWritter } from "../../extend/docs";
-import * as utils from "../../utils";
+import type { IDocOptions } from "../../index.js";
+import { plugin as debug } from "../../debug.js";
+import type { IDocData, IDocWritter } from "../../extend/docs.js";
+import * as utils from "../../utils.js";
 
 interface IPostManHeader {
   key: string;

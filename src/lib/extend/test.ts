@@ -5,12 +5,13 @@
 
 import { strict as assert } from "node:assert";
 import type { SuperTest, Test } from "supertest";
-import type ERest from "..";
-import type { IApiOptionInfo } from "..";
-import { TestAgent } from "../agent";
-import type { SUPPORT_METHODS } from "../api";
-import { test as debug } from "../debug";
-import { getCallerSourceLine, getSchemaKey, type ISupportMethds, type SourceResult } from "../utils";
+import type ERest from "../index.js";
+import type { IApiOptionInfo } from "../index.js";
+import { TestAgent } from "../agent.js";
+import { lazyRequire } from "../cjs-compat.js";
+import type { SUPPORT_METHODS } from "../api.js";
+import { test as debug } from "../debug.js";
+import { getCallerSourceLine, getSchemaKey, type ISupportMethds, type SourceResult } from "../utils.js";
 
 /** 测试Agent */
 export type IAgent = Readonly<ISupportMethds<(path: string) => TestAgent>>;
@@ -19,6 +20,8 @@ export interface ITestSession extends IAgent {
   /** 原始SuperTestAgent */
   readonly $agent: SuperTest<Test>;
 }
+
+/** 延迟加载 supertest（CJS/ESM 通用） */
 
 export default class IAPITest {
   private erest: ERest<unknown>;
@@ -33,7 +36,7 @@ export default class IAPITest {
     this.info = info;
     this.app = app;
     this.testPath = path;
-    this.supertest = require("supertest");
+    this.supertest = lazyRequire("supertest");
   }
 
   get get() {

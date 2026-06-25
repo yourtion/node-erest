@@ -6,12 +6,12 @@
 import * as path from "node:path";
 import { URL } from "node:url";
 import type { ZodType } from "zod";
-import type { IDocOptions } from "../..";
-import { plugin as debug } from "../../debug";
-import type { IDocData, IDocWritter } from "../../extend/docs";
-import type { ISchemaType } from "../../params";
-import { isZodSchema } from "../../params";
-import * as utils from "../../utils";
+import type { IDocOptions } from "../../index.js";
+import { plugin as debug } from "../../debug.js";
+import type { IDocData, IDocWritter } from "../../extend/docs.js";
+import type { ISchemaType } from "../../params.js";
+import { isZodSchema } from "../../params.js";
+import * as utils from "../../utils.js";
 
 type SCHEMA = "http" | "https" | "ws" | "wss";
 
@@ -290,7 +290,7 @@ export function buildSwagger(data: IDocData) {
   generateSwaggerSchemaDefinitions(data, result);
 
   const paths = result.paths as Record<string, unknown>;
-  const apis = data.apis;
+  const apis = data.apis as Record<string, any>;
   for (const [key, api] of Object.entries(apis)) {
     const newPath = utils.getRealPath(key).replace(/:(\w+)/, "{$1}");
     if (!paths[newPath]) {

@@ -6,12 +6,12 @@
 import { strict as assert } from "node:assert";
 import { pathToRegexp } from "path-to-regexp";
 import { type ZodTypeAny, z } from "zod";
-import type ERest from ".";
-import type { Reply } from "./adapters/types";
-import { api as debug } from "./debug";
-import type { ISchemaType, SchemaType } from "./params";
-import { buildZodObjectFromSchemaType, isISchemaTypeRecord, isZodSchema, zodTypeMap } from "./params";
-import { getRealPath, getSchemaKey, type SourceResult } from "./utils";
+import type ERest from "./index.js";
+import type { Reply } from "./adapters/types.js";
+import { api as debug } from "./debug.js";
+import type { ISchemaType, SchemaType } from "./params.js";
+import { buildZodObjectFromSchemaType, isISchemaTypeRecord, isZodSchema, zodTypeMap } from "./params.js";
+import { getRealPath, getSchemaKey, type SourceResult } from "./utils.js";
 
 export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
 

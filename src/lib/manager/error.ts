@@ -5,8 +5,8 @@
  */
 
 import { strict as assert } from "node:assert";
-import { coreError as debug } from "../debug";
-import { Manager } from "./manager";
+import { coreError as debug } from "../debug.js";
+import { Manager } from "./manager.js";
 
 const NAME_REGX = /[^A-Z_]/g;
 export interface IError {

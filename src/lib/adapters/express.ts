@@ -3,10 +3,10 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import type API from "../api";
-import type ERest from "../index";
-import { apiParamsCheck } from "../params";
-import type { FrameworkAdapter, Reply } from "./types";
+import type API from "../api.js";
+import type ERest from "../index.js";
+import { apiParamsCheck } from "../params.js";
+import type { FrameworkAdapter, Reply } from "./types.js";
 
 /**
  * Express framework adapter

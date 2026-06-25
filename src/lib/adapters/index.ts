@@ -3,8 +3,8 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-export * from "./express";
-export * from "./koa";
-export * from "./leizmweb";
-export * from "./types";
-export { type BuildHandlerChainOptions, buildHandlerChain } from "./utils";
+export * from "./express.js";
+export * from "./koa.js";
+export * from "./leizmweb.js";
+export * from "./types.js";
+export { type BuildHandlerChainOptions, buildHandlerChain } from "./utils.js";

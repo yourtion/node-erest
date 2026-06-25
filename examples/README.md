@@ -124,6 +124,6 @@ npm run docs   # 生成到 docs/out/
 
 ## TypeScript 集成（NodeNext）
 
-若你的工程使用 `module: nodenext` + `verbatimModuleSyntax`，可参考 `types/erest.d.ts`
-补充模块增强声明，消除默认导入的类型报错（运行时不受影响）。测试中因 vitest 的 Vite 解析器
-对 CJS 默认导出互操作不稳定，用 `createRequire` 取 `.default`（见 `test/api.test.js`）。
+erest 同时发布 ESM 与 CJS 产物，`module: nodenext` + `verbatimModuleSyntax` 下
+`import ERest from 'erest'` 直接可用（构造器与类型均正确），无需任何 workaround。
+`types/erest.d.ts` 仅作为类型补充示例保留，通常不需要引入。

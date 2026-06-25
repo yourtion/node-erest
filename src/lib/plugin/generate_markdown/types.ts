@@ -1,5 +1,5 @@
-import type { IDocData, IDocTypes } from "../../extend/docs";
-import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
+import type { IDocData, IDocTypes } from "../../extend/docs.js";
+import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils.js";
 
 function typeString(item: IDocTypes) {
   return fieldString([

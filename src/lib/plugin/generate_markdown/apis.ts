@@ -1,9 +1,9 @@
-import type { APIOption, IExample, TYPE_RESPONSE } from "../../api";
-import type { IDocData } from "../../extend/docs";
-import type { ISchemaType, SchemaType } from "../../params";
-import { isZodSchema } from "../../params";
-import { jsonStringify } from "../../utils";
-import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils";
+import type { APIOption, IExample, TYPE_RESPONSE } from "../../api.js";
+import type { IDocData } from "../../extend/docs.js";
+import type { ISchemaType, SchemaType } from "../../params.js";
+import { isZodSchema } from "../../params.js";
+import { jsonStringify } from "../../utils.js";
+import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils.js";
 
 export default function apiDocs(data: IDocData) {
   const group: Record<string, string[]> = {};

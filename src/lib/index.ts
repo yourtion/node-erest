@@ -14,13 +14,13 @@ import {
   type IAdapterGroupInfo,
   KoaAdapter,
   LeizmWebAdapter,
-} from "./adapters";
-import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api";
-import { core as debug } from "./debug";
-import { defaultErrors } from "./default";
-import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs";
-import IAPITest from "./extend/test";
-import { ErrorManager } from "./manager";
+} from "./adapters/index.js";
+import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api.js";
+import { core as debug } from "./debug.js";
+import { defaultErrors } from "./default/index.js";
+import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs.js";
+import IAPITest from "./extend/test.js";
+import { ErrorManager } from "./manager/index.js";
 import {
   apiParamsCheck,
   createZodSchema,
@@ -29,17 +29,17 @@ import {
   responseChecker,
   schemaChecker,
   zodTypeMap,
-} from "./params";
-import * as utils from "./utils";
-import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils";
+} from "./params.js";
+import * as utils from "./utils.js";
+import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils.js";
 
-export * from "./adapters";
-export * from "./api";
-export * from "./error";
-export * from "./params";
+export * from "./adapters/index.js";
+export * from "./api.js";
+export * from "./error.js";
+export * from "./params.js";
 export { z, ZodRawShape, ZodType };
 
-import { ERestError } from "./error";
+import { ERestError } from "./error.js";
 
 const missingParameter = (msg: string) =>
   new ERestError("MISSING_PARAM", `missing required parameter ${msg}`, { field: msg.replace(/'/g, "") });
