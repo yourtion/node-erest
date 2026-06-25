@@ -3,7 +3,17 @@
   "version": "2.1.0",
   "description": "Easy to build api server depend on @leizm/web and express.",
   "main": "dist/lib/index.js",
+  "module": "dist/lib/esm-wrapper.mjs",
   "typings": "dist/lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/lib/index.d.ts",
+      "import": "./dist/lib/esm-wrapper.mjs",
+      "require": "./dist/lib/index.js",
+      "default": "./dist/lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist/lib"
   ],
@@ -17,7 +27,7 @@
     "format": "biome format --write src",
     "check": "biome check --write src",
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc",
+    "build": "npm run clean && tsc && node ./scripts/copy-esm-wrapper.mjs",
     "prepublishOnly": "npm run format && npm run test:cov && npm test",
     "postpublish": "npm run tag && git push && git push --tags"
   },
