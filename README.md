@@ -320,6 +320,97 @@ it('应拒绝未成年用户', async () => {
 });
 ```
 
+## 类型安全的 Handler：`registerTyped`
+
+`register()` 的 handler 入参无类型，需要手动断言。`registerTyped()` 基于 Zod schema 自动推导
+`req.params` / `req.query` / `req.body` / `req.headers` 的类型，**编译期类型安全、运行时由
+checker 统一校验**，且对 Express / Koa / @leizm/web 三个框架都有效。
+
+handler 签名为 `(req, reply)`——**与框架无关**：`req` 是分层校验后的参数，`reply` 是统一的响应接口
+（`reply.json()` / `reply.status()`）。因此**同一份 handler 可被三个框架复用**，无需关心 ctx/res 差异。
+
+```typescript
+const CreateUserSchema = z.object({
+  name: z.string().min(1).max(50),
+  email: z.string().email(),
+  age: z.number().int().min(18),
+});
+
+api.api
+  .post('/users')
+  .group('user')
+  .title('创建用户')
+  .registerTyped(
+    { body: CreateUserSchema },
+    (req, reply) => {
+      // req.body 类型由 CreateUserSchema 自动推导：{ name: string; email: string; age: number }
+      // 无需任何 `as` 类型断言
+      const user = createUser(req.body);
+      // reply 框架无关：内部封装 Express res / Koa ctx.body / @leizm/web ctx.response
+      reply.status(201).json({ success: true, id: user.id });
+    },
+  );
+```
+
+> `registerTyped` 的校验由 adapter 的 checker 完成（参数注入到 `$validated`、响应接口注入到
+> `$reply`），handler 内不重复 parse。若提供 `response` schema 且 handler 有返回值，返回值会经
+> schema 校验（适合只读/纯计算型 handler，此时可不调用 `reply`）。
+
+## 参数读取：`$params` 与分层访问器
+
+adapter 的 checker 把校验后的参数注入到请求对象上，handler 通过它们读取：
+
+| 访问器 | 框架位置 | 含义 |
+|--------|----------|------|
+| `$params` | `req.$params` / `ctx.$params` / `ctx.request.$params` | 扁平合并（params+query+body+headers），向后兼容 |
+| `$validated` | 同上 | 分层聚合对象 `{ params, query, body, headers }` |
+| `$pathParams` `$query` `$body` `$headers` | 同上 | 按来源分层，**互不覆盖** |
+
+> `registerTyped` 已通过 `req.params/query/body` 提供分层读取，**无需**再访问 `$validated`。
+> 下面的分层访问器主要供 `register()` 的 handler 使用（其入参是框架 ctx，无统一 req）。
+
+**何时用分层访问器**：当路径参数与请求体存在同名字段时，扁平 `$params` 会发生静默覆盖
+（后合并的来源覆盖前者）。例如 `PUT /users/:id` 同时定义了 path 的 `id` 与 body 的 `id`：
+
+```typescript
+// @leizm/web 下用分层访问器避免同名覆盖
+api.api
+  .put('/users/:id')
+  .group('user')
+  .params(z.object({ id: z.coerce.number() }))
+  .body(z.object({ id: z.string(), name: z.string() }))
+  .register((ctx) => {
+    // 扁平 $params.id 被 body.id 覆盖（"body-id"），不推荐
+    const pathId = ctx.request.$pathParams.id; // 42 —— 保留路径来源
+    const bodyId = ctx.request.$body.id;       // "body-id" —— 保留请求体来源
+    const name = ctx.request.$body.name;
+    ctx.response.json({ pathId, bodyId, name });
+  });
+```
+
+若仅需聚合读取、无同名冲突，`$params`（扁平）与 `$validated`（分层）均可。
+
+## CJS / ESM 集成
+
+erest 同时支持 CommonJS 与 ESM（含 `NodeNext` + `verbatimModuleSyntax` 的纯 ESM 工程）：
+
+```typescript
+// ESM 工程：直接 import，无需 createRequire 绕过
+import ERest, { z } from 'erest';
+const api = new ERest({ groups: { user: '用户管理' } });
+```
+
+```javascript
+// CommonJS 工程
+const { default: ERest, z } = require('erest');
+const api = new ERest({ groups: { user: '用户管理' } });
+```
+
+> **NodeNext 类型说明**：在 `module: nodenext` 下，TypeScript 对 CJS 模块的默认导出按 Node
+> 实际互操作行为解析（不合成 synthetic default），可能导致 `import ERest from 'erest'` 出现
+> 类型报错（运行时不受影响）。如遇此情况，可在使用者侧补充模块增强声明，或参考
+> `examples/` 目录下的集成示例。
+
 ## 高级用法
 
 ### 分组与中间件
@@ -372,6 +463,21 @@ throw ERestError.invalidParam('age', 'Integer', 'abc');
 - `bindRouterToApp(app, Router, checker)` → `bind({ framework: 'express', app, router: Router })`
 - `bindKoaRouterToApp(app, KoaRouter, checker)` → `bind({ framework: 'koa', app, router: KoaRouter })`
 - `checkerExpress` / `checkerKoa` / `checkerLeiWeb` → 内置于适配器中
+
+## 示例
+
+`examples/` 提供端到端可运行工程：**一份 API 定义（`src/api.js`），三个框架入口**（`src/entries/`）。
+handler 用 `registerTyped` 的 `(req, reply)` 签名声明一次，被 @leizm/web / Express / Koa 复用，
+仅 `bind()` 参数不同。可直接 `npm install && npm run start:<framework>`：
+
+| 入口 | 框架 | 命令 |
+|------|------|------|
+| `src/entries/leizmweb.js` | @leizm/web | `npm run start:leizmweb` |
+| `src/entries/express.js` | Express | `npm run start:express` |
+| `src/entries/koa.js` | Koa | `npm run start:koa` |
+
+演示要点：registerTyped 类型安全、框架无关 `reply`、分层参数、中间件链、ESM 接入。
+详见 `examples/README.md`。
 
 ## License
 

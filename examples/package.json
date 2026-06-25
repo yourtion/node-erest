@@ -1,0 +1,24 @@
+{
+  "name": "erest-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "erest 端到端示例：一份 API 定义，三个框架（@leizm/web / Express / Koa）入口。演示 registerTyped 类型安全、分层参数、中间件链。",
+  "scripts": {
+    "start:leizmweb": "node src/entries/leizmweb.js",
+    "start:express": "node src/entries/express.js",
+    "start:koa": "node src/entries/koa.js",
+    "dev:leizmweb": "node --watch src/entries/leizmweb.js",
+    "dev:express": "node --watch src/entries/express.js",
+    "dev:koa": "node --watch src/entries/koa.js"
+  },
+  "dependencies": {
+    "@leizm/web": "^2.7.0",
+    "erest": "file:..",
+    "express": "^4.21.0",
+    "koa": "^3.0.0",
+    "koa-bodyparser": "^4.4.1",
+    "koa-router": "^13.1.0",
+    "zod": "^4.0.0"
+  }
+}
