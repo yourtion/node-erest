@@ -295,3 +295,132 @@ describe("registerTyped / $validated - @leizm/web 集成", () => {
 
 // 确保 app/server 资源在模块结束时释放
 afterAll(() => {});
+
+// ====================================================================
+// 分层快捷访问器：$pathParams / $query / $body / $headers
+// 让 handler 无需经 $validated.xxx 即可直接按来源读取校验后参数，
+// 避免扁平 $params 同名字段覆盖（如 body.id 与 path.id 同名）。
+// ====================================================================
+describe("分层快捷访问器 $pathParams/$query/$body/$headers", () => {
+  it("Express：扁平 $params 中 body.id 覆盖 path.id，分层 $pathParams/$body 保留各自来源", async () => {
+    const app = express();
+    app.use(express.json());
+
+    const apiService = lib({ basePath: "" });
+    const { api } = apiService;
+
+    api
+      .put("/p/:id")
+      .group("Index")
+      .title("layered-express")
+      .params(z.object({ id: z.coerce.number() }))
+      .body(z.object({ id: z.string(), name: z.string() }))
+      .register((req: express.Request & Record<string, unknown>, res: express.Response) => {
+        res.json({
+          // 扁平 $params：body.id 覆盖了 path.id（同为 "id"）
+          flatId: (req.$params as { id: string }).id,
+          // 分层访问器：path 与 body 的 id 各自保留
+          pathId: (req.$pathParams as { id: number }).id,
+          bodyId: (req.$body as { id: string }).id,
+          name: (req.$body as { name: string }).name,
+        });
+      });
+    apiService.bind({ framework: "express", router: app });
+
+    const res = await request(app).put("/p/42").send({ id: "body-id", name: "Tom" });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      flatId: "body-id", // 扁平合并后 body.id 覆盖了 path.id
+      pathId: 42,
+      bodyId: "body-id",
+      name: "Tom",
+    });
+  });
+
+  it("@leizm/web：$pathParams/$query/$body/$headers 均被注入", async () => {
+    const app = new Application();
+    app.use("/", component.bodyParser.json());
+
+    const apiService = lib({ basePath: "" });
+    const { api } = apiService;
+    const router = new Router();
+
+    api
+      .put("/p/:id")
+      .group("Index")
+      .title("layered-lei")
+      .params(z.object({ id: z.coerce.number() }))
+      .body(z.object({ name: z.string() }))
+      .query(z.object({ q: z.string().optional() }))
+      .register((ctx: LeiContext) => {
+        ctx.response.json({
+          pathId: (ctx.request.$pathParams as { id: number }).id,
+          query: (ctx.request.$query as { q?: string }).q ?? null,
+          body: (ctx.request.$body as { name: string }).name,
+          headersPresent: "$headers" in ctx.request,
+          validatedPresent: "$validated" in ctx.request,
+          flatPresent: "$params" in ctx.request,
+        });
+      });
+    apiService.bind({ framework: "leizmweb", router });
+    app.use("/", router);
+
+    const res = await request(app.server).put("/p/7?q=hi").send({ name: "Lee" });
+    app.server.close();
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      pathId: 7,
+      query: "hi",
+      body: "Lee",
+      headersPresent: true,
+      validatedPresent: true,
+      flatPresent: true,
+    });
+  });
+
+  it("Koa：$pathParams/$query/$body/$headers 均被注入", async () => {
+    const app = new Koa();
+    app.use(bodyParser());
+    app.use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (err: unknown) {
+        ctx.status = 400;
+        ctx.body = { message: (err as Error).message };
+      }
+    });
+
+    const apiService = lib({ basePath: "" });
+    const { api } = apiService;
+    const router = new KoaRouter();
+
+    api
+      .put("/p/:id")
+      .group("Index")
+      .title("layered-koa")
+      .params(z.object({ id: z.coerce.number() }))
+      .body(z.object({ name: z.string() }))
+      .register((ctx: KoaContext) => {
+        ctx.type = "application/json";
+        ctx.body = JSON.stringify({
+          pathId: (ctx.$pathParams as { id: number }).id,
+          body: (ctx.$body as { name: string }).name,
+          validatedPresent: "$validated" in ctx,
+          flatPresent: "$params" in ctx,
+        });
+      });
+    apiService.bind({ framework: "koa", router });
+    app.use(router.routes()).use(router.allowedMethods());
+
+    const server = app.listen();
+    const res = await request(server).put("/p/3").send({ name: "Mia" });
+    server.close();
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      pathId: 3,
+      body: "Mia",
+      validatedPresent: true,
+      flatPresent: true,
+    });
+  });
+});

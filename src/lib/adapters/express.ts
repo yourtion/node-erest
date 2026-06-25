@@ -27,8 +27,12 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
       );
       // 扁平参数：向后兼容 $params（params+query+body+headers 合并）
       req.$params = result.flat;
-      // 分层参数：registerTyped 的 handler 通过它获得类型安全的 req.body/query/params/headers
+      // 分层参数：registerTyped / handler 直接按来源读取（避免同名字段覆盖）
       req.$validated = result.layered;
+      req.$pathParams = result.layered.params;
+      req.$query = result.layered.query;
+      req.$body = result.layered.body;
+      req.$headers = result.layered.headers;
       next();
     } as T;
   }

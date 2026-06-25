@@ -32,8 +32,12 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
       );
       // 扁平参数：向后兼容 ctx.request.$params
       ctx.request.$params = result.flat;
-      // 分层参数：registerTyped 的 handler 通过它获得类型安全入参
+      // 分层参数：registerTyped / handler 直接按来源读取（避免同名字段覆盖）
       ctx.request.$validated = result.layered;
+      ctx.request.$pathParams = result.layered.params;
+      ctx.request.$query = result.layered.query;
+      ctx.request.$body = result.layered.body;
+      ctx.request.$headers = result.layered.headers;
       ctx.next();
     } as T;
   }

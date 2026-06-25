@@ -30,8 +30,12 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
       );
       // 扁平参数：向后兼容 ctx.$params
       ctx.$params = result.flat;
-      // 分层参数：registerTyped 的 handler 通过它获得类型安全入参
+      // 分层参数：registerTyped / handler 直接按来源读取（避免同名字段覆盖）
       ctx.$validated = result.layered;
+      ctx.$pathParams = result.layered.params;
+      ctx.$query = result.layered.query;
+      ctx.$body = result.layered.body;
+      ctx.$headers = result.layered.headers;
       await next();
     } as T;
   }
