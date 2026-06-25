@@ -60,3 +60,19 @@ export interface FrameworkAdapter<T = unknown> {
  * Checker function type - used by existing public API
  */
 export type CheckerFunction<T> = (erest: ERest<T>, schema: API<T>) => T;
+
+/**
+ * 框架无关的响应接口。
+ *
+ * 由各 adapter 注入到请求对象（`$reply`），让 registerTyped 的 handler 用统一的
+ * `reply.json()/status()` 写响应，从而与具体框架解耦——同一份 handler 可被
+ * Express / Koa / @leizm/web 三个框架复用。
+ */
+export interface Reply {
+  /** 设置 HTTP 状态码并返回自身，支持链式调用 */
+  status(code: number): Reply;
+  /** 以 JSON 写入响应体 */
+  json(body: unknown): void;
+  /** 以纯文本写入响应体 */
+  send(body: string): void;
+}

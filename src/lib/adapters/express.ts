@@ -6,7 +6,7 @@
 import type API from "../api";
 import type ERest from "../index";
 import { apiParamsCheck } from "../params";
-import type { FrameworkAdapter } from "./types";
+import type { FrameworkAdapter, Reply } from "./types";
 
 /**
  * Express framework adapter
@@ -16,7 +16,7 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
   readonly name = "express" as const;
 
   makeParamsChecker(erest: ERest<T>, api: API<T>): T {
-    return function apiParamsChecker(req: Record<string, unknown>, _res: unknown, next: () => void) {
+    return function apiParamsChecker(req: Record<string, unknown>, res: unknown, next: () => void) {
       const result = apiParamsCheck(
         erest as ERest<unknown>,
         api,
@@ -33,6 +33,21 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
       req.$query = result.layered.query;
       req.$body = result.layered.body;
       req.$headers = result.layered.headers;
+      // 框架无关响应：封装 Express 的 res.json/status/send
+      const expressRes = res as { status?: (c: number) => unknown; json?: (b: unknown) => void; end?: (b: string) => void };
+      const reply: Reply = {
+        status(code: number) {
+          expressRes.status?.(code);
+          return reply;
+        },
+        json(body: unknown) {
+          expressRes.json?.(body);
+        },
+        send(body: string) {
+          expressRes.end?.(body);
+        },
+      };
+      req.$reply = reply;
       next();
     } as T;
   }

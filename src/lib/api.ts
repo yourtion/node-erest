@@ -7,12 +7,25 @@ import { strict as assert } from "node:assert";
 import { pathToRegexp } from "path-to-regexp";
 import { type ZodTypeAny, z } from "zod";
 import type ERest from ".";
+import type { Reply } from "./adapters/types";
 import { api as debug } from "./debug";
 import type { ISchemaType, SchemaType } from "./params";
 import { buildZodObjectFromSchemaType, isISchemaTypeRecord, isZodSchema, zodTypeMap } from "./params";
 import { getRealPath, getSchemaKey, type SourceResult } from "./utils";
 
 export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
+
+/**
+ * 空响应实现：当 handler 在无 adapter 注入 $reply 的场景（如直接单测）被调用时作为兜底。
+ * 生产链路中 $reply 由各 adapter 的 checker 注入。
+ */
+const noopReply: Reply = {
+  status() {
+    return noopReply;
+  },
+  json() {},
+  send() {},
+};
 
 export interface IExample {
   name?: string | undefined;
@@ -413,14 +426,16 @@ export default class API<T = DEFAULT_HANDLER> {
   }
 
   /**
-   * 注册强类型处理函数 (基于 zod schema)
+   * 注册强类型处理函数 (基于 zod schema)。
    *
-   * handler 签名为 `(req, res)`，其中：
-   * - req.params / req.query / req.body / req.headers：分层校验后的参数，类型由传入的 Zod schema 推导
-   * - res：框架原始的第二个参数（Express 为 response；Koa/@leizm/web 为 undefined，handler 内直接操作 ctx）
+   * handler 签名为 `(req, reply)`，与框架无关：
+   * - req.params / req.query / req.body / req.headers：分层校验后的参数，类型由 Zod schema 推导
+   * - reply：框架无关的响应接口（{ status, json, send }），由各 adapter 注入
    *
-   * 校验由 adapter 的 checker 统一完成（注入到 req/ctx.$validated），handler 内不再重复 parse。
-   * 此方法对 Express / Koa / @leizm/web 三个框架均有效。
+   * 同一份 handler 可被 Express / Koa / @leizm/web 三个框架复用，无需关心 ctx/res 差异。
+   * 校验由 adapter 的 checker 统一完成（注入到 req/ctx.$validated + $reply），handler 内不重复 parse。
+   *
+   * 若提供 response schema 且 handler 有返回值，返回值会经 schema 校验（适合只读/纯计算型 handler）。
    */
   public registerTyped<
     TQuery extends z.ZodRawShape = Record<string, never>,
@@ -443,8 +458,8 @@ export default class API<T = DEFAULT_HANDLER> {
         params: z.infer<z.ZodObject<TParams>>;
         headers: z.infer<z.ZodObject<THeaders>>;
       },
-      res: unknown
-    ) => z.infer<TResponse> | Promise<z.infer<TResponse>>
+      reply: Reply
+    ) => z.infer<TResponse> | Promise<z.infer<TResponse>> | void | Promise<void>
   ) {
     this.checkInited();
 
@@ -465,14 +480,18 @@ export default class API<T = DEFAULT_HANDLER> {
       this.options.responseSchema = schemas.response;
     }
 
-    // 包装处理函数：从框架统一的 $validated 读取分层校验后的参数，
-    // 适配 Express(req, res) / Koa(ctx, next) / @leizm/web(ctx) 三种调用约定。
+    // 包装处理函数：从框架统一的 $validated / $reply 读取分层校验参数与响应接口，
+    // 适配 Express(req, res, next) / Koa(ctx, next) / @leizm/web(ctx) 三种调用约定。
+    //
+    // 注意：包装器固定为单参数（length=1）。@leizm/web 按函数参数个数区分普通/错误处理中间件
+    // （length>=2 视为错误中间件），故不能声明第二个形参——second 参数（Express 的 res /
+    // Koa 的 next）在框架无关模式下已不使用（响应经 $reply 写入）。
     // 校验已由 checker 完成（见各 adapter 的 makeParamsChecker），此处不重复 parse。
-    const wrappedHandler = (first: unknown, second: unknown) => {
-      // $validated 由 adapter 的 checker 注入：
-      //   Express:   req.$validated      （first === req）
-      //   Koa:       ctx.$validated      （first === ctx）
-      //   @leizm/web: ctx.request.$validated（first === ctx）
+    const wrappedHandler = (first: unknown) => {
+      // $validated / $reply 由 adapter 的 checker 注入：
+      //   Express:    req.$validated / req.$reply        （first === req）
+      //   Koa:        ctx.$validated / ctx.$reply        （first === ctx）
+      //   @leizm/web: ctx.request.$validated / ctx.request.$reply（first === ctx）
       const firstArg = first as Record<string, unknown> | null;
       const reqHolder = firstArg?.request as Record<string, unknown> | undefined;
       const validated =
@@ -487,6 +506,8 @@ export default class API<T = DEFAULT_HANDLER> {
           body: {},
           headers: {},
         };
+      const reply =
+        (firstArg?.$reply as Reply | undefined) ?? (reqHolder?.$reply as Reply | undefined) ?? noopReply;
 
       // 组装类型安全的 req：缺失的层级补空对象，保证 handler 内字段访问安全。
       // 此处运行时值已由 checker 校验，仅做拼装；类型断言对齐 handler 期望的推导类型。
@@ -502,11 +523,9 @@ export default class API<T = DEFAULT_HANDLER> {
         headers: z.infer<z.ZodObject<THeaders>>;
       };
 
-      // 运行 handler。Express 下 res 即第二个参数；
-      // Koa/@leizm/web 下 second 为 next（handler 内直接操作 ctx/ctx.body，不依赖返回值）。
-      const result = handler(typedReq, second);
+      const result = handler(typedReq, reply);
 
-      // 若 handler 返回了值且定义了 response schema，则校验返回值
+      // 若 handler 返回了值且定义了 response schema，则校验返回值（纯计算型 handler 场景）
       if (schemas.response && result !== undefined) {
         const resolved = result;
         if (resolved instanceof Promise) {

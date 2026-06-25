@@ -6,7 +6,7 @@
 import type API from "../api";
 import type ERest from "../index";
 import { apiParamsCheck } from "../params";
-import type { FrameworkAdapter } from "./types";
+import type { FrameworkAdapter, Reply } from "./types";
 
 /**
  * @leizm/web framework adapter
@@ -38,6 +38,21 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
       ctx.request.$query = result.layered.query;
       ctx.request.$body = result.layered.body;
       ctx.request.$headers = result.layered.headers;
+      // 框架无关响应：封装 @leizm/web 的 ctx.response.json/status
+      const leiRes = ctx.response as { status?: (c: number) => unknown; json?: (b: unknown) => void; send?: (b: string) => void };
+      const reply: Reply = {
+        status(code: number) {
+          leiRes.status?.(code);
+          return reply;
+        },
+        json(body: unknown) {
+          leiRes.json?.(body);
+        },
+        send(body: string) {
+          leiRes.send?.(body);
+        },
+      };
+      ctx.request.$reply = reply;
       ctx.next();
     } as T;
   }

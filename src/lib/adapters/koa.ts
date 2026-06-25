@@ -6,7 +6,7 @@
 import type API from "../api";
 import type ERest from "../index";
 import { apiParamsCheck } from "../params";
-import type { FrameworkAdapter } from "./types";
+import type { FrameworkAdapter, Reply } from "./types";
 
 /**
  * Koa framework adapter
@@ -36,6 +36,22 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
       ctx.$query = result.layered.query;
       ctx.$body = result.layered.body;
       ctx.$headers = result.layered.headers;
+      // 框架无关响应：封装 Koa 的 ctx.status / ctx.body
+      const koaCtx = ctx as { status?: number; body?: unknown; type?: string };
+      const reply: Reply = {
+        status(code: number) {
+          koaCtx.status = code;
+          return reply;
+        },
+        json(body: unknown) {
+          koaCtx.type = "application/json";
+          koaCtx.body = JSON.stringify(body);
+        },
+        send(body: string) {
+          koaCtx.body = body;
+        },
+      };
+      ctx.$reply = reply;
       await next();
     } as T;
   }

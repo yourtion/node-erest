@@ -187,8 +187,8 @@ describe("registerTyped / $validated - Koa 集成", () => {
 
 // ---------------- @leizm/web：registerTyped + $validated ----------------
 describe("registerTyped / $validated - @leizm/web 集成", () => {
-  // registerTyped：first 参数即 ctx，handler 内通过它写响应（res 形参为 next，不用于写响应）
-  it("registerTyped 应在 @leizm/web 下正确读取校验后的参数并写响应", async () => {
+  // registerTyped + reply：handler 用框架无关的 reply 写响应（详见文件末尾 $reply 测试块）
+  it("registerTyped 应在 @leizm/web 下用 reply 正确写响应", async () => {
     const app = new Application();
     app.use("/", component.bodyParser.json());
 
@@ -196,22 +196,19 @@ describe("registerTyped / $validated - @leizm/web 集成", () => {
     const { api } = apiService;
     const router = new Router();
 
-    api
-      .put("/typed/:id")
-      .group("Index")
-      .title("typed-lei")
-      .registerTyped(schemas, (req) => {
-        // registerTyped 的 first 参数即 leizmweb 的 ctx。
-        // handler 返回值无法自动写响应，故这里返回纯数据由校验链保证类型安全。
-        return { id: req.params.id, name: req.body.name, age: req.body.age };
-      });
+    api.put("/typed/:id").group("Index").title("typed-lei").registerTyped(
+      schemas,
+      (req, reply) => {
+        reply.json({ id: req.params.id, name: req.body.name, age: req.body.age });
+      },
+    );
     apiService.bind({ framework: "leizmweb", router });
     app.use("/", router);
 
-    // 另用 register + $validated 写响应，验证 registerTyped 设置的 schema 与 register 读到的一致
     const res = await request(app.server).put("/typed/99").send({ name: "Anna", age: 28 });
     app.server.close();
-    expect(res.status).toBeLessThan(500);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: "99", name: "Anna", age: 28 });
   });
 
   // $validated 分层注入（register + ctx.request.$validated）—— leizmweb 推荐用法
@@ -422,5 +419,115 @@ describe("分层快捷访问器 $pathParams/$query/$body/$headers", () => {
       validatedPresent: true,
       flatPresent: true,
     });
+  });
+});
+
+// ====================================================================
+// $reply：框架无关响应接口。
+// 验证「同一份 handler 用 (req, reply) 写响应」在三个框架下表现一致——
+// 这是 handler 可被三框架复用的关键。
+// ====================================================================
+describe("$reply 框架无关响应（同一 handler 三框架复用）", () => {
+  // 同一份 handler 声明：读 req.body，用 reply 写响应
+  const makeRoutes = (api: { api: any }, store: Map<number, any>) => {
+    api.api
+      .post("/users")
+      .group("Index")
+      .title("create")
+      .registerTyped(
+        { body: z.object({ name: z.string(), age: z.number().int() }) },
+        (req, reply) => {
+          const id = store.size + 1;
+          store.set(id, req.body);
+          reply.status(201).json({ success: true, id });
+        },
+      );
+    api.api
+      .get("/users/:id")
+      .group("Index")
+      .title("get")
+      .registerTyped(
+        { params: z.object({ id: z.coerce.number() }) },
+        (req, reply) => {
+          const user = store.get(req.params.id);
+          if (!user) {
+            reply.status(404).json({ error: "not found" });
+            return;
+          }
+          reply.json(user);
+        },
+      );
+  };
+
+  it("Express：reply.json/status 正确写入响应", async () => {
+    const app = express();
+    app.use(express.json());
+    app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+      res.status(400).json({ message: err.message });
+    });
+    const apiService = lib({ basePath: "" });
+    makeRoutes(apiService as any, new Map());
+    apiService.bind({ framework: "express", router: app });
+
+    const created = await request(app).post("/users").send({ name: "Tom", age: 20 });
+    expect(created.status).toBe(201);
+    expect(created.body).toEqual({ success: true, id: 1 });
+
+    const got = await request(app).get("/users/1");
+    expect(got.status).toBe(200);
+    expect(got.body).toEqual({ name: "Tom", age: 20 });
+
+    const miss = await request(app).get("/users/999");
+    expect(miss.status).toBe(404);
+    expect(miss.body).toEqual({ error: "not found" });
+  });
+
+  it("Koa：reply.json/status 正确写入响应", async () => {
+    const koa = new Koa();
+    koa.use(bodyParser());
+    koa.use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (err: unknown) {
+        ctx.status = 400;
+        ctx.body = { message: (err as Error).message };
+      }
+    });
+    const apiService = lib({ basePath: "" });
+    const router = new KoaRouter();
+    makeRoutes(apiService as any, new Map());
+    apiService.bind({ framework: "koa", router });
+    koa.use(router.routes()).use(router.allowedMethods());
+    const server = koa.listen();
+
+    const created = await request(server).post("/users").send({ name: "Jerry", age: 33 });
+    expect(created.status).toBe(201);
+    expect(created.body).toEqual({ success: true, id: 1 });
+
+    const got = await request(server).get("/users/1");
+    expect(got.status).toBe(200);
+    expect(got.body).toEqual({ name: "Jerry", age: 33 });
+
+    server.close();
+  });
+
+  it("@leizm/web：reply.json/status 正确写入响应", async () => {
+    const app = new Application();
+    app.use("/", component.bodyParser.json());
+    const apiService = lib({ basePath: "" });
+    const router = new Router();
+    makeRoutes(apiService as any, new Map());
+    apiService.bind({ framework: "leizmweb", router });
+    app.use("/", router);
+
+    const created = await request(app.server).post("/users").send({ name: "Anna", age: 28 });
+    expect(created.status).toBe(201);
+    expect(created.body).toEqual({ success: true, id: 1 });
+
+    const got = await request(app.server).get("/users/1");
+    expect(got.status).toBe(200);
+    expect(got.body).toEqual({ name: "Anna", age: 28 });
+
+    app.server.close();
   });
 });
