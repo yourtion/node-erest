@@ -2,7 +2,7 @@ import express from "express";
 import { vi } from "vitest";
 import { z } from "zod";
 import type { IApiOption } from "../lib";
-import ERest from "../lib";
+import ERest, { ERestError } from "../lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";
 import { build, TYPES } from "./helper";
 import lib, { GROUPS, INFO } from "./lib";
@@ -538,9 +538,7 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
 });
 
 describe("ERestError - 自定义错误类", () => {
-  // 使用 dist 版本以确保测试编译后的代码
-  const errorModule = require("../../dist/lib/error");
-  const ERestError = errorModule.ERestError;
+  // ERestError 已从 src 顶部 import（见文件顶部）
 
   test("should create ERestError with basic properties", () => {
     const error = new ERestError("MISSING_PARAM", "missing required parameter 'name'", { field: "name" });

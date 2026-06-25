@@ -595,10 +595,11 @@ describe("Router - Unified bind() Method", () => {
   });
 
   describe("Koa Framework", () => {
-    test("should use koa adapter for framework type koa", () => {
+    test("should bind routes to a real koa-router using koa adapter", () => {
+      const KoaRouter = require("koa-router");
       const apiService = createTestERestInstance();
       const api = apiService.api;
-      const router = express.Router(); // Using express router for simplicity
+      const router = new KoaRouter();
 
       api
         .get("/koa-test")
@@ -608,18 +609,41 @@ describe("Router - Unified bind() Method", () => {
           res.end("ok");
         });
 
-      // This tests that the adapter selection works
       apiService.bind({ framework: "koa", router });
 
+      // koa-router keeps registered layers in router.stack
       expect(router.stack.length).toBe(1);
+      expect(router.stack[0].path).toBe("/koa-test");
+      expect(router.stack[0].methods).toContain("GET");
+    });
+
+    test("should include params checker in koa handler chain", () => {
+      const KoaRouter = require("koa-router");
+      const apiService = createTestERestInstance();
+      const api = apiService.api;
+      const router = new KoaRouter();
+
+      api
+        .get("/koa-params")
+        .group("Index")
+        .title("Koa Params Test")
+        .query({ name: { type: "String", comment: "Name" } })
+        .register(function koaParamsHandler(_ctx: any) {});
+
+      apiService.bind({ framework: "koa", router });
+
+      const layerStack = router.stack[0].stack;
+      const hookNames = layerStack?.map((r: { name: string }) => r.name);
+      expect(hookNames).toContain("apiParamsCheckerKoa");
     });
   });
 
   describe("@leizm/web Framework", () => {
-    test("should use leizmweb adapter for framework type leizmweb", () => {
+    test("should bind routes to a real @leizm/web Router using leizmweb adapter", () => {
+      const { Router } = require("@leizm/web");
       const apiService = createTestERestInstance();
       const api = apiService.api;
-      const router = express.Router();
+      const router = new Router();
 
       api
         .get("/leizm-test")
@@ -631,7 +655,30 @@ describe("Router - Unified bind() Method", () => {
 
       apiService.bind({ framework: "leizmweb", router });
 
-      expect(router.stack.length).toBe(1);
+      // @leizm/web Router stores each handler as a separate layer, with path info in `raw`
+      const paths = router.stack.map((layer: { raw?: { path?: string } }) => layer.raw?.path);
+      expect(paths).toContain("/leizm-test");
+    });
+
+    test("should bind multiple handlers per route (checker + handler)", () => {
+      const { Router } = require("@leizm/web");
+      const apiService = createTestERestInstance();
+      const api = apiService.api;
+      const router = new Router();
+
+      api
+        .get("/leizm-params")
+        .group("Index")
+        .title("Leizm Params Test")
+        .query({ name: { type: "String", comment: "Name" } })
+        .register(function leizmParamsHandler(_ctx: any) {});
+
+      apiService.bind({ framework: "leizmweb", router });
+
+      // @leizm/web creates one layer per handler in the chain;
+      // bind() registers at least the params checker + the handler for this path
+      const matching = router.stack.filter((layer: { raw?: { path?: string } }) => layer.raw?.path === "/leizm-params");
+      expect(matching.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

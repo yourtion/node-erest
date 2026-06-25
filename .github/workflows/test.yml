@@ -31,22 +31,19 @@ jobs:
           
     - name: Install dependencies
       run: pnpm install
-      
+
     - name: Run code format check
       run: pnpm run check
-      
+
     - name: Build project
       run: pnpm run build
-      
-    - name: Run tests
-      run: pnpm run test:lib
-      
+
     - name: Run tests with coverage
       run: pnpm run test:cov
-      if: matrix.node-version == '20.x'
-      
+
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
+      if: matrix.node-version == '20.x'
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         slug: yourtion/node-erest

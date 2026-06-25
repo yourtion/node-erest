@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Easy to build api server depend on @leizm/web and express.",
   "main": "dist/lib/index.js",
   "typings": "dist/lib/index.d.ts",
@@ -12,7 +12,7 @@
     "dev": "export ISLIB=1 && vitest --watch",
     "test": "npm run build && vitest run",
     "test:lib": "export ISLIB=1 && vitest run",
-    "test:cov": "npm run test:lib -- --coverage",
+    "test:cov": "export ISLIB=1 && vitest run --coverage",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "biome format --write src",
     "check": "biome check --write src",

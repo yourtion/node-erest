@@ -47,10 +47,12 @@ export default (options = {}) => {
   // 根据环境获取包
   let ERest: typeof ERestModule.default;
   if (process.env.ISLIB) {
-    // 在测试环境下直接导入源码
+    // 测试源码：ISLIB=1 时直接导入 src 源码，无需构建 dist
+    // 用于 test:lib / test:cov / dev，可在干净仓库直接运行
     ERest = ERestModule.default;
   } else {
-    // 在生产环境下使用编译后的代码
+    // 测试发布产物：未设置 ISLIB 时加载 dist 编译产物，
+    // 用于 `npm test`（脚本会先执行 build，此时 dist 必然存在）
     const pack = require("../../dist/lib");
     ERest = pack.default;
   }

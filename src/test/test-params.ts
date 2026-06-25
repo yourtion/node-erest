@@ -6,6 +6,15 @@
 
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
+import {
+  apiParamsCheck as apiParamsCheckFn,
+  createZodSchema,
+  isISchemaType,
+  isISchemaTypeRecord,
+  isZodSchema,
+  responseChecker as responseCheckerFn,
+  schemaChecker as schemaCheckerFn,
+} from "../lib/params";
 import { iSchemaFixtures, schemaErrorPatterns, schemaTestData } from "./fixtures/schema-fixtures";
 import { build, TYPES } from "./helper";
 import lib from "./lib";
@@ -340,9 +349,7 @@ describe("SchemaChecker - Basic Functionality", () => {
 });
 
 describe("Utility Functions - Type Detection and Conversion", () => {
-  // Import utility functions for testing
-  const { isZodSchema, isISchemaType, isISchemaTypeRecord, createZodSchema } = require("../../dist/lib/params");
-
+  // 直接引用从 src/lib/params 导入的函数（见文件顶部 import）
   describe("Type Detection Functions", () => {
     test("should correctly detect Zod schemas", () => {
       const zodSchema = z.string();
@@ -516,8 +523,7 @@ describe("ParamsChecker - Edge Cases and Advanced Features", () => {
 });
 
 describe("ResponseChecker - Output Validation", () => {
-  const { responseChecker } = require("../../dist/lib/params");
-
+  const responseChecker = responseCheckerFn;
   test("should validate response with ISchemaType", () => {
     const schema = { type: "String" };
     const result = responseChecker({} as any, "test", schema);
@@ -561,7 +567,7 @@ describe("ResponseChecker - Output Validation", () => {
 });
 
 describe("SchemaChecker - Advanced Error Handling", () => {
-  const { schemaChecker } = require("../../dist/lib/params");
+  const schemaChecker = schemaCheckerFn;
   const apiService = lib();
 
   test("should handle invalid_union errors with undefined type errors", () => {
@@ -662,7 +668,7 @@ describe("SchemaChecker - Advanced Error Handling", () => {
 });
 
 describe("ApiParamsCheck - Comprehensive Testing", () => {
-  const { apiParamsCheck } = require("../../dist/lib/params");
+  const apiParamsCheck = apiParamsCheckFn;
   const apiService = lib();
 
   test("should handle all schema types combination", () => {
@@ -767,7 +773,7 @@ describe("ApiParamsCheck - Comprehensive Testing", () => {
 });
 
 describe("ResponseChecker - Edge Cases", () => {
-  const { responseChecker } = require("../../dist/lib/params");
+  const responseChecker = responseCheckerFn;
   const apiService = lib();
 
   test("should return error result for truly invalid schema type", () => {
