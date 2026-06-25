@@ -112,7 +112,7 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
     postman.item.push({ name: gg.name, item: gg.items });
   }
 
-  const filename = utils.getPath("postman.json", options.swagger);
+  const filename = utils.getPath("postman.json", options.postman);
 
   writter(path.resolve(dir, filename), JSON.stringify(postman, null, "  "));
 }
