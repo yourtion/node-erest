@@ -742,8 +742,28 @@ export function responseChecker<T extends Record<string, unknown>>(
   }
 }
 
+/** 分层校验后的参数（按来源区分，registerTyped 读取此结构以获得类型安全） */
+export interface LayeredParams {
+  params: Record<string, unknown>;
+  query: Record<string, unknown>;
+  body: Record<string, unknown>;
+  headers: Record<string, unknown>;
+}
+
+/** 校验结果：扁平参数（向后兼容 $params）+ 分层参数（registerTyped 使用） */
+export interface ParamsCheckResult {
+  /** 扁平合并的校验后参数（params+query+body+headers） */
+  flat: Record<string, unknown>;
+  /** 分层校验后参数（按来源区分） */
+  layered: LayeredParams;
+}
+
 /**
  * API 参数检查
+ *
+ * 返回扁平 + 分层两种结果：
+ * - flat：params+query+body+headers 扁平合并，向后兼容旧版 `$params`（注入到 req.$params / ctx.$params / ctx.request.$params）
+ * - layered：按来源分层，registerTyped 的 handler 通过它获得类型安全的 req.body / req.query / req.params / req.headers
  */
 export function apiParamsCheck(
   ctx: ERest<unknown>,
@@ -752,18 +772,21 @@ export function apiParamsCheck(
   query?: Record<string, unknown>,
   body?: Record<string, unknown>,
   headers?: Record<string, unknown>
-) {
+): ParamsCheckResult {
   const { error } = ctx.privateInfo;
   const newParams: Record<string, unknown> = {};
+  const layered: LayeredParams = { params: {}, query: {}, body: {}, headers: {} };
 
   // 检查 params - 支持原生 Zod Schema 和 ISchemaType
   if (schema.options.paramsSchema && params) {
     const originalParams = schema.options.params as Record<string, ISchemaType> | undefined;
     const res = schemaChecker(ctx, params, schema.options.paramsSchema, [], originalParams);
     Object.assign(newParams, res);
+    Object.assign(layered.params, res);
   } else if (schema.options.params && params && Object.keys(schema.options.params).length > 0) {
     const res = schemaChecker(ctx, params, schema.options.params as Record<string, ISchemaType>);
     Object.assign(newParams, res);
+    Object.assign(layered.params, res);
   }
 
   // 检查 query - 支持原生 Zod Schema 和 ISchemaType
@@ -771,9 +794,11 @@ export function apiParamsCheck(
     const originalQuery = schema.options.query as Record<string, ISchemaType> | undefined;
     const res = schemaChecker(ctx, query, schema.options.querySchema, [], originalQuery);
     Object.assign(newParams, res);
+    Object.assign(layered.query, res);
   } else if (schema.options.query && query && Object.keys(schema.options.query).length > 0) {
     const res = schemaChecker(ctx, query, schema.options.query as Record<string, ISchemaType>);
     Object.assign(newParams, res);
+    Object.assign(layered.query, res);
   }
 
   // 检查 body - 支持原生 Zod Schema 和 ISchemaType
@@ -781,9 +806,11 @@ export function apiParamsCheck(
     const originalBody = schema.options.body as Record<string, ISchemaType> | undefined;
     const res = schemaChecker(ctx, body, schema.options.bodySchema, [], originalBody);
     Object.assign(newParams, res);
+    Object.assign(layered.body, res);
   } else if (schema.options.body && body && Object.keys(schema.options.body).length > 0) {
     const res = schemaChecker(ctx, body, schema.options.body as Record<string, ISchemaType>);
     Object.assign(newParams, res);
+    Object.assign(layered.body, res);
   }
 
   // 检查 headers - 支持原生 Zod Schema 和 ISchemaType
@@ -791,9 +818,11 @@ export function apiParamsCheck(
     const originalHeaders = schema.options.headers as Record<string, ISchemaType> | undefined;
     const res = schemaChecker(ctx, headers, schema.options.headersSchema, [], originalHeaders);
     Object.assign(newParams, res);
+    Object.assign(layered.headers, res);
   } else if (schema.options.headers && headers && Object.keys(schema.options.headers).length > 0) {
     const res = schemaChecker(ctx, headers, schema.options.headers as Record<string, ISchemaType>);
     Object.assign(newParams, res);
+    Object.assign(layered.headers, res);
   }
 
   // 必填参数检查
@@ -822,5 +851,5 @@ export function apiParamsCheck(
     }
   }
 
-  return newParams;
+  return { flat: newParams, layered };
 }

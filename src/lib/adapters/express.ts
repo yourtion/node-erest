@@ -17,7 +17,7 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
 
   makeParamsChecker(erest: ERest<T>, api: API<T>): T {
     return function apiParamsChecker(req: Record<string, unknown>, _res: unknown, next: () => void) {
-      req.$params = apiParamsCheck(
+      const result = apiParamsCheck(
         erest as ERest<unknown>,
         api,
         req.params as Record<string, unknown> | undefined,
@@ -25,6 +25,10 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
         req.body as Record<string, unknown> | undefined,
         req.headers as Record<string, unknown> | undefined
       );
+      // 扁平参数：向后兼容 $params（params+query+body+headers 合并）
+      req.$params = result.flat;
+      // 分层参数：registerTyped 的 handler 通过它获得类型安全的 req.body/query/params/headers
+      req.$validated = result.layered;
       next();
     } as T;
   }

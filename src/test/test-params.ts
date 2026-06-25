@@ -690,11 +690,18 @@ describe("ApiParamsCheck - Comprehensive Testing", () => {
 
     const result = apiParamsCheck(apiService, mockAPI as any, params, query, body, headers);
 
-    expect(result).toEqual({
+    expect(result.flat).toEqual({
       id: "123",
       page: 1,
       name: "test",
       authorization: "Bearer token",
+    });
+    // 分层结果应按来源区分
+    expect(result.layered).toEqual({
+      params: { id: "123" },
+      query: { page: 1 },
+      body: { name: "test" },
+      headers: { authorization: "Bearer token" },
     });
   });
 
@@ -711,7 +718,7 @@ describe("ApiParamsCheck - Comprehensive Testing", () => {
     };
 
     const result = apiParamsCheck(apiService, mockAPI as any, {}, {}, {}, {});
-    expect(result).toEqual({});
+    expect(result.flat).toEqual({});
   });
 
   test("should handle ISchemaType fallback when no Zod schemas", () => {
@@ -733,10 +740,10 @@ describe("ApiParamsCheck - Comprehensive Testing", () => {
 
     const result = apiParamsCheck(apiService, mockAPI as any, params, query, body, headers);
 
-    expect(result.id).toBe("123");
-    expect(result.page).toBe(1);
-    expect(result.name).toBe("test");
-    expect(result.auth).toBe("token");
+    expect(result.flat.id).toBe("123");
+    expect(result.flat.page).toBe(1);
+    expect(result.flat.name).toBe("test");
+    expect(result.flat.auth).toBe("token");
   });
 
   test("should validate required and requiredOneOf combination", () => {
@@ -768,7 +775,7 @@ describe("ApiParamsCheck - Comprehensive Testing", () => {
     };
 
     const result = apiParamsCheck(apiService, mockAPI as any, undefined, undefined, undefined, undefined);
-    expect(result).toEqual({});
+    expect(result.flat).toEqual({});
   });
 });
 

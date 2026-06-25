@@ -22,7 +22,7 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
         next: () => void;
       }
     ) {
-      ctx.request.$params = apiParamsCheck(
+      const result = apiParamsCheck(
         erest as ERest<unknown>,
         api,
         ctx.request.params as Record<string, unknown> | undefined,
@@ -30,6 +30,10 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
         ctx.request.body as Record<string, unknown> | undefined,
         ctx.request.headers as Record<string, unknown> | undefined
       );
+      // 扁平参数：向后兼容 ctx.request.$params
+      ctx.request.$params = result.flat;
+      // 分层参数：registerTyped 的 handler 通过它获得类型安全入参
+      ctx.request.$validated = result.layered;
       ctx.next();
     } as T;
   }

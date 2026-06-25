@@ -20,7 +20,7 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
       ctx: Record<string, unknown> & { request: Record<string, unknown> },
       next: () => Promise<void>
     ) {
-      ctx.$params = apiParamsCheck(
+      const result = apiParamsCheck(
         erest as ERest<unknown>,
         api,
         ctx.params as Record<string, unknown> | undefined,
@@ -28,6 +28,10 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
         ctx.request.body as Record<string, unknown> | undefined,
         ctx.request.headers as Record<string, unknown> | undefined
       );
+      // 扁平参数：向后兼容 ctx.$params
+      ctx.$params = result.flat;
+      // 分层参数：registerTyped 的 handler 通过它获得类型安全入参
+      ctx.$validated = result.layered;
       await next();
     } as T;
   }

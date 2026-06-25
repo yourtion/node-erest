@@ -414,6 +414,13 @@ export default class API<T = DEFAULT_HANDLER> {
 
   /**
    * 注册强类型处理函数 (基于 zod schema)
+   *
+   * handler 签名为 `(req, res)`，其中：
+   * - req.params / req.query / req.body / req.headers：分层校验后的参数，类型由传入的 Zod schema 推导
+   * - res：框架原始的第二个参数（Express 为 response；Koa/@leizm/web 为 undefined，handler 内直接操作 ctx）
+   *
+   * 校验由 adapter 的 checker 统一完成（注入到 req/ctx.$validated），handler 内不再重复 parse。
+   * 此方法对 Express / Koa / @leizm/web 三个框架均有效。
    */
   public registerTyped<
     TQuery extends z.ZodRawShape = Record<string, never>,
@@ -441,7 +448,7 @@ export default class API<T = DEFAULT_HANDLER> {
   ) {
     this.checkInited();
 
-    // 设置 zod schemas
+    // 设置 zod schemas（供 checker 校验 + 文档生成使用）
     if (schemas.query) {
       this.options.querySchema = schemas.query;
     }
@@ -458,36 +465,56 @@ export default class API<T = DEFAULT_HANDLER> {
       this.options.responseSchema = schemas.response;
     }
 
-    // 包装处理函数，添加类型验证
-    const wrappedHandler = async (req: unknown, res: unknown) => {
-      try {
-        const reqObj = req as { query?: unknown; body?: unknown; params?: unknown; headers?: unknown };
-        const validatedReq = {
-          query: schemas.query ? schemas.query.parse(reqObj.query || {}) : ({} as z.infer<z.ZodObject<TQuery>>),
-          body: schemas.body ? schemas.body.parse(reqObj.body || {}) : ({} as z.infer<z.ZodObject<TBody>>),
-          params: schemas.params ? schemas.params.parse(reqObj.params || {}) : ({} as z.infer<z.ZodObject<TParams>>),
-          headers: schemas.headers
-            ? schemas.headers.parse(reqObj.headers || {})
-            : ({} as z.infer<z.ZodObject<THeaders>>),
+    // 包装处理函数：从框架统一的 $validated 读取分层校验后的参数，
+    // 适配 Express(req, res) / Koa(ctx, next) / @leizm/web(ctx) 三种调用约定。
+    // 校验已由 checker 完成（见各 adapter 的 makeParamsChecker），此处不重复 parse。
+    const wrappedHandler = (first: unknown, second: unknown) => {
+      // $validated 由 adapter 的 checker 注入：
+      //   Express:   req.$validated      （first === req）
+      //   Koa:       ctx.$validated      （first === ctx）
+      //   @leizm/web: ctx.request.$validated（first === ctx）
+      const firstArg = first as Record<string, unknown> | null;
+      const reqHolder = firstArg?.request as Record<string, unknown> | undefined;
+      const validated =
+        (firstArg?.$validated as
+          | { params?: Record<string, unknown>; query?: Record<string, unknown>; body?: Record<string, unknown>; headers?: Record<string, unknown> }
+          | undefined) ??
+        (reqHolder?.$validated as
+          | { params?: Record<string, unknown>; query?: Record<string, unknown>; body?: Record<string, unknown>; headers?: Record<string, unknown> }
+          | undefined) ?? {
+          params: {},
+          query: {},
+          body: {},
+          headers: {},
         };
 
-        const result = await handler(validatedReq, res);
+      // 组装类型安全的 req：缺失的层级补空对象，保证 handler 内字段访问安全。
+      // 此处运行时值已由 checker 校验，仅做拼装；类型断言对齐 handler 期望的推导类型。
+      const typedReq = {
+        params: (validated.params ?? {}) as z.infer<z.ZodObject<TParams>>,
+        query: (validated.query ?? {}) as z.infer<z.ZodObject<TQuery>>,
+        body: (validated.body ?? {}) as z.infer<z.ZodObject<TBody>>,
+        headers: (validated.headers ?? {}) as z.infer<z.ZodObject<THeaders>>,
+      } as {
+        query: z.infer<z.ZodObject<TQuery>>;
+        body: z.infer<z.ZodObject<TBody>>;
+        params: z.infer<z.ZodObject<TParams>>;
+        headers: z.infer<z.ZodObject<THeaders>>;
+      };
 
-        // 验证响应
-        if (schemas.response) {
-          return schemas.response.parse(result);
-        }
+      // 运行 handler。Express 下 res 即第二个参数；
+      // Koa/@leizm/web 下 second 为 next（handler 内直接操作 ctx/ctx.body，不依赖返回值）。
+      const result = handler(typedReq, second);
 
-        return result;
-      } catch (error: unknown) {
-        if ((error as { name?: string }).name === "ZodError") {
-          const zodError = error as { errors: Array<{ path: string[]; message: string }> };
-          throw new Error(
-            `Validation failed: ${zodError.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`
-          );
+      // 若 handler 返回了值且定义了 response schema，则校验返回值
+      if (schemas.response && result !== undefined) {
+        const resolved = result;
+        if (resolved instanceof Promise) {
+          return resolved.then((v) => schemas.response!.parse(v));
         }
-        throw error;
+        return schemas.response.parse(resolved);
       }
+      return result;
     };
 
     this.options.handler = wrappedHandler as T;
