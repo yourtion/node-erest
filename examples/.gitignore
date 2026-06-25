@@ -1,2 +1,4 @@
 node_modules/
 package-lock.json
+# 文档生成产物（npm run docs 生成）
+docs/out/

@@ -2,46 +2,53 @@
  * @leizm/web 入口。
  *
  * 仅做框架装配：中间件链 + bind()。handler 在 src/api.js 声明一次，此处复用。
- *
- * 中间件链（@leizm/web 按函数参数个数区分普通/错误处理中间件）：
- *   1. 请求日志（普通）  2. body 解析  3. erest 路由  4. 404 兜底  5. 错误处理（双参数）
+ * forceGroup 模式：bind({ framework, app, router: Router })。
  *
  * 运行：npm install && npm run start:leizmweb
  */
 import { Application, Router, component } from '@leizm/web';
 import ERest from 'erest';
-import { API_INFO, GROUPS, registerUserApi } from '../api.js';
+import { z } from 'zod';
+import { API_INFO, GROUPS, registerApi } from '../api.js';
 import { createStore } from '../store.js';
+import { leiAuthBefore, leiAdminBefore, leiLogMiddleware, leiTimingBefore } from '../hooks.js';
 
 const app = new Application();
-const store = createStore();
-const api = new ERest({ info: API_INFO, groups: GROUPS });
 
-// 1. 请求日志
-app.use('/', (ctx) => {
-  console.log(`${ctx.request.method} ${ctx.request.path}`);
-  ctx.next();
-});
-// 2. body 解析
+// 1. body 解析（必须在路由之前）
 app.use('/', component.bodyParser.json());
 app.use('/', component.bodyParser.urlencoded({ extended: true }));
 
-// 3. erest 路由（handler 在 api.js 声明，此处仅 bind）
-const router = new Router();
-registerUserApi(api.api, store);
-api.bind({ framework: 'leizmweb', router });
-app.use('/api', router);
+const store = createStore();
+const api = new ERest({ info: API_INFO, groups: GROUPS, forceGroup: true });
 
-// 4. 404 兜底
-app.use('/', (ctx) => {
-  ctx.response.status(404).json({ error: 'not found' });
+registerApi(api, store, {
+  authBefore: leiAuthBefore(store),
+  adminBefore: leiAdminBefore(),
+  logMiddleware: leiLogMiddleware(),
+  timingBefore: leiTimingBefore(),
 });
-// 5. 错误处理（双参数 = 错误处理中间件）；ERestError 用 statusCode，默认 400
+
+// define() 声明式定义示例（handler 入参框架相关）
+api.group('admin').define({
+  method: 'delete',
+  path: '/users/:id',
+  title: '删除用户（define 示例）',
+  params: z.object({ id: z.coerce.number() }),
+  handler: (ctx) => {
+    ctx.response.json({ success: true, deleted: ctx.request.$params.id });
+  },
+});
+
+// forceGroup 绑定
+api.bind({ framework: 'leizmweb', app, router: Router });
+
+// 错误处理中间件（双参数 = 错误处理中间件）；ERestError 用 statusCode
 app.use('/', (ctx, err) => {
   const status = err?.statusCode || err?.status || 500;
-  ctx.response.status(status).json({ error: err?.message || 'internal error' });
+  ctx.response.status(status).json({ error: err?.message || 'internal error', code: err?.code });
 });
 
 app.server.listen(3100, () => {
-  console.log('erest @leizm/web 入口：http://localhost:3100/api');
+  console.log('erest @leizm/web 入口：http://localhost:3100');
 });

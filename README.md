@@ -18,15 +18,6 @@
 - 多框架支持：Express、Koa、@leizm/web
 - 自动生成基于 axios 的客户端 SDK
 
-## 技术栈
-
-- 语言：TypeScript 5.8+
-- 运行时：Node.js 18+
-- 校验库：Zod 4.0+
-- 支持框架：Express 4.x、Koa 3.x、@leizm/web 2.x
-- 构建工具：Vite、Biome
-- 测试框架：Vitest
-
 ## 安装
 
 ```bash
@@ -466,18 +457,19 @@ throw ERestError.invalidParam('age', 'Integer', 'abc');
 
 ## 示例
 
-`examples/` 提供端到端可运行工程：**一份 API 定义（`src/api.js`），三个框架入口**（`src/entries/`）。
-handler 用 `registerTyped` 的 `(req, reply)` 签名声明一次，被 @leizm/web / Express / Koa 复用，
-仅 `bind()` 参数不同。可直接 `npm install && npm run start:<framework>`：
+`examples/` 是一个**迷你博客业务域**的完整最佳实践样板，串联 erest 全部核心能力：
+**一份 API 定义（`src/api.js`），三个框架入口**（`src/entries/`）。handler 用 `registerTyped`
+的 `(req, reply)` 签名声明一次，被 @leizm/web / Express / Koa 复用，仅 `bind()` 参数不同。
 
-| 入口 | 框架 | 命令 |
-|------|------|------|
-| `src/entries/leizmweb.js` | @leizm/web | `npm run start:leizmweb` |
-| `src/entries/express.js` | Express | `npm run start:express` |
-| `src/entries/koa.js` | Koa | `npm run start:koa` |
+| 命令 | 说明 |
+|------|------|
+| `npm run start:{leizmweb,express,koa}` | 三框架入口（监听 3100） |
+| `npm test` | vitest 测试套件（initTest + success/error/takeExample） |
+| `npm run docs` | 生成 swagger / postman / markdown / axios SDK |
 
-演示要点：registerTyped 类型安全、框架无关 `reply`、分层参数、中间件链、ESM 接入。
-详见 `examples/README.md`。
+覆盖能力：forceGroup 分组、组级 before/middleware 钩子（鉴权/日志）、全局 beforeHooks、
+自定义错误注册、自定义 type/schema 注册、`define()` 声明式、`mock()`、`response()` schema、
+分层参数、文档生成、测试集成。详见 `examples/README.md`。
 
 ## License
 
