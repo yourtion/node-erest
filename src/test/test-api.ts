@@ -214,6 +214,16 @@ describe("API 高级功能和错误处理测试", () => {
       testApi.init(apiService as any);
       expect(testApi.options.handler).toBe(existingHandler);
     });
+
+    test("mock() 应返回 this 以支持链式调用", () => {
+      // mock() 此前漏了 return this，导致 .mock(...).register(...) 链式调用返回 undefined 而断链
+      const testApi = api.get("/test-mock-chain").group("Test");
+      const returned = testApi.mock({ test: "data" });
+      expect(returned).toBe(testApi);
+      // 链式调用应能继续
+      testApi.mock({ a: 1 }).title("链式 mock");
+      expect(testApi.options.title).toBe("链式 mock");
+    });
   });
 
   describe("API 方法参数验证测试", () => {

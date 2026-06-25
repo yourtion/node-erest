@@ -543,6 +543,7 @@ export default class API<T = DEFAULT_HANDLER> {
   public mock(data?: Record<string, unknown>) {
     this.checkInited();
     this.options.mock = data || {};
+    return this;
   }
 
   public init(parent: ERest<unknown>) {
