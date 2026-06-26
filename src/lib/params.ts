@@ -5,9 +5,9 @@
  */
 
 import { type ZodType, z } from "zod";
-import type ERest from "./index.js";
 import type API from "./api.js";
 import { create, params as debug } from "./debug.js";
+import type ERest from "./index.js";
 
 /**
  * 检测是否为 Zod Schema

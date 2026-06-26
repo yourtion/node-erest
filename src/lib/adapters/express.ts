@@ -6,56 +6,68 @@
 import type API from "../api.js";
 import type ERest from "../index.js";
 import { apiParamsCheck } from "../params.js";
-import type { FrameworkAdapter, Reply } from "./types.js";
+import type { Context, FrameworkAdapter, Middleware, Reply } from "./types.js";
+import { compose } from "./utils.js";
 
 /**
  * Express framework adapter
- * Handles Express-specific request/response patterns
+ *
+ * 标准化改造后：bindRoute 注册一个 Express 原生中间件，内部构造标准 Context
+ * 并用 compose 串起标准化 handler 链。框架只看到这一个中间件，避开 Express
+ * 对 handler 数组的签名假设。
  */
 export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
   readonly name = "express" as const;
 
+  /**
+   * 构造标准 Context 的参数检查器（标准化 Middleware）。
+   * 从 ctx 读取原始 params/query/body/headers，校验后填入 ctx.$validated。
+   */
   makeParamsChecker(erest: ERest<T>, api: API<T>): T {
-    return function apiParamsChecker(req: Record<string, unknown>, res: unknown, next: () => void) {
+    const checker: Middleware = (ctx, next) => {
       const result = apiParamsCheck(
         erest as ERest<unknown>,
         api,
-        req.params as Record<string, unknown> | undefined,
-        req.query as Record<string, unknown> | undefined,
-        req.body as Record<string, unknown> | undefined,
-        req.headers as Record<string, unknown> | undefined
+        ctx.params,
+        ctx.query as Record<string, unknown> | undefined,
+        ctx.body as Record<string, unknown> | undefined,
+        ctx.headers as Record<string, unknown> | undefined
       );
-      // 扁平参数：向后兼容 $params（params+query+body+headers 合并）
-      req.$params = result.flat;
-      // 分层参数：registerTyped / handler 直接按来源读取（避免同名字段覆盖）
-      req.$validated = result.layered;
-      req.$pathParams = result.layered.params;
-      req.$query = result.layered.query;
-      req.$body = result.layered.body;
-      req.$headers = result.layered.headers;
-      // 框架无关响应：封装 Express 的 res.json/status/send
-      const expressRes = res as { status?: (c: number) => unknown; json?: (b: unknown) => void; end?: (b: string) => void };
-      const reply: Reply = {
-        status(code: number) {
-          expressRes.status?.(code);
-          return reply;
-        },
-        json(body: unknown) {
-          expressRes.json?.(body);
-        },
-        send(body: string) {
-          expressRes.end?.(body);
-        },
-      };
-      req.$reply = reply;
-      next();
-    } as T;
+      ctx.$validated = result.layered;
+      ctx.$params = result.flat;
+      ctx.$pathParams = result.layered.params;
+      ctx.$query = result.layered.query;
+      ctx.$body = result.layered.body;
+      ctx.$headers = result.layered.headers;
+      return next();
+    };
+    return checker as unknown as T;
   }
 
   bindRoute(router: unknown, api: API<T>, handlers: T[]): void {
     const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
     const method = api.options.method as string;
-    routerTyped[method].bind(router)(api.options.path, ...handlers);
+    // 包装为单个 Express 中间件：构造标准 Context + compose 标准化 handler 链
+    const dispatch = compose(handlers as unknown as Middleware[]);
+    const nativeMiddleware = (req: Record<string, unknown>, res: unknown, next: (err?: unknown) => void) => {
+      const reply: Reply = createExpressReply(res);
+      const ctx: Context = {
+        method: String(req.method ?? "").toUpperCase(),
+        path: String(req.path ?? req.url ?? ""),
+        headers: (req.headers ?? {}) as Record<string, string>,
+        params: (req.params ?? {}) as Record<string, unknown>,
+        query: (req.query ?? {}) as Record<string, unknown>,
+        body: req.body,
+        state: {},
+        reply,
+      };
+      // 把 ctx 挂到 req，供遗留的 $params/$reply 读取（向后兼容 registerTyped wrapper）
+      req.$ctx = ctx;
+      dispatch(ctx)
+        .then(() => next())
+        .catch((err) => next(err));
+    };
+    routerTyped[method].bind(router)(api.options.path, nativeMiddleware);
   }
 
   createGroupRouter(RouterCtor: unknown, _prefix: string): unknown {
@@ -67,6 +79,24 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
     const normalizedPrefix = prefix[0] === "/" ? prefix : `/${prefix}`;
     appTyped.use(normalizedPrefix, groupRouter);
   }
+}
+
+/** 构造 Express 的 Reply 封装 */
+function createExpressReply(res: unknown): Reply {
+  const expressRes = res as { status?: (c: number) => unknown; json?: (b: unknown) => void; end?: (b: string) => void };
+  const reply: Reply = {
+    status(code: number) {
+      expressRes.status?.(code);
+      return reply;
+    },
+    json(body: unknown) {
+      expressRes.json?.(body);
+    },
+    send(body: string) {
+      expressRes.end?.(body);
+    },
+  };
+  return reply;
 }
 
 export const expressAdapter = new ExpressAdapter();

@@ -5,19 +5,16 @@
  * 真实集成测试：使用真实的 Koa + koa-router + koa-bodyparser，
  * 覆盖统一 bind() 方法的 forceGroup 与非 forceGroup 两种模式，
  * 以及 KoaAdapter 的 createGroupRouter / attachGroupRouter 路径。
+ *
+ * 标准化改造后：handler 用标准签名 (ctx)，经 ctx.reply 写响应、ctx.$params 读校验后参数。
  */
 
-import Koa, { type Context as KoaContext } from "koa";
+import Koa from "koa";
 import bodyParser from "koa-bodyparser";
 import KoaRouter from "koa-router";
 import { afterAll, describe, expect, it } from "vitest";
 import { build, TYPES } from "./helper";
 import lib from "./lib";
-
-function returnJson(ctx: KoaContext, data: unknown) {
-  ctx.type = "application/json";
-  ctx.body = JSON.stringify(data);
-}
 
 describe("Koa Integration - bind() 非 forceGroup 模式", () => {
   const app = new Koa();
@@ -27,8 +24,10 @@ describe("Koa Integration - bind() 非 forceGroup 模式", () => {
     try {
       await next();
     } catch (err: unknown) {
-      ctx.status = (err as { status?: number }).status || 500;
-      returnJson(ctx, { message: (err as Error).message });
+      ctx.status =
+        (err as { statusCode?: number; status?: number }).statusCode || (err as { status?: number }).status || 500;
+      ctx.type = "application/json";
+      ctx.body = JSON.stringify({ message: (err as Error).message });
     }
   });
 
@@ -40,8 +39,8 @@ describe("Koa Integration - bind() 非 forceGroup 模式", () => {
     .get("/koa/get")
     .group("Index")
     .title("基础GET")
-    .register(async (ctx: KoaContext) => {
-      returnJson(ctx, { data: "koa works" });
+    .register((ctx: any) => {
+      ctx.reply.json({ data: "koa works" });
     });
 
   api
@@ -49,8 +48,8 @@ describe("Koa Integration - bind() 非 forceGroup 模式", () => {
     .group("Index")
     .title("Query校验")
     .query({ name: build(TYPES.String, "名称", true) })
-    .register(async (ctx: KoaContext) => {
-      returnJson(ctx, { name: ctx.$params.name });
+    .register((ctx: any) => {
+      ctx.reply.json({ name: ctx.$params.name });
     });
 
   api
@@ -58,8 +57,8 @@ describe("Koa Integration - bind() 非 forceGroup 模式", () => {
     .group("Index")
     .title("Body校验")
     .body({ id: build(TYPES.Integer, "ID", true) })
-    .register(async (ctx: KoaContext) => {
-      returnJson(ctx, { id: ctx.$params.id });
+    .register((ctx: any) => {
+      ctx.reply.json({ id: ctx.$params.id });
     });
 
   apiService.bind({ framework: "koa", router });
@@ -102,8 +101,10 @@ describe("Koa Integration - bind() forceGroup 模式", () => {
     try {
       await next();
     } catch (err: unknown) {
-      ctx.status = (err as { status?: number }).status || 500;
-      returnJson(ctx, { message: (err as Error).message });
+      ctx.status =
+        (err as { statusCode?: number; status?: number }).statusCode || (err as { status?: number }).status || 500;
+      ctx.type = "application/json";
+      ctx.body = JSON.stringify({ message: (err as Error).message });
     }
   });
 
@@ -111,9 +112,7 @@ describe("Koa Integration - bind() forceGroup 模式", () => {
     forceGroup: true,
     info: { basePath: "" },
     groups: {
-      // 显式前缀
       v1: { name: "Version 1", prefix: "/v1" },
-      // 默认前缀（camelCase2underscore -> user）
       user: { name: "User Group" },
     },
   });
@@ -122,8 +121,8 @@ describe("Koa Integration - bind() forceGroup 模式", () => {
     .group("v1")
     .get("/grouped")
     .title("v1分组")
-    .register(async (ctx: KoaContext) => {
-      returnJson(ctx, { group: "v1 works" });
+    .register((ctx: any) => {
+      ctx.reply.json({ group: "v1 works" });
     });
 
   apiService
@@ -131,12 +130,10 @@ describe("Koa Integration - bind() forceGroup 模式", () => {
     .get("/info")
     .title("user分组")
     .query({ name: build(TYPES.String, "名称", true) })
-    .register(async (ctx: KoaContext) => {
-      returnJson(ctx, { group: "user info", name: ctx.$params.name });
+    .register((ctx: any) => {
+      ctx.reply.json({ group: "user info", name: ctx.$params.name });
     });
 
-  // forceGroup 模式：提供 app 和 Router 构造函数
-  // 此调用覆盖 KoaAdapter.createGroupRouter 与 attachGroupRouter
   apiService.bind({ framework: "koa", app, router: KoaRouter });
 
   const server = app.listen();

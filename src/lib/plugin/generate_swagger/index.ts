@@ -6,9 +6,9 @@
 import * as path from "node:path";
 import { URL } from "node:url";
 import type { ZodType } from "zod";
-import type { IDocOptions } from "../../index.js";
 import { plugin as debug } from "../../debug.js";
 import type { IDocData, IDocWritter } from "../../extend/docs.js";
+import type { IDocOptions } from "../../index.js";
 import type { ISchemaType } from "../../params.js";
 import { isZodSchema } from "../../params.js";
 import * as utils from "../../utils.js";

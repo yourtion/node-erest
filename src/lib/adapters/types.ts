@@ -76,3 +76,58 @@ export interface Reply {
   /** 以纯文本写入响应体 */
   send(body: string): void;
 }
+
+/**
+ * 框架无关的请求上下文。
+ *
+ * 由各 adapter 在中间件链最前面构造并注入，让 before/middleware/handler 用统一的
+ * `(ctx, next)` 签名，无需关心框架原生 ctx/res 差异。同一份中间件可被
+ * Express / Koa / @leizm/web 三个框架复用。
+ *
+ * params/query/body 为框架原始请求数据（校验前的原始值，由 checker 校验后填入 $validated）。
+ */
+export interface Context {
+  /** 请求方法（GET/POST/...），大写 */
+  readonly method: string;
+  /** 请求路径（日志/计时用） */
+  readonly path: string;
+  /** 请求头（大小写不敏感读取；底层为框架原始 headers） */
+  readonly headers: Record<string, string>;
+  /** 路径参数（校验前原始值，如 { id: '42' }） */
+  readonly params: Record<string, unknown>;
+  /** query 参数（校验前原始值） */
+  readonly query: Record<string, unknown>;
+  /** 请求体（校验前原始值） */
+  readonly body: unknown;
+  /** 跨中间件传递数据的可读写状态（替代直接写 req/ctx.currentUser） */
+  readonly state: Record<string, unknown>;
+  /** 框架无关响应接口（复用 Reply；中间件可提前响应/终止） */
+  readonly reply: Reply;
+  /** 校验后分层参数（由 checker 注入；before/middleware 执行时尚未填充） */
+  $validated?: {
+    params: Record<string, unknown>;
+    query: Record<string, unknown>;
+    body: Record<string, unknown>;
+    headers: Record<string, unknown>;
+  };
+  /** 校验后扁平参数（params+query+body+headers 合并，由 checker 注入；便捷读取） */
+  $params?: Record<string, unknown>;
+  /** 校验后路径参数（分层快捷访问器，避免同名字段覆盖） */
+  $pathParams?: Record<string, unknown>;
+  /** 校验后 query 参数（分层快捷访问器） */
+  $query?: Record<string, unknown>;
+  /** 校验后请求体（分层快捷访问器） */
+  $body?: Record<string, unknown>;
+  /** 校验后请求头（分层快捷访问器） */
+  $headers?: Record<string, unknown>;
+}
+
+/**
+ * 标准化中间件/handler 签名。
+ *
+ * - `ctx`：框架无关请求上下文
+ * - `next`：调用链中下一个中间件；返回 Promise<void>。不调用 next 表示终止链。
+ *
+ * before / middleware / register / registerTyped / define 的 handler 均用此签名。
+ */
+export type Middleware = (ctx: Context, next: () => Promise<void> | void) => Promise<void> | void;

@@ -5,20 +5,17 @@
  * 真实集成测试：使用真实的 @leizm/web Application + Router + bodyParser，
  * 覆盖统一 bind() 方法的 forceGroup 与非 forceGroup 两种模式，
  * 以及 LeizmWebAdapter 的 createGroupRouter / attachGroupRouter 路径。
+ *
+ * 标准化改造后：handler 用标准签名 (ctx)，经 ctx.reply 写响应、ctx.$params 读校验后参数。
  */
 
-import { Application, component, type Context as LeiContext, Router } from "@leizm/web";
+import { Application, component, Router } from "@leizm/web";
 import { afterAll, describe, expect, it } from "vitest";
 import { build, TYPES } from "./helper";
 import lib from "./lib";
 
-function returnJson(ctx: LeiContext, data: unknown) {
-  ctx.response.json(data);
-}
-
 describe("@leizm/web Integration - bind() 非 forceGroup 模式", () => {
   const app = new Application();
-  // 内置 body 解析中间件，用于读取 POST body
   app.use("/", component.bodyParser.json());
 
   const apiService = lib({ basePath: "" });
@@ -29,8 +26,8 @@ describe("@leizm/web Integration - bind() 非 forceGroup 模式", () => {
     .get("/lei/get")
     .group("Index")
     .title("基础GET")
-    .register((ctx: LeiContext) => {
-      returnJson(ctx, { data: "leizmweb works" });
+    .register((ctx: any) => {
+      ctx.reply.json({ data: "leizmweb works" });
     });
 
   api
@@ -38,8 +35,8 @@ describe("@leizm/web Integration - bind() 非 forceGroup 模式", () => {
     .group("Index")
     .title("Query校验")
     .query({ name: build(TYPES.String, "名称", true) })
-    .register((ctx: LeiContext) => {
-      returnJson(ctx, { name: ctx.request.$params.name });
+    .register((ctx: any) => {
+      ctx.reply.json({ name: ctx.$params.name });
     });
 
   api
@@ -47,8 +44,8 @@ describe("@leizm/web Integration - bind() 非 forceGroup 模式", () => {
     .group("Index")
     .title("Body校验")
     .body({ id: build(TYPES.Integer, "ID", true) })
-    .register((ctx: LeiContext) => {
-      returnJson(ctx, { id: ctx.request.$params.id });
+    .register((ctx: any) => {
+      ctx.reply.json({ id: ctx.$params.id });
     });
 
   apiService.bind({ framework: "leizmweb", router });
@@ -91,9 +88,7 @@ describe("@leizm/web Integration - bind() forceGroup 模式", () => {
     forceGroup: true,
     info: { basePath: "" },
     groups: {
-      // 显式前缀
       v1: { name: "Version 1", prefix: "/v1" },
-      // 默认前缀（camelCase2underscore -> user）
       user: { name: "User Group" },
     },
   });
@@ -102,8 +97,8 @@ describe("@leizm/web Integration - bind() forceGroup 模式", () => {
     .group("v1")
     .get("/grouped")
     .title("v1分组")
-    .register((ctx: LeiContext) => {
-      returnJson(ctx, { group: "v1 works" });
+    .register((ctx: any) => {
+      ctx.reply.json({ group: "v1 works" });
     });
 
   apiService
@@ -111,12 +106,10 @@ describe("@leizm/web Integration - bind() forceGroup 模式", () => {
     .get("/info")
     .title("user分组")
     .query({ name: build(TYPES.String, "名称", true) })
-    .register((ctx: LeiContext) => {
-      returnJson(ctx, { group: "user info", name: ctx.request.$params.name });
+    .register((ctx: any) => {
+      ctx.reply.json({ group: "user info", name: ctx.$params.name });
     });
 
-  // forceGroup 模式：提供 app 和 Router 构造函数
-  // 此调用覆盖 LeizmWebAdapter.createGroupRouter 与 attachGroupRouter
   apiService.bind({ framework: "leizmweb", app, router: Router });
 
   apiService.initTest(app.server);

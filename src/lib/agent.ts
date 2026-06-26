@@ -8,10 +8,10 @@ import * as stream from "node:stream";
 import * as util from "node:util";
 import type { IDebugger } from "debug";
 import type { Test } from "supertest";
-import type ERest from "./index.js";
 import { SUPPORT_METHOD, type SUPPORT_METHODS } from "./api.js";
 import { lazyRequire } from "./cjs-compat.js";
 import { create as createDebug, test as debug } from "./debug.js";
+import type ERest from "./index.js";
 import type { SourceResult } from "./utils.js";
 
 const defaultFormatOutput = (data: unknown) => [null, data];

@@ -1,4 +1,4 @@
-import type { IApiInfo } from "../lib";
+import type { IApiInfo } from "../lib/index.js";
 
 /**
  * 辅助函数
@@ -75,8 +75,8 @@ export function apiGet(api: IApiInfo<unknown>) {
     .get("/")
     .group("Index")
     .title("Get")
-    .register(function get(_req: unknown, res: unknown) {
-      res.end("Hello, API Framework Index");
+    .register(function get(ctx: any) {
+      ctx.reply.send("Hello, API Framework Index");
     });
 }
 
@@ -87,8 +87,8 @@ export function apiGet2(api: IApiInfo<unknown>) {
     .group("Index")
     .query({ name: nameParams })
     .title("Get2")
-    .register(function get2(req: unknown, res: unknown) {
-      res.end(`Get ${req.$params.name}`);
+    .register(function get2(ctx: any) {
+      ctx.reply.send(`Get ${ctx.$params.name}`);
     });
 }
 
@@ -101,8 +101,8 @@ export function apiPost(api: IApiInfo<unknown>) {
     .body({ age: ageParams })
     .title("Post")
     .required(["name", "age"])
-    .register(function post(req: unknown, res: unknown) {
-      res.end(`Post ${req.$params.name}:${req.$params.age}`);
+    .register(function post(ctx: any) {
+      ctx.reply.send(`Post ${ctx.$params.name}:${ctx.$params.age}`);
     });
 }
 
@@ -113,8 +113,8 @@ export function apiPut(api: IApiInfo<unknown>) {
     .group("Index")
     .title("Put")
     .body({ age: ageParams })
-    .register(function put(req: unknown, res: unknown) {
-      res.end(`Put ${req.$params.age}`);
+    .register(function put(ctx: any) {
+      ctx.reply.send(`Put ${ctx.$params.age}`);
     });
 }
 
@@ -125,8 +125,8 @@ export function apiDelete(api: IApiInfo<unknown>) {
     .group("Index")
     .params({ name: nameParams })
     .title("Delete")
-    .register(function del(req: unknown, res: unknown) {
-      res.end(`Delete ${req.$params.name}`);
+    .register(function del(ctx: any) {
+      ctx.reply.send(`Delete ${ctx.$params.name}`);
     });
 }
 
@@ -136,23 +136,23 @@ export function apiPatch(api: IApiInfo<unknown>) {
     .patch("/index")
     .group("Index")
     .title("Patch")
-    .register(function patch(_req: unknown, res: unknown) {
-      res.end(`Patch`);
+    .register(function patch(ctx: any) {
+      ctx.reply.send(`Patch`);
     });
 }
 
 /**
  * 生成 json 返回
  *
- * - 默认返回 `{ success: true, result: req.$params, headers: req.headers }`
+ * - 默认返回 `{ success: true, result: ctx.$params, headers: ctx.headers }`
  * - 当没有 age 或者 age<18 时返回 `{ success: false }`
  */
 export function apiJson(api: IApiInfo<unknown>, path = "/json") {
-  function json(req: unknown, res: unknown) {
-    if (!req.$params.age || req.$params.age < 18) {
-      return res.json({ success: false });
+  function json(ctx: any) {
+    if (!ctx.$params.age || ctx.$params.age < 18) {
+      return ctx.reply.json({ success: false });
     }
-    return res.json({ success: true, result: req.$params, headers: req.headers });
+    return ctx.reply.json({ success: true, result: ctx.$params, headers: ctx.headers });
   }
   return api.define({
     method: "get",
@@ -175,11 +175,11 @@ export function apiAll(api: IApiInfo<unknown>) {
   apiHeader(api);
 }
 
-/** 生成 Express 的 hook */
+/** 生成标准化 hook（签名 (ctx, next)，写 ctx.state["$name"]） */
 export function hook(name: string, value: unknown = 1) {
-  return renameFunction(name, (req: unknown, _res: unknown, next: unknown) => {
-    req[`$${name}`] = value;
-    next();
+  return renameFunction(name, (ctx: any, next: any) => {
+    ctx.state[`$${name}`] = value;
+    return next();
   });
 }
 
@@ -190,7 +190,7 @@ export function apiHeader(api: IApiInfo<unknown>) {
     .group("Index")
     .headers({ name: nameParams })
     .title("Header")
-    .register((req: unknown, res: unknown) => {
-      res.end(`Get ${req.$params.name}`);
+    .register((ctx: any) => {
+      ctx.reply.send(`Get ${ctx.$params.name}`);
     });
 }

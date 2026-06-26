@@ -6,61 +6,67 @@
 import type API from "../api.js";
 import type ERest from "../index.js";
 import { apiParamsCheck } from "../params.js";
-import type { FrameworkAdapter, Reply } from "./types.js";
+import type { Context, FrameworkAdapter, Middleware, Reply } from "./types.js";
+import { compose } from "./utils.js";
 
 /**
  * Koa framework adapter
- * Handles Koa-specific context patterns (async middleware)
+ *
+ * 标准化改造后：bindRoute 注册一个 Koa 原生中间件，内部构造标准 Context
+ * 并用 compose 串起标准化 handler 链。
  */
 export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
   readonly name = "koa" as const;
 
+  /**
+   * 构造标准 Context 的参数检查器（标准化 Middleware）。
+   */
   makeParamsChecker(erest: ERest<T>, api: API<T>): T {
-    return async function apiParamsCheckerKoa(
-      ctx: Record<string, unknown> & { request: Record<string, unknown> },
-      next: () => Promise<void>
-    ) {
+    const checker: Middleware = (ctx, next) => {
       const result = apiParamsCheck(
         erest as ERest<unknown>,
         api,
-        ctx.params as Record<string, unknown> | undefined,
-        ctx.request.query as Record<string, unknown> | undefined,
-        ctx.request.body as Record<string, unknown> | undefined,
-        ctx.request.headers as Record<string, unknown> | undefined
+        ctx.params,
+        ctx.query as Record<string, unknown> | undefined,
+        ctx.body as Record<string, unknown> | undefined,
+        ctx.headers as Record<string, unknown> | undefined
       );
-      // 扁平参数：向后兼容 ctx.$params
-      ctx.$params = result.flat;
-      // 分层参数：registerTyped / handler 直接按来源读取（避免同名字段覆盖）
       ctx.$validated = result.layered;
+      ctx.$params = result.flat;
       ctx.$pathParams = result.layered.params;
       ctx.$query = result.layered.query;
       ctx.$body = result.layered.body;
       ctx.$headers = result.layered.headers;
-      // 框架无关响应：封装 Koa 的 ctx.status / ctx.body
-      const koaCtx = ctx as { status?: number; body?: unknown; type?: string };
-      const reply: Reply = {
-        status(code: number) {
-          koaCtx.status = code;
-          return reply;
-        },
-        json(body: unknown) {
-          koaCtx.type = "application/json";
-          koaCtx.body = JSON.stringify(body);
-        },
-        send(body: string) {
-          koaCtx.body = body;
-        },
-      };
-      ctx.$reply = reply;
-      await next();
-    } as T;
+      return next();
+    };
+    return checker as unknown as T;
   }
 
   bindRoute(router: unknown, api: API<T>, handlers: T[]): void {
     const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
     const method = (api.options.method as string).toLowerCase();
+    const dispatch = compose(handlers as unknown as Middleware[]);
+    const nativeMiddleware = async (
+      ctx: Record<string, unknown> & { request: Record<string, unknown> },
+      next: () => Promise<void>
+    ) => {
+      const reply = createKoaReply(ctx);
+      const stdCtx: Context = {
+        method: String(ctx.method ?? ctx.request?.method ?? "").toUpperCase(),
+        path: String(ctx.path ?? ctx.request?.path ?? ""),
+        headers: ((ctx.headers as Record<string, string>) ?? ctx.request?.headers ?? {}) as Record<string, string>,
+        params: (ctx.params ?? {}) as Record<string, unknown>,
+        query: (ctx.request?.query ?? ctx.query ?? {}) as Record<string, unknown>,
+        body: ctx.request?.body ?? ctx.body,
+        state: {},
+        reply,
+      };
+      (ctx as { $ctx?: Context }).$ctx = stdCtx;
+      await dispatch(stdCtx);
+      await next();
+    };
     if (typeof routerTyped[method] === "function") {
-      routerTyped[method](api.options.path, ...handlers);
+      routerTyped[method](api.options.path, nativeMiddleware);
     } else {
       console.error(`ERest: Invalid method ${method} for Koa router for path ${api.options.path}.`);
     }
@@ -79,6 +85,25 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
     appTyped.use(routerTyped.routes());
     appTyped.use(routerTyped.allowedMethods());
   }
+}
+
+/** 构造 Koa 的 Reply 封装（写 ctx.status / ctx.body） */
+function createKoaReply(ctx: Record<string, unknown>): Reply {
+  const koaCtx = ctx as { status?: number; body?: unknown; type?: string };
+  const reply: Reply = {
+    status(code: number) {
+      koaCtx.status = code;
+      return reply;
+    },
+    json(body: unknown) {
+      koaCtx.type = "application/json";
+      koaCtx.body = JSON.stringify(body);
+    },
+    send(body: string) {
+      koaCtx.body = body;
+    },
+  };
+  return reply;
 }
 
 export const koaAdapter = new KoaAdapter();

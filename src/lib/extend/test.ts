@@ -5,12 +5,12 @@
 
 import { strict as assert } from "node:assert";
 import type { SuperTest, Test } from "supertest";
+import { TestAgent } from "../agent.js";
+import type { SUPPORT_METHODS } from "../api.js";
+import { lazyRequire } from "../cjs-compat.js";
+import { test as debug } from "../debug.js";
 import type ERest from "../index.js";
 import type { IApiOptionInfo } from "../index.js";
-import { TestAgent } from "../agent.js";
-import { lazyRequire } from "../cjs-compat.js";
-import type { SUPPORT_METHODS } from "../api.js";
-import { test as debug } from "../debug.js";
 import { getCallerSourceLine, getSchemaKey, type ISupportMethds, type SourceResult } from "../utils.js";
 
 /** 测试Agent */

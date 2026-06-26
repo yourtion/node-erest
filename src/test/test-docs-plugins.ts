@@ -7,9 +7,9 @@
  * 内容被写入 swagger.json（与 swagger 插件冲突、互相覆盖）。
  */
 import { describe, expect, test } from "vitest";
+import generateAxios from "../lib/plugin/generate_axios";
 import generatePostman from "../lib/plugin/generate_postman";
 import generateSwagger from "../lib/plugin/generate_swagger";
-import generateAxios from "../lib/plugin/generate_axios";
 
 describe("文档插件文件名解析", () => {
   // 构造最小可用 docData（插件实际只读少量字段）

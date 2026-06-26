@@ -6,12 +6,15 @@
 import { vi } from "vitest";
 
 /**
- * Create a mock hook function with specified name
+ * Create a mock hook function with specified name.
+ * 标准化签名 (ctx, next)：记录执行顺序到 ctx.state.order，写 ctx.state["$name"]。
  */
 export function createMockHook(name: string, value: unknown = 1) {
-  const mockFn = vi.fn((req: unknown, _res: unknown, next: () => void) => {
-    req[`$${name}`] = value;
-    next();
+  const mockFn = vi.fn((ctx: any, next: () => void) => {
+    ctx.state.order = ctx.state.order || [];
+    ctx.state.order.push(name);
+    ctx.state[`$${name}`] = value;
+    return next();
   });
 
   // Set function name for testing

@@ -584,6 +584,14 @@ export default class ERest<T = DEFAULT_HANDLER> {
     if (this.forceGroup) {
       throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
     }
+    // 标准化后 handler 链需经 adapter.bindRoute 的 compose 包装（直接展开会导致
+    // 标准化 Middleware 收到框架原生 ctx 而挂起）。根据传入的 checker 推断框架 adapter。
+    const adapter =
+      checker === this.checkerKoa
+        ? this.adapters.koa
+        : checker === this.checkerLeiWeb
+          ? this.adapters.leizmweb
+          : this.adapters.express;
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
       debug("bind router: %s", key);
       schema.init(this as ERest<unknown>);
@@ -598,8 +606,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
         checker: checker(this, schema),
       });
 
-      const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
-      routerTyped[schema.options.method as string].bind(router)(schema.options.path, ...handlers);
+      adapter.bindRoute(router, schema, handlers);
     }
   }
 
@@ -665,7 +672,12 @@ export default class ERest<T = DEFAULT_HANDLER> {
       throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
     }
 
-    const adapter = this.adapters.express;
+    const adapter =
+      checker === this.checkerKoa
+        ? this.adapters.koa
+        : checker === this.checkerLeiWeb
+          ? this.adapters.leizmweb
+          : this.adapters.express;
     const routes = new Map<string, unknown>();
 
     for (const [key, schema] of this.apiInfo.$apis.entries()) {
