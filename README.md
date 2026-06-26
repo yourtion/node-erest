@@ -9,6 +9,8 @@
 
 基于 TypeScript 的 API 框架，支持自动文档生成、类型安全校验与测试脚手架。兼容 Express、Koa、@leizm/web 等主流框架。
 
+📖 **API 文档**：<https://yourtion.github.io/node-erest/>（master 推送后由 CI 自动构建部署）
+
 ## 特性
 
 - TypeScript 原生支持，完整的类型推导与类型安全
@@ -472,6 +474,13 @@ examples 作为 pnpm workspace 子包，通过 `erest: workspace:*` 引用本地
 覆盖能力：forceGroup 分组、组级 before/middleware 钩子（鉴权/日志）、全局 beforeHooks、
 自定义错误注册、自定义 type/schema 注册、`define()` 声明式、`mock()`、`response()` schema、
 分层参数、文档生成、测试集成。详见 `examples/README.md`。
+
+## API 文档
+
+线上文档站（typedoc 产物）由 CI 自动构建部署：
+
+- 在线：<https://yourtion.github.io/node-erest/>
+- 本地预览：`pnpm install && pnpm run doc`，产物在 `docs/`（已 gitignore，不进版本库）
 
 ## License
 

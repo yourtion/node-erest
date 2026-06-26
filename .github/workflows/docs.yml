@@ -1,0 +1,70 @@
+name: Docs
+
+# 文档站点构建与部署。
+#
+# typedoc 产物不进 git（docs/ 已 gitignore），改由 CI 在 master 推送时
+# 自动构建并以 GitHub Actions 方式部署到 GitHub Pages。
+#
+# 首次使用前需在仓库 Settings → Pages 将 Source 设为 "GitHub Actions"。
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# GITHUB_TOKEN 部署 Pages 所需权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时刻只允许一个部署，避免并发覆盖
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate typedoc
+        run: pnpm run doc
+
+      - name: Restore custom domain (CNAME)
+        run: echo "erest.js.org" > docs/CNAME
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
