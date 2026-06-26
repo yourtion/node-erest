@@ -11,12 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import ERest, { z, ERestError } from 'erest';
 import { API_INFO, GROUPS, registerApi } from '../src/api.js';
 import { createStore } from '../src/store.js';
-import {
-  expressAuthBefore,
-  expressAdminBefore,
-  expressLogMiddleware,
-  expressTimingBefore,
-} from '../src/hooks.js';
+import { authBefore, adminBefore, logMiddleware, timingBefore } from '../src/hooks.js';
 
 let app;
 let api;
@@ -31,10 +26,10 @@ beforeAll(() => {
   api = new ERest({ info: API_INFO, groups: GROUPS, forceGroup: true });
 
   registerApi(api, store, {
-    authBefore: expressAuthBefore(store),
-    adminBefore: expressAdminBefore(),
-    logMiddleware: expressLogMiddleware(),
-    timingBefore: expressTimingBefore(),
+    authBefore: authBefore(store),
+    adminBefore: adminBefore(),
+    logMiddleware: logMiddleware(),
+    timingBefore: timingBefore(),
   });
 
   // define() 声明式定义示例（handler 入参框架相关，测试载体用 Express）
@@ -43,8 +38,8 @@ beforeAll(() => {
     path: '/users/:id',
     title: '删除用户（define 示例）',
     params: z.object({ id: z.coerce.number() }),
-    handler: (req, res) => {
-      res.json({ success: true, deleted: req.$params.id });
+    handler: (ctx) => {
+      ctx.reply.json({ success: true, deleted: ctx.$params.id });
     },
   });
 

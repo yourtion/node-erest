@@ -13,7 +13,7 @@ import ERest from 'erest';
 import { z } from 'zod';
 import { API_INFO, GROUPS, registerApi } from '../api.js';
 import { createStore } from '../store.js';
-import { koaAuthBefore, koaAdminBefore, koaLogMiddleware, koaTimingBefore } from '../hooks.js';
+import { authBefore, adminBefore, logMiddleware, timingBefore } from '../hooks.js';
 
 const app = new Koa();
 app.use(bodyParser());
@@ -32,10 +32,10 @@ const store = createStore();
 const api = new ERest({ info: API_INFO, groups: GROUPS, forceGroup: true });
 
 registerApi(api, store, {
-  authBefore: koaAuthBefore(store),
-  adminBefore: koaAdminBefore(),
-  logMiddleware: koaLogMiddleware(),
-  timingBefore: koaTimingBefore(),
+  authBefore: authBefore(store),
+  adminBefore: adminBefore(),
+  logMiddleware: logMiddleware(),
+  timingBefore: timingBefore(),
 });
 
 // define() 声明式定义示例（handler 入参框架相关）
@@ -45,7 +45,7 @@ api.group('admin').define({
   title: '删除用户（define 示例）',
   params: z.object({ id: z.coerce.number() }),
   handler: (ctx) => {
-    ctx.body = { success: true, deleted: ctx.$params.id };
+    ctx.reply.json({ success: true, deleted: ctx.$params.id });
   },
 });
 

@@ -8,14 +8,14 @@
 |------|------|------|
 | `registerTyped` + `reply` | `src/api.js` | 框架无关 handler，类型自动推导，三入口复用 |
 | `forceGroup` + 分组前缀 | `src/api.js` | public / post / admin 三组，各有前缀 |
-| 组级 `before()` 钩子 | `src/hooks.js` | post/admin 组的鉴权（拒绝未授权请求） |
-| 组级 `middleware()` | `src/hooks.js` | admin 组的请求日志 |
-| 全局 `beforeHooks` | `src/hooks.js` | 计时 hook |
+| 组级 `before()` 钩子 | `src/hooks.js` | post/admin 组的鉴权（拒绝未授权请求），框架无关 |
+| 组级 `middleware()` | `src/hooks.js` | admin 组的请求日志，框架无关 |
+| 全局 `beforeHooks` | `src/hooks.js` | 计时 hook，框架无关 |
 | 自定义错误注册 `errors.register` | `src/errors.js` | 注册 AUTH_REQUIRED / FORBIDDEN |
 | `ERestError` 工厂 | `src/errors.js` | `ERestError` 静态构造（带 code/statusCode） |
 | 自定义 type 注册 | `src/types.js` | 注册 `Slug` 类型（`z.string().regex(...)`） |
 | 自定义 schema 注册 | `src/types.js` | 注册 `CreatePost` / `UpdatePost` |
-| `define()` 声明式定义 | `src/entries/*.js` | 各入口注册一个 define 路由（handler 框架相关） |
+| `define()` 声明式定义 | `src/entries/*.js` | 各入口注册一个 define 路由（handler 框架无关） |
 | `mock()` | `docs/generate.js` | 无 handler 时由 setMockHandler 生成 mock 响应 |
 | `response()` schema | `src/api.js` | 用户列表 API 声明响应 schema |
 | 分层参数 | `src/api.js` | `PUT /posts/:id` 的 path id 与 body 互不覆盖 |
@@ -29,7 +29,7 @@ examples/
 ├── src/
 │   ├── api.js          # 核心：forceGroup 三组 + 所有业务 API（handler 框架无关）
 │   ├── store.js        # 内存存储（用户 + 文章 + token 鉴权）
-│   ├── hooks.js        # 鉴权/日志/计时钩子（框架相关，每框架一套）
+│   ├── hooks.js        # 鉴权/日志/计时钩子（框架无关，v3 标准化签名）
 │   ├── errors.js       # 自定义错误注册 + ERestError 工厂
 │   ├── types.js        # 自定义 Slug type + PostSchema 注册
 │   └── entries/
@@ -57,12 +57,15 @@ examples/
 
 ## 运行
 
+examples 是 pnpm workspace 子包，在仓库根目录安装依赖即可（自动 link 本地 erest）：
+
 ```bash
-cd examples
-npm install
+# 在仓库根目录
+pnpm install
+pnpm run build          # 构建 erest 产物（examples 通过 workspace 引用 dist/）
 
 # 任选一个框架启动（都监听 3100）
-npm run start:express   # 或 start:leizmweb / start:koa
+pnpm --filter erest-example start:express   # 或 start:leizmweb / start:koa
 ```
 
 ### 示例请求（三框架行为一致）
@@ -92,7 +95,7 @@ curl -i -X POST -H "X-Admin-Token: user-token" -H "Content-Type: application/jso
 ## 测试
 
 ```bash
-npm test   # vitest 跑 initTest 套件：success / error / takeExample
+pnpm --filter erest-example test   # vitest 跑 initTest 套件：success / error / takeExample
 ```
 
 测试用 Express 作为载体（`initTest` 对三框架均支持，这里选最通用的）。
@@ -101,7 +104,7 @@ npm test   # vitest 跑 initTest 套件：success / error / takeExample
 ## 文档生成
 
 ```bash
-npm run docs   # 生成到 docs/out/
+pnpm --filter erest-example docs   # 生成到 docs/out/
 ```
 
 产出：
@@ -110,17 +113,22 @@ npm run docs   # 生成到 docs/out/
 - `Home.md` + 各组 `.md` + `errors.md` / `schema.md` / `types.md` — Markdown 文档
 - `sdk.js` — 基于 axios 的前端 SDK
 
-## 设计说明：handler 框架无关，hooks 框架相关
+## 设计说明：handler 与 hooks 均框架无关
+
+erest v3 标准化后，**业务 handler 与 before/middleware 钩子都框架无关**，同一份代码被
+Express / Koa / @leizm/web 三个入口复用：
 
 - **业务 handler**（`registerTyped`）：用 `(req, reply)` 签名，声明一次，三框架复用。
-- **组级 `before`/`middleware` 钩子**：接收框架原生 ctx，无法跨框架。故 `hooks.js` 为每框架
-  提供一套实现（expressAuthBefore / koaAuthBefore / leiAuthBefore 等），业务逻辑（校验 token、
-  判断角色）集中在 `resolveUser` / `requireAdmin`，框架差异仅限于如何从 ctx 读 header。
-- **`define()` 的 handler**：入参也是框架原生 ctx（与 `register` 一致），故 define 路由在各
-  入口内注册。
+- **组级 `before`/`middleware` 钩子**：用统一的 `(ctx, next)` 签名（erest 标准 Context），
+  在 `hooks.js` 里只写一份（`authBefore` / `adminBefore` / `logMiddleware` / `timingBefore`），
+  三入口共用。`ctx.headers` 读 token、`ctx.state.currentUser` 传递用户、`next()` 推进链。
+- **`define()` 的 handler**：同样用 `(ctx, next)` 签名，经 `ctx.$params` 读校验后参数、
+  `ctx.reply.json()` 写响应。虽然 define 路由仍各自在入口内注册（演示该 API），但其 handler
+  也是框架无关的。
 
-这是 erest 当前架构的固有约束：类型安全的框架无关 handler 由 `registerTyped` 提供，
-而框架中件链（before/middleware/define）天然框架相关。
+这是 v3 标准化的核心收益：整个请求处理链（global before → group before → api before →
+checker → group middleware → api middleware → handler）全部框架无关，框架适配完全下沉到
+adapter 层。
 
 ## TypeScript 集成（NodeNext）
 

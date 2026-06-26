@@ -2,18 +2,18 @@ name: Test
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, master ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, master ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [20.x, 22.x, 24.x]
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -22,15 +22,15 @@ jobs:
       uses: pnpm/action-setup@v4
       with:
         version: 9
-      
+
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'pnpm'
-          
-    - name: Install dependencies
-      run: pnpm install
+
+    - name: Install dependencies (workspace, frozen lockfile)
+      run: pnpm install --frozen-lockfile
 
     - name: Run code format check
       run: pnpm run check
@@ -40,6 +40,9 @@ jobs:
 
     - name: Run tests with coverage
       run: pnpm run test:cov
+
+    - name: Run examples tests
+      run: pnpm --filter erest-example test
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5

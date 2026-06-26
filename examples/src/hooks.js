@@ -1,11 +1,18 @@
 /**
- * 框架相关钩子（before / middleware）工厂。
+ * before / middleware 钩子（框架无关，v3 标准化签名）。
  *
- * 重要约束：erest 的组级 before()/middleware() 钩子接收的是框架原生 ctx（在 checker
- * 之前/之后执行），无法跨框架复用。因此每个框架入口需提供本框架的 hook 实现。
+ * erest v3 标准化后，所有 group.before() / group.middleware() / beforeHooks() 的钩子
+ * 统一接收框架无关的标准 Context：
  *
- * 本文件导出「鉴权 + 日志」的业务逻辑，由各入口的 hook 适配器调用，
- * 让业务规则（校验 token、判断角色）集中一处，框架差异仅限于如何从 ctx 读 header。
+ *   (ctx, next) => { ... return next(); }
+ *
+ * ctx 暴露的字段（见 erest 的 Context 类型）：
+ *   - ctx.headers   请求头（大小写不敏感读取）
+ *   - ctx.state     跨中间件传递的可读写状态（替代直接写 req/ctx.currentUser）
+ *   - ctx.path/ctx.method  路径与方法
+ *
+ * 因此鉴权/日志/计时三套逻辑只需写**一份**，被 Express / Koa / @leizm/web 三个入口复用。
+ * 业务规则（校验 token、判断角色）集中在 resolveUser / requireAdmin，无框架差异。
  */
 import { authRequired, forbidden } from './errors.js';
 
@@ -33,138 +40,50 @@ export function requireAdmin(user) {
 }
 
 // ====================================================================
-// 以下是各框架的 hook 适配器：把框架 ctx 转成 { token }，调用上面的业务逻辑，
-// 并把 currentUser 写回 ctx（供 handler 经框架方式读取）。
-// 返回的函数即 erest group().before() / middleware() 的入参。
+// 标准化钩子（框架无关）：签名统一为 (ctx, next)。
+// ctx 为 erest 标准 Context，next 为调用链下一个中间件。
 // ====================================================================
 
 /**
- * Express 鉴权 before 钩子：从 req.headers 读 token，校验后挂到 req.currentUser。
+ * 鉴权 before 钩子：从 ctx.headers 读 token，校验后存到 ctx.state.currentUser。
  * @param {ReturnType<typeof import('./store.js').createStore>} store
  */
-export function expressAuthBefore(store) {
-  return (req, _res, next) => {
-    try {
-      const user = resolveUser({ token: req.headers['x-admin-token'] }, store);
-      req.currentUser = user;
-      next();
-    } catch (e) {
-      next(e);
-    }
+export function authBefore(store) {
+  return (ctx, next) => {
+    const user = resolveUser({ token: ctx.headers['x-admin-token'] }, store);
+    ctx.state.currentUser = user;
+    return next();
   };
 }
 
 /**
- * Express 管理员鉴权 before 钩子：在 expressAuthBefore 之后，校验角色。
+ * 管理员鉴权 before 钩子：在 authBefore 之后，校验角色。
  */
-export function expressAdminBefore() {
-  return (req, _res, next) => {
-    if (!req.currentUser || req.currentUser.role !== 'admin') return next(forbidden('需要管理员权限'));
-    next();
-  };
-}
-
-/**
- * Express 日志 middleware。
- */
-export function expressLogMiddleware() {
-  return (req, _res, next) => {
-    console.log(`[express] ${req.method} ${req.path} user=${req.currentUser?.id ?? '-'}`);
-    next();
-  };
-}
-
-// —— Koa ——（ctx.headers / ctx.set）
-
-/**
- * Koa 鉴权 before 钩子。
- * @param {ReturnType<typeof import('./store.js').createStore>} store
- */
-export function koaAuthBefore(store) {
-  return async (ctx, next) => {
-    try {
-      const user = resolveUser({ token: ctx.headers['x-admin-token'] }, store);
-      ctx.currentUser = user;
-      await next();
-    } catch (e) {
-      throw e;
-    }
-  };
-}
-
-/** Koa 管理员鉴权 before 钩子 */
-export function koaAdminBefore() {
-  return async (ctx, next) => {
-    if (!ctx.currentUser || ctx.currentUser.role !== 'admin') throw forbidden('需要管理员权限');
-    await next();
-  };
-}
-
-/** Koa 日志 middleware */
-export function koaLogMiddleware() {
-  return async (ctx, next) => {
-    console.log(`[koa] ${ctx.method} ${ctx.path} user=${ctx.currentUser?.id ?? '-'}`);
-    await next();
-  };
-}
-
-// —— @leizm/web ——（ctx.request.headers / ctx.data）
-
-/**
- * @leizm/web 鉴权 before 钩子。
- * @param {ReturnType<typeof import('./store.js').createStore>} store
- */
-export function leiAuthBefore(store) {
-  return (ctx) => {
-    const user = resolveUser({ token: ctx.request.headers['x-admin-token'] }, store);
-    ctx.data['currentUser'] = user;
-    ctx.next();
-  };
-}
-
-/** @leizm/web 管理员鉴权 before 钩子 */
-export function leiAdminBefore() {
-  return (ctx) => {
-    const user = ctx.data['currentUser'];
+export function adminBefore() {
+  return (ctx, next) => {
+    const user = ctx.state.currentUser;
     if (!user || user.role !== 'admin') throw forbidden('需要管理员权限');
-    ctx.next();
+    return next();
   };
 }
 
-/** @leizm/web 日志 middleware */
-export function leiLogMiddleware() {
-  return (ctx) => {
-    const user = ctx.data['currentUser'];
-    console.log(`[leizmweb] ${ctx.request.method} ${ctx.request.path} user=${user?.id ?? '-'}`);
-    ctx.next();
+/**
+ * 日志 middleware。
+ */
+export function logMiddleware() {
+  return (ctx, next) => {
+    const user = ctx.state.currentUser;
+    console.log(`[${ctx.method}] ${ctx.path} user=${user?.id ?? '-'}`);
+    return next();
   };
 }
 
-// ====================================================================
-// 全局 timing before 钩子（演示 beforeHooks）：记录请求开始时间，响应时输出耗时。
-// 同样框架相关，由各入口选用。
-// ====================================================================
-
-/** Express 全局计时 before hook */
-export function expressTimingBefore() {
-  return (req, _res, next) => {
-    req.$start = Date.now();
-    next();
-  };
-}
-
-/** Koa 全局计时 before hook */
-export function koaTimingBefore() {
-  return async (ctx, next) => {
-    ctx.$start = Date.now();
-    await next();
-  };
-}
-
-/** @leizm/web 全局计时 before hook */
-export function leiTimingBefore() {
-  return (ctx) => {
-    ctx.request.$start = Date.now();
-    ctx.next();
+/**
+ * 全局计时 before hook（演示 beforeHooks）：记录请求开始时间。
+ */
+export function timingBefore() {
+  return (ctx, next) => {
+    ctx.state.$start = Date.now();
+    return next();
   };
 }

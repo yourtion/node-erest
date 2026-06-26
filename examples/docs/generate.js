@@ -18,7 +18,7 @@ import { mkdirSync } from 'node:fs';
 import ERest from 'erest';
 import { API_INFO, GROUPS, registerApi } from '../src/api.js';
 import { createStore } from '../src/store.js';
-import { expressAuthBefore, expressAdminBefore, expressLogMiddleware, expressTimingBefore } from '../src/hooks.js';
+import { authBefore, adminBefore, logMiddleware, timingBefore } from '../src/hooks.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(__dirname, 'out');
@@ -42,10 +42,10 @@ const api = new ERest({
 
 // 注册全部 API（与 entries 一致）
 registerApi(api, store, {
-  authBefore: expressAuthBefore(store),
-  adminBefore: expressAdminBefore(),
-  logMiddleware: expressLogMiddleware(),
-  timingBefore: expressTimingBefore(),
+  authBefore: authBefore(store),
+  adminBefore: adminBefore(),
+  logMiddleware: logMiddleware(),
+  timingBefore: timingBefore(),
 });
 
 // —— mock() 能力演示：设置 mockHandler 后，.mock() 端点无需 handler 即可生成 mock 响应 ——

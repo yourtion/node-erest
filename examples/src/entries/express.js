@@ -11,12 +11,7 @@ import ERest from 'erest';
 import { z } from 'zod';
 import { API_INFO, GROUPS, registerApi } from '../api.js';
 import { createStore } from '../store.js';
-import {
-  expressAuthBefore,
-  expressAdminBefore,
-  expressLogMiddleware,
-  expressTimingBefore,
-} from '../hooks.js';
+import { authBefore, adminBefore, logMiddleware, timingBefore } from '../hooks.js';
 
 const app = express();
 app.use(express.json());
@@ -25,12 +20,12 @@ app.use(express.urlencoded({ extended: true }));
 const store = createStore();
 const api = new ERest({ info: API_INFO, groups: GROUPS, forceGroup: true });
 
-// 注册全部业务 API（注入 Express 版钩子）
+// 注册全部业务 API（注入框架无关的标准化钩子）
 registerApi(api, store, {
-  authBefore: expressAuthBefore(store),
-  adminBefore: expressAdminBefore(),
-  logMiddleware: expressLogMiddleware(),
-  timingBefore: expressTimingBefore(),
+  authBefore: authBefore(store),
+  adminBefore: adminBefore(),
+  logMiddleware: logMiddleware(),
+  timingBefore: timingBefore(),
 });
 
 // define() 声明式定义示例（handler 入参框架相关，故在各入口内注册）
@@ -40,8 +35,8 @@ api.group('admin').define({
   title: '删除用户（define 示例）',
   description: '用 define() 一次性声明路由 + handler',
   params: z.object({ id: z.coerce.number() }),
-  handler: (req, res) => {
-    res.json({ success: true, deleted: req.$params.id });
+  handler: (ctx) => {
+    ctx.reply.json({ success: true, deleted: ctx.$params.id });
   },
 });
 

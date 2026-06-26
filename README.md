@@ -1,9 +1,9 @@
 [![NPM version](https://img.shields.io/npm/v/erest.svg?style=flat-square)](https://npmjs.org/package/erest)
+[![Test](https://github.com/yourtion/node-erest/actions/workflows/test.yml/badge.svg)](https://github.com/yourtion/node-erest/actions/workflows/test.yml)
 [![codecov](https://codecov.io/github/yourtion/node-erest/graph/badge.svg?token=HRY0R63I95)](https://codecov.io/github/yourtion/node-erest)
-[![node version](https://img.shields.io/badge/node.js-%3E=_18-green.svg?style=flat-square)](http://nodejs.org/download/)
+[![node version](https://img.shields.io/badge/node.js-%3E=_20-green.svg?style=flat-square)](http://nodejs.org/download/)
 [![npm download](https://img.shields.io/npm/dm/erest.svg?style=flat-square)](https://npmjs.org/package/erest)
 [![npm license](https://img.shields.io/npm/l/erest.svg)](https://npmjs.org/package/erest)
-[![DeepScan grade](https://deepscan.io/api/projects/2707/branches/19046/badge/grade.svg)](https://deepscan.io/dashboard#view=project&pid=2707&bid=19046)
 
 # ERest
 
@@ -461,11 +461,13 @@ throw ERestError.invalidParam('age', 'Integer', 'abc');
 **一份 API 定义（`src/api.js`），三个框架入口**（`src/entries/`）。handler 用 `registerTyped`
 的 `(req, reply)` 签名声明一次，被 @leizm/web / Express / Koa 复用，仅 `bind()` 参数不同。
 
+examples 作为 pnpm workspace 子包，通过 `erest: workspace:*` 引用本地 erest，安装时自动 link。
+
 | 命令 | 说明 |
 |------|------|
-| `npm run start:{leizmweb,express,koa}` | 三框架入口（监听 3100） |
-| `npm test` | vitest 测试套件（initTest + success/error/takeExample） |
-| `npm run docs` | 生成 swagger / postman / markdown / axios SDK |
+| `pnpm --filter erest-example start:{leizmweb,express,koa}` | 三框架入口（监听 3100） |
+| `pnpm --filter erest-example test` | vitest 测试套件（initTest + success/error/takeExample） |
+| `pnpm --filter erest-example docs` | 生成 swagger / postman / markdown / axios SDK |
 
 覆盖能力：forceGroup 分组、组级 before/middleware 钩子（鉴权/日志）、全局 beforeHooks、
 自定义错误注册、自定义 type/schema 注册、`define()` 声明式、`mock()`、`response()` schema、

@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@leizm/web": "^2.7.0",
-    "erest": "file:..",
+    "erest": "workspace:*",
     "express": "^4.21.0",
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
