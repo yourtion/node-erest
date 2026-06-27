@@ -742,6 +742,8 @@ export function responseChecker<T extends Record<string, unknown>>(
   }
 }
 
+// ============ Stage 1: 预编译校验（热路径零分配） ============
+
 /** 分层校验后的参数（按来源区分，registerTyped 读取此结构以获得类型安全） */
 export interface LayeredParams {
   params: Record<string, unknown>;
@@ -750,12 +752,73 @@ export interface LayeredParams {
   headers: Record<string, unknown>;
 }
 
-/** 校验结果：扁平参数（向后兼容 $params）+ 分层参数（registerTyped 使用） */
+/** 校验结果：扁平参数（向后兼容 $params）+ 分层参数（registerTyped 使用）。
+ *  Task 6 删除 apiParamsCheck 后此类型一并移除。 */
 export interface ParamsCheckResult {
-  /** 扁平合并的校验后参数（params+query+body+headers） */
   flat: Record<string, unknown>;
-  /** 分层校验后参数（按来源区分） */
   layered: LayeredParams;
+}
+
+/** 预编译的校验 schema 集合 */
+export interface CompiledSchemas {
+  paramsSchema?: ZodType;
+  querySchema?: ZodType;
+  bodySchema?: ZodType;
+  headersSchema?: ZodType;
+}
+
+/** 预编译的校验执行器：输入原始分层输入，输出校验后分层参数或抛 ERestError */
+export interface CompiledRoute extends CompiledSchemas {
+  validate: (input: {
+    params?: Record<string, unknown>;
+    query?: Record<string, unknown>;
+    body?: unknown;
+    headers?: Record<string, unknown>;
+  }) => LayeredParams;
+}
+
+/**
+ * 把 Zod schema 集合预编译为热路径零分配的 validate 闭包。
+ *
+ * 闭包在编译期据 schema 有无裁剪分支：热路径只调用存在的层，
+ * 直接构造字面量返回，无 Object.assign、无临时 z.object 构造。
+ *
+ * 错误消息兼容现有形态：
+ * - 缺失必填 → "missing required parameter 'field'"
+ * - 类型错误 → "'field' should be valid"
+ */
+export function compileValidate(ctx: ERest<unknown>, schemas: CompiledSchemas): CompiledRoute {
+  const { error } = ctx.privateInfo;
+  const { paramsSchema, querySchema, bodySchema, headersSchema } = schemas;
+
+  // 预构造每层的校验函数：从 ZodError 的 issue 提取字段名用于错误消息
+  // Zod 4 的 issue：缺失字段 message 含 "received undefined"，类型错误含具体 received 值
+  const makeParse = (schema: ZodType) => (input: unknown): Record<string, unknown> => {
+    const result = schema.safeParse(input);
+    if (result.success) return result.data as Record<string, unknown>;
+    const issue = result.error.issues[0];
+    const field = (issue.path[0] as string) ?? "value";
+    const msg = issue.message ?? "";
+    if (msg.includes("received undefined") || msg.includes("required")) {
+      throw error.missingParameter(`'${field}'`);
+    }
+    throw error.invalidParameter(`'${field}' should be valid`);
+  };
+
+  // 闭包裁剪：只为存在的层组装校验调用（无该层 schema 时该分支为常量 {}）
+  const paramsParse = paramsSchema ? makeParse(paramsSchema) : undefined;
+  const queryParse = querySchema ? makeParse(querySchema) : undefined;
+  const bodyParse = bodySchema ? makeParse(bodySchema) : undefined;
+  const headersParse = headersSchema ? makeParse(headersSchema) : undefined;
+
+  const validate: CompiledRoute["validate"] = (input) => ({
+    params: paramsParse && input.params ? paramsParse(input.params) : {},
+    query: queryParse && input.query ? queryParse(input.query) : {},
+    body: bodyParse && input.body !== undefined ? bodyParse(input.body) : {},
+    headers: headersParse && input.headers ? headersParse(input.headers) : {},
+  });
+
+  return { paramsSchema, querySchema, bodySchema, headersSchema, validate };
 }
 
 /**
