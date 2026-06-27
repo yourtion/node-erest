@@ -8,7 +8,7 @@
  */
 import express from 'express';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import ERest, { z, ERestError } from 'erest';
+import ERest, { ERestError } from 'erest';
 import { API_INFO, GROUPS, registerApi } from '../src/api.js';
 import { createStore } from '../src/store.js';
 import { authBefore, adminBefore, logMiddleware, timingBefore } from '../src/hooks.js';
@@ -30,17 +30,6 @@ beforeAll(() => {
     adminBefore: adminBefore(),
     logMiddleware: logMiddleware(),
     timingBefore: timingBefore(),
-  });
-
-  // define() 声明式定义示例（handler 入参框架相关，测试载体用 Express）
-  api.group('admin').define({
-    method: 'delete',
-    path: '/users/:id',
-    title: '删除用户（define 示例）',
-    params: z.object({ id: z.coerce.number() }),
-    handler: (ctx) => {
-      ctx.reply.json({ success: true, deleted: ctx.$params.id });
-    },
   });
 
   api.bind({ framework: 'express', app, router: express.Router });

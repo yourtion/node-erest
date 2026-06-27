@@ -178,6 +178,15 @@ export function registerApi(api, store, hooks) {
       reply.json({ users: store.listUsers() });
     });
 
-  // 注：define() 声明式定义的 handler 入参是框架原生 ctx（与 register 一致，框架相关），
-  // 无法跨框架复用。各入口用 define() 注册一个示例路由演示该能力（见 entries/*.js）。
+  // define() 声明式定义（演示）：与 registerTyped 等价，handler 同样是框架无关的
+  // (ctx, next) 签名。admin 组的 before(authBefore, adminBefore) 鉴权会自动生效。
+  admin.define({
+    method: 'delete',
+    path: '/users/:id',
+    title: '删除用户（define 示例）',
+    params: z.object({ id: z.coerce.number() }),
+    handler: (ctx) => {
+      ctx.reply.json({ success: true, deleted: ctx.$params.id });
+    },
+  });
 }

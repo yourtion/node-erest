@@ -10,7 +10,6 @@ import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
 import KoaRouter from 'koa-router';
 import ERest from 'erest';
-import { z } from 'zod';
 import { API_INFO, GROUPS, registerApi } from '../api.js';
 import { createStore } from '../store.js';
 import { authBefore, adminBefore, logMiddleware, timingBefore } from '../hooks.js';
@@ -36,17 +35,6 @@ registerApi(api, store, {
   adminBefore: adminBefore(),
   logMiddleware: logMiddleware(),
   timingBefore: timingBefore(),
-});
-
-// define() 声明式定义示例（handler 入参框架相关）
-api.group('admin').define({
-  method: 'delete',
-  path: '/users/:id',
-  title: '删除用户（define 示例）',
-  params: z.object({ id: z.coerce.number() }),
-  handler: (ctx) => {
-    ctx.reply.json({ success: true, deleted: ctx.$params.id });
-  },
 });
 
 // forceGroup 绑定
