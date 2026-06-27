@@ -421,7 +421,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
 
   /**
    * 初始化测试系统
-   * @param app APP或者serve实例，用于init supertest
+   * @param app APP或者serve实例，用于初始化测试 HTTP 服务
    * @param testPath 测试文件路径
    * @param docPath 输出文件路径
    */

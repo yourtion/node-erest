@@ -11,7 +11,7 @@ import express from "express";
 import Koa from "koa";
 import bodyParser from "koa-bodyparser";
 import KoaRouter from "koa-router";
-import request from "supertest";
+import { httpReq as request } from "./http-req";
 import { afterAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import lib from "./lib";
