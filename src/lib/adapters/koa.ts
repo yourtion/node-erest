@@ -5,7 +5,6 @@
 
 import type API from "../api.js";
 import type ERest from "../index.js";
-import { apiParamsCheck } from "../params.js";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "./types.js";
 import { compose } from "./utils.js";
 
@@ -23,20 +22,20 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
    */
   makeParamsChecker(erest: ERest<T>, api: API<T>): T {
     const checker: Middleware = (ctx, next) => {
-      const result = apiParamsCheck(
-        erest as ERest<unknown>,
-        api,
-        ctx.params,
-        ctx.query as Record<string, unknown> | undefined,
-        ctx.body as Record<string, unknown> | undefined,
-        ctx.headers as Record<string, unknown> | undefined
-      );
-      ctx.$validated = result.layered;
-      ctx.$params = result.flat;
-      ctx.$pathParams = result.layered.params;
-      ctx.$query = result.layered.query;
-      ctx.$body = result.layered.body;
-      ctx.$headers = result.layered.headers;
+      const compiled = api.options.compiled;
+      if (!compiled) return next();
+      const layered = compiled.validate({
+        params: ctx.params,
+        query: ctx.query as Record<string, unknown> | undefined,
+        body: ctx.body as Record<string, unknown> | undefined,
+        headers: ctx.headers as Record<string, unknown> | undefined,
+      });
+      ctx.$validated = layered;
+      ctx.$params = { ...layered.params, ...layered.query, ...layered.body, ...layered.headers };
+      ctx.$pathParams = layered.params;
+      ctx.$query = layered.query;
+      ctx.$body = layered.body;
+      ctx.$headers = layered.headers;
       return next();
     };
     return checker as unknown as T;

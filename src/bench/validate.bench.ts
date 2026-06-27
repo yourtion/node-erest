@@ -1,6 +1,6 @@
 import { bench } from "vitest";
 import { z } from "zod";
-import { apiParamsCheck } from "../lib/params.js";
+import { apiParamsCheck, compileValidate } from "../lib/params.js";
 import API from "../lib/api.js";
 import type ERest from "../lib/index.js";
 import lib from "../test/lib.js";
@@ -23,4 +23,15 @@ const input = {
 
 bench("apiParamsCheck: typical POST (params+query+body)", () => {
   apiParamsCheck(erest, api as never, input.params, input.query, input.body, input.headers);
+});
+
+// 预编译路径（Stage 1 目标：热路径零分配）
+const compiled = compileValidate(erest, {
+  paramsSchema: api.options.paramsSchema,
+  querySchema: api.options.querySchema,
+  bodySchema: api.options.bodySchema,
+});
+
+bench("compiled.validate: typical POST (params+query+body)", () => {
+  compiled.validate(input);
 });

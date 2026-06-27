@@ -3,7 +3,7 @@ import { vol } from "memfs";
 import { vi } from "vitest";
 import { z } from "zod";
 
-import { apiAll, apiJson, build, TYPES } from "./helper";
+import { apiAll, apiJson } from "./helper";
 import lib from "./lib";
 
 describe("ERest 测试套件", () => {
@@ -33,22 +33,24 @@ describe("ERest 测试套件", () => {
     api = apiService.api;
     apiAll(api as any);
     apiJson(api as any);
-    apiJson(api as any, "/json3").response({});
+    apiJson(api as any, "/json3").response(z.object({}));
     const jsonApi = apiJson(api as any, "/json2");
     jsonApi.description("测试JSON用");
-    const JsonSchemaObj = {
-      num: build(TYPES.Number, "Number", false, 10, { max: 10, min: 0 }),
-      type: build(TYPES.ENUM, "类型", false, undefined, ["a", "b"]),
-      int_arr: build(TYPES.IntArray, "数组"),
-      date: build(TYPES.Date, "日期"),
-    } as any;
-    const JsonSchema = apiService.createSchema(JsonSchemaObj);
+    // 迁移到原生 Zod：age + num(可选带默认)、type(enum)、int_arr(可选)、date(可选)
+    const JsonSchemaObj = z.object({
+      age: z.coerce.number().int(),
+      num: z.number().min(0).max(10).default(10),
+      type: z.enum(["a", "b"]).optional(),
+      int_arr: z.array(z.number().int()).optional(),
+      date: z.coerce.date().optional(),
+    });
+    const JsonSchema = JsonSchemaObj;
     jsonApi.response(JsonSchemaObj);
     jsonApi.query(JsonSchemaObj);
     jsonApi.requiredOneOf(["age", "type"]);
 
     apiService.schema.register("JsonSchema", JsonSchema);
-    apiJson(api as any, "/json4").query({ a: build("JsonSchema[]", "JsonSchema Array") } as any);
+    apiJson(api as any, "/json4").query(z.object({ a: z.array(JsonSchemaObj) }));
 
     // 绑定路由并开始测试
     apiService.bindRouter(router, apiService.checkerExpress);
@@ -179,7 +181,7 @@ describe("ERest 测试套件", () => {
             })
             .takeExample("Index-Post")
             .raw();
-          expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
+          expect(ret).toBe("incorrect parameter 'age' should be valid");
         });
 
         test("JSON 格式输出错误测试", async () => {

@@ -1,89 +1,85 @@
 /**
  * Common API helper functions for testing
- * Extracted from helper.ts and enhanced for reusability
+ * Stage 1：fixture 全部迁移到原生 Zod
  */
 
+import { z } from "zod";
 import type { IApiInfo } from "../../lib";
-import { build, TYPES } from "../helper";
+import type { Context } from "../../lib/adapters/types.js";
 
-/**
- * Common parameter definitions
- */
-export const commonParams = {
-  name: build(TYPES.String, "Your name", true),
-  age: build(TYPES.Integer, "Your age", false),
-  email: build(TYPES.Email, "Email address", false),
-  id: build(TYPES.String, "Unique identifier", true),
-  status: build(TYPES.ENUM, "Status", false, "active", ["active", "inactive", "pending"]),
+/** 通用 Zod schema 定义 */
+export const commonSchemas = {
+  name: z.string(),
+  age: z.coerce.number().int().optional(),
+  email: z.string().email().optional(),
+  id: z.string(),
+  status: z.enum(["active", "inactive", "pending"]).optional(),
 } as const;
 
-/**
- * Create a standardized GET API for testing
- */
+/** @deprecated 旧 ISchemaType 参数（仅 test-params/test-schema-coverage 过渡用） */
+export const commonParams = {
+  name: { type: "String", required: true },
+  age: { type: "Integer" },
+  email: { type: "Email" },
+  id: { type: "String", required: true },
+  status: { type: "ENUM", params: ["active", "inactive", "pending"] },
+} as const;
+
+/** 创建标准化 GET API */
 export function createGetApi(api: IApiInfo<unknown>, path = "/", title = "Get Test") {
   return api
     .get(path)
     .group("Index")
     .title(title)
-    .register(function get(_req: unknown, res: unknown) {
-      res.end("Hello, API Framework Index");
+    .register(function get(ctx: Context) {
+      ctx.reply.send("Hello, API Framework Index");
     });
 }
 
-/**
- * Create a standardized POST API with body validation
- */
+/** 创建标准化 POST API（带 body 校验） */
 export function createPostApi(api: IApiInfo<unknown>, path = "/", title = "Post Test") {
   return api
     .post(path)
     .group("Index")
     .title(title)
-    .query({ name: commonParams.name })
-    .body({ age: commonParams.age })
-    .required(["name", "age"])
-    .register(function post(req: unknown, res: unknown) {
-      res.end(`Post ${req.$params.name}:${req.$params.age}`);
+    .query(z.object({ name: commonSchemas.name }))
+    .body(z.object({ age: z.coerce.number().int() }))
+    .register(function post(ctx: Context) {
+      ctx.reply.send(`Post ${ctx.$params.name}:${ctx.$params.age}`);
     });
 }
 
-/**
- * Create a standardized DELETE API with params
- */
+/** 创建 DELETE API（带 params） */
 export function createDeleteApi(api: IApiInfo<unknown>, path = "/:id", title = "Delete Test") {
   return api
     .delete(path)
     .group("Index")
     .title(title)
-    .params({ id: commonParams.id })
-    .register(function del(req: unknown, res: unknown) {
-      res.end(`Delete ${req.$params.id}`);
+    .params(z.object({ id: commonSchemas.id }))
+    .register(function del(ctx: Context) {
+      ctx.reply.send(`Delete ${ctx.$params.id}`);
     });
 }
 
-/**
- * Create a JSON response API for testing
- */
+/** 创建 JSON 响应 API */
 export function createJsonApi(api: IApiInfo<unknown>, path = "/json", title = "JSON Test") {
-  function jsonHandler(req: unknown, res: unknown) {
-    if (!req.$params.age || req.$params.age < 18) {
-      return res.json({ success: false });
+  function jsonHandler(ctx: Context) {
+    if (!ctx.$params.age || ctx.$params.age < 18) {
+      return ctx.reply.json({ success: false });
     }
-    return res.json({ success: true, result: req.$params, headers: req.headers });
+    return ctx.reply.json({ success: true, result: ctx.$params, headers: ctx.headers });
   }
-
   return api.define({
     method: "get",
     path,
     group: "Index",
     title,
-    query: { age: commonParams.age },
+    query: z.object({ age: z.coerce.number().int() }),
     handler: jsonHandler,
   });
 }
 
-/**
- * Create all standard CRUD APIs for comprehensive testing
- */
+/** 创建全部标准 CRUD API */
 export function createAllCrudApis(api: IApiInfo<unknown>) {
   const apis = {
     get: createGetApi(api, "/", "Get"),
@@ -91,38 +87,32 @@ export function createAllCrudApis(api: IApiInfo<unknown>) {
     delete: createDeleteApi(api, "/index/:id", "Delete"),
     json: createJsonApi(api, "/json", "JSON"),
   };
-
-  // Create additional HTTP method APIs
   apis.get = api
     .put("/index")
     .group("Index")
     .title("Put")
-    .body({ age: commonParams.age })
-    .register(function put(req: unknown, res: unknown) {
-      res.end(`Put ${req.$params.age}`);
+    .body(z.object({ age: z.coerce.number().int() }))
+    .register(function put(ctx: Context) {
+      ctx.reply.send(`Put ${ctx.$params.age}`);
     });
-
   apis.get = api
     .patch("/index")
     .group("Index")
     .title("Patch")
-    .register(function patch(_req: unknown, res: unknown) {
-      res.end("Patch");
+    .register(function patch(ctx: Context) {
+      ctx.reply.send("Patch");
     });
-
   return apis;
 }
 
-/**
- * Create API with headers validation
- */
+/** 创建带 headers 校验的 API */
 export function createHeaderApi(api: IApiInfo<unknown>, path = "/header", title = "Header Test") {
   return api
     .get(path)
     .group("Index")
     .title(title)
-    .headers({ name: commonParams.name })
-    .register((req: unknown, res: unknown) => {
-      res.end(`Get ${req.$params.name}`);
+    .headers(z.object({ name: commonSchemas.name }))
+    .register((ctx: Context) => {
+      ctx.reply.send(`Get ${ctx.$params.name}`);
     });
 }

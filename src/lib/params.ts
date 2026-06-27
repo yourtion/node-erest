@@ -792,18 +792,33 @@ export function compileValidate(ctx: ERest<unknown>, schemas: CompiledSchemas): 
   const { paramsSchema, querySchema, bodySchema, headersSchema } = schemas;
 
   // 预构造每层的校验函数：从 ZodError 的 issue 提取字段名用于错误消息
-  // Zod 4 的 issue：缺失字段 message 含 "received undefined"，类型错误含具体 received 值
-  const makeParse = (schema: ZodType) => (input: unknown): Record<string, unknown> => {
-    const result = schema.safeParse(input);
-    if (result.success) return result.data as Record<string, unknown>;
-    const issue = result.error.issues[0];
-    const field = (issue.path[0] as string) ?? "value";
-    const msg = issue.message ?? "";
-    if (msg.includes("received undefined") || msg.includes("required")) {
-      throw error.missingParameter(`'${field}'`);
+  // Zod 4 的 issue：缺失字段 message 含 "received undefined"（含 union 嵌套 errors），
+  // 类型错误含具体 received 值。
+  const isMissing = (issue: { code: string; message?: string; errors?: unknown[] }): boolean => {
+    if (issue.message?.includes("received undefined")) return true;
+    // union 类型缺失：嵌套 errors 里可能有 "received undefined"
+    if (issue.code === "invalid_union" && Array.isArray(issue.errors)) {
+      return issue.errors.some((branch) =>
+        Array.isArray(branch)
+          ? branch.some((e: { message?: string }) => e.message?.includes("received undefined"))
+          : false
+      );
     }
-    throw error.invalidParameter(`'${field}' should be valid`);
+    return false;
   };
+
+  const makeParse =
+    (schema: ZodType) =>
+    (input: unknown): Record<string, unknown> => {
+      const result = schema.safeParse(input);
+      if (result.success) return result.data as Record<string, unknown>;
+      const issue = result.error.issues[0];
+      const field = (issue.path[0] as string) ?? "value";
+      if (isMissing(issue as never)) {
+        throw error.missingParameter(`'${field}'`);
+      }
+      throw error.invalidParameter(`'${field}' should be valid`);
+    };
 
   // 闭包裁剪：只为存在的层组装校验调用（无该层 schema 时该分支为常量 {}）
   const paramsParse = paramsSchema ? makeParse(paramsSchema) : undefined;

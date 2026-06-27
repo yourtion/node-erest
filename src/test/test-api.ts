@@ -36,8 +36,7 @@ describe("API 接口测试", () => {
     expect(apiInfo?.options.path).toBe("/index/:name");
     expect(apiInfo?.options.title).toBe("Delete");
     expect(apiInfo?.options.group).toBe("Index");
-    expect((apiInfo?.options.params as any)?.name).toEqual(nameParams);
-    expect(apiInfo?.options._allParams.get("name")).toEqual(nameParams);
+    expect(apiInfo?.options.paramsSchema).toBeDefined();
     expect(apiInfo?.options.handler?.name).toBe("del");
   });
 
