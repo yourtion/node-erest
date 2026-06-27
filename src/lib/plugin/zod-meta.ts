@@ -99,3 +99,21 @@ export function extractDocFields(schema: unknown, place: string): DocField[] {
     };
   });
 }
+
+/** 获取 ZodObject 的 shape（字段定义映射），非 ZodObject 返回 undefined */
+export function getZodShape(schema: unknown): Record<string, ZodTypeAny> | undefined {
+  const def = (schema as { _def?: { shape?: Record<string, ZodTypeAny> } })._def;
+  return def?.shape;
+}
+
+/** 获取 Zod 类型的 typeName（如 "ZodString"），用于文档分支 */
+export function getZodTypeName(schema: unknown): string | undefined {
+  const def = (schema as { _def?: { typeName?: string } })._def;
+  return def?.typeName;
+}
+
+/** 获取 ZodOptional/ZodDefault 的内层 schema */
+export function getZodInner(schema: ZodTypeAny): ZodTypeAny | undefined {
+  const def = (schema as { _def?: { innerType?: ZodTypeAny } })._def;
+  return def?.innerType;
+}
