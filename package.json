@@ -22,10 +22,10 @@
     "test:lib": "export ISLIB=1 && vitest run",
     "test:cov": "export ISLIB=1 && vitest run --coverage",
     "test:examples": "pnpm --filter erest-example test",
+    "bench": "export ISLIB=1 && vitest bench --config vitest.bench.config.ts",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "oxfmt --write src examples/src examples/test",
-    "check": "oxlint src examples/src examples/test && oxfmt --check src examples/src examples/test",
-    "clean": "rm -rf dist",
+    "check": "oxlint src examples/src examples/test && oxfmt --check src examples/src examples/test",    "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
     "prepublishOnly": "npm run format && npm run test:cov && npm test",
     "postpublish": "npm run tag && git push && git push --tags"
