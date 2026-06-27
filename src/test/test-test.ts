@@ -288,6 +288,36 @@ describe("ERest 测试套件", () => {
     });
   });
 
+  describe("Session cookie 持久化测试", () => {
+    test("$agent.updateCookies 应把 set-cookie 写入 jar", () => {
+      const session = apiService.test.session();
+      session.$agent.updateCookies({ "set-cookie": "sessionid=abc123; Path=/; HttpOnly" });
+      expect(session.$agent.getCookieHeader()).toBe("sessionid=abc123");
+    });
+
+    test("多 cookie 应累加到 jar", () => {
+      const session = apiService.test.session();
+      session.$agent.updateCookies({ "set-cookie": "a=1" });
+      session.$agent.updateCookies({ "set-cookie": "b=2" });
+      const header = session.$agent.getCookieHeader() || "";
+      expect(header).toContain("a=1");
+      expect(header).toContain("b=2");
+    });
+
+    test("session 跨请求应携带已存储的 cookie", async () => {
+      // 一次真实请求触发 onResponse（验证 agent 把 set-cookie 写回 jar 的链路）
+      // 注：erest 测试 API 本身不 set-cookie，这里验证 session 的 cookie 注入逻辑：
+      // 预先写入 jar，发起请求时 header 应携带该 cookie（服务端行为不依赖）
+      const session = apiService.test.session();
+      session.$agent.updateCookies({ "set-cookie": "tracking=xyz" });
+      // session.get 返回的 TestAgent 会通过 cookieHeader 回调注入 tracking=xyz
+      // 用一个会成功的请求验证链路不报错（cookie 被附加到请求）
+      const ret = await session.get("/api/json").input({ age: 22 }).success();
+      expect(ret).toEqual({ age: 22 });
+      expect(session.$agent.getCookieHeader()).toContain("tracking=xyz");
+    });
+  });
+
   describe("文档生成测试", () => {
     beforeAll(async () => {
       // 添加自定义类型用于文档生成

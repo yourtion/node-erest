@@ -54,6 +54,8 @@ export interface ITestAgentOption {
   ready: () => Promise<void>;
   /** 由 IAPITest 注入：请求前合并的额外 header（如 cookie） */
   cookieHeader?: () => string | undefined;
+  /** 由 IAPITest 注入：响应回调，用于把 set-cookie 写回 session 的 cookie jar */
+  onResponse?: (headers: Record<string, string>) => void;
   takeExample: boolean;
   agentTestName?: string;
   headers?: Record<string, string>;
@@ -109,10 +111,16 @@ export class TestAgent {
   }
 
   /** 注入 baseUrl 提供者与就绪回调（由 IAPITest 调用） */
-  public bindRequest(getBaseUrl: () => Promise<string>, ready: () => Promise<void>, cookieHeader?: () => string | undefined) {
+  public bindRequest(
+    getBaseUrl: () => Promise<string>,
+    ready: () => Promise<void>,
+    cookieHeader?: () => string | undefined,
+    onResponse?: (headers: Record<string, string>) => void,
+  ) {
     this.options.getBaseUrl = getBaseUrl;
     this.options.ready = ready;
     this.options.cookieHeader = cookieHeader;
+    this.options.onResponse = onResponse;
   }
 
   /** 获取测试代理（链式调用起点） */
@@ -243,6 +251,8 @@ export class TestAgent {
     }
     const res = await this.request();
     this.options.agentOutput = res.body as Record<string, unknown>;
+    // session 模式：把 set-cookie 写回 cookie jar（供后续请求复用）
+    if (this.options.onResponse) this.options.onResponse(res.headers);
     if (raw) return res;
     const formatOutputReverse = this.options.erest.api.formatOutputReverse || defaultFormatOutput;
     const [err2, ret] = formatOutputReverse(res.body);

@@ -121,7 +121,7 @@ export default class IAPITest {
         const s = this.findApi(method, path);
         if (!s || !s.key) throw new Error(`尝试请求未注册的API：${method} ${path}`);
         const a = new TestAgent(method, path, s.key, s.options.sourceFile as SourceResult, this.erest);
-        a.bindRequest(this.getBaseUrl, this.ready, this.getCookieHeader);
+        a.bindRequest(this.getBaseUrl, this.ready, this.getCookieHeader, cookieSession.updateCookies);
         return a.agent();
       };
     };
