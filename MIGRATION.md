@@ -69,3 +69,43 @@ api.requiredOneOf(["email", "phone"]); // email/phone 至少一个
 ### 6. 性能提升
 
 参数校验在 `bind()` 阶段预编译为热路径零分配闭包，基准测试显示校验吞吐约 **2x 提升**。
+
+## Stage 2 — 架构重组
+
+拆解 ERest 上帝类，删除 deprecated 方法，修复封装边界。
+
+### 1. bind() 成为唯一绑定入口
+
+以下方法已移除，统一用 `bind({ framework, app, router })`：
+
+```diff
+- apiService.bindRouter(router, apiService.checkerExpress)
++ apiService.bind({ framework: "express", router })
+
+- apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress)  // forceGroup
++ apiService.bind({ framework: "express", app, router: express.Router })
+
+- apiService.bindKoaRouterToApp(app, KoaRouter, apiService.checkerKoa)
++ apiService.bind({ framework: "koa", app, router: KoaRouter })
+
+- apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb)
++ apiService.bind({ framework: "leizmweb", app, router: Router })
+```
+
+`checkerExpress` / `checkerKoa` / `checkerLeiWeb` 属性同步移除。
+
+### 2. privateInfo 移除
+
+`erest.privateInfo` 不再暴露。改用受控访问器：
+
+| 旧（privateInfo） | 新（受控访问器） |
+|-------------------|-----------------|
+| `.error` | `.getError()` |
+| `.groups` | `.getDocsView().groups` |
+| `.groupInfo` | `.getDocsView().groupInfo` |
+| `.info` | `.getTestView().info` |
+| `.app` | `.getTestView().app` |
+| `.mockHandler` | `.getMockHandler()` |
+
+> 这些访问器标记 `@internal`，仅供 adapter/docs/test 内部使用，非公开 API。
+
