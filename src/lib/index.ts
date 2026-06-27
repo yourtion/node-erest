@@ -16,6 +16,7 @@ import {
 } from "./adapters/index.js";
 import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api.js";
 import { core as debug } from "./debug.js";
+import { type LifecycleHooks, hasHooks } from "./hooks.js";
 import { defaultErrors } from "./default/index.js";
 import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs.js";
 import IAPITest from "./extend/test.js";
@@ -88,6 +89,8 @@ export interface IApiOption {
   groups?: Record<string, string | IGroupInfoOpt>;
   forceGroup?: boolean;
   docs?: IDocOptions;
+  /** 生命周期 hook（Stage 3：可观测性，无订阅者零开销） */
+  hooks?: LifecycleHooks;
 }
 
 /** 文档生成信息 */
@@ -146,6 +149,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
   private groups: Record<string, string>;
   private groupInfo: Record<string, IGroupInfo<T>>;
   private forceGroup: boolean;
+  private hooks?: LifecycleHooks;
   private registAPI: (
     method: SUPPORT_METHODS,
     path: string,
@@ -165,6 +169,16 @@ export default class ERest<T = DEFAULT_HANDLER> {
   /** @internal 错误工厂（adapter/params/api 用，替代 privateInfo 反射） */
   getError() {
     return this.error;
+  }
+
+  /** @internal 生命周期 hooks（adapter 装配 dispatch 时用） */
+  getHooks() {
+    return this.hooks;
+  }
+
+  /** @internal hooks 是否非空（零开销裁剪判断） */
+  hasHooks() {
+    return hasHooks(this.hooks);
   }
 
   /** @internal 分组表（api.init 校验分组存在性用） */
@@ -292,6 +306,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
   constructor(options: IApiOption) {
     this.info = options.info || {};
     this.forceGroup = options.forceGroup || false;
+    this.hooks = options.hooks;
     // 设置内部错误报错信息
     this.error = {
       missingParameter: options.missingParameterError || missingParameter,
