@@ -1,7 +1,7 @@
 import type { APIOption, IExample, TYPE_RESPONSE } from "../../api.js";
 import type { IDocData } from "../../extend/docs.js";
-import type { ISchemaType, SchemaType } from "../../params.js";
-import { isZodSchema } from "../../params.js";
+import { isZodSchema, type SchemaType } from "../../params.js";
+import { extractDocFields } from "../zod-meta.js";
 import { jsonStringify } from "../../utils.js";
 import { fieldString, itemTF, itemTFEmoji, stringOrEmpty, tableHeader } from "./utils.js";
 
@@ -18,36 +18,35 @@ export default function apiDocs(data: IDocData) {
     groupTitles[name].push(title);
   }
 
-  function parseType(type: string) {
-    return !type || (data.typeManager as { has: (type: string) => boolean }).has(type)
-      ? stringOrEmpty(type)
-      : `[${type}](/schema#${type.replace("[]", "").toLocaleLowerCase()})`;
-  }
-
   function paramsTable(item: APIOption<unknown>) {
     const paramsList: string[] = [];
     paramsList.push(tableHeader(["参数名", "位置", "类型", "格式化", "必填", "说明"]));
-    // 参数输出
-    for (const place of ["params", "query", "body", "headers"]) {
-      for (const name in (item as Record<string, Record<string, ISchemaType>>)[place]) {
-        const info = (item as Record<string, Record<string, ISchemaType>>)[place][name];
-        let required = item.required.has(name) ? "是" : "否";
-        if (required !== "是") {
-          for (const names of item.requiredOneOf) {
-            if (names.indexOf(name) !== -1) {
-              required = "选填";
-              break;
-            }
+
+    // Stage 1：从预编译的 Zod schema 提取字段（paramsSchema/querySchema/bodySchema/headersSchema）
+    const fields = [
+      ...extractDocFields(item.paramsSchema, "params"),
+      ...extractDocFields(item.querySchema, "query"),
+      ...extractDocFields(item.bodySchema, "body"),
+      ...extractDocFields(item.headersSchema, "headers"),
+    ];
+
+    for (const f of fields) {
+      let required = f.required ? "是" : "否";
+      if (required !== "是") {
+        for (const names of item.requiredOneOf) {
+          if (names.indexOf(f.name) !== -1) {
+            required = "选填";
+            break;
           }
         }
-        const comment =
-          info.type === "ENUM" ? `${info.comment} (${(info.params as string[]).join(",")})` : info.comment;
-        const type = parseType(info.type);
-        paramsList.push(
-          fieldString([stringOrEmpty(name, true), place, type, itemTF(info.format), required, stringOrEmpty(comment)])
-        );
       }
+      const comment = f.enumValues ? `${f.comment ?? ""} (${f.enumValues.join(",")})` : f.comment;
+      const type = f.enumValues ? `enum` : f.type;
+      paramsList.push(
+        fieldString([stringOrEmpty(f.name, true), f.place, type, itemTF(undefined), required, stringOrEmpty(comment)])
+      );
     }
+
     // 选填参数输出
     if (item.requiredOneOf.length > 0) {
       paramsList.push("\n选填参数：\n");
@@ -67,21 +66,17 @@ export default function apiDocs(data: IDocData) {
     if (typeof response === "string") {
       return `[${response}](/schema#${response.replace("[]", "").toLocaleLowerCase()})`;
     }
-    // FIXME: 处理更多返回类型
-    if (isZodSchema(response) || typeof response.type === "string") return;
+    // Stage 1：response 只支持 string 或 Zod schema
+    if (!isZodSchema(response)) return;
+    const fields = extractDocFields(response, "body");
+    if (fields.length === 0) return;
     const paramsList: string[] = [];
     paramsList.push(tableHeader(["参数名", "类型", "必填", "说明"]));
-    // 参数输出
-    for (const name in response) {
-      const info = (response as Record<string, ISchemaType>)[name];
-      const comment = info.type === "ENUM" ? `${info.comment} (${(info.params as string[]).join(",")})` : info.comment;
-      const type = parseType(info.type);
-      paramsList.push(fieldString([stringOrEmpty(name, true), type, itemTF(info.required), stringOrEmpty(comment)]));
+    for (const f of fields) {
+      const comment = f.enumValues ? `${f.comment ?? ""} (${f.enumValues.join(",")})` : f.comment;
+      paramsList.push(fieldString([stringOrEmpty(f.name, true), f.type, itemTF(f.required), stringOrEmpty(comment)]));
     }
-
-    // 没有参数
     if (paramsList.length === 1) return;
-
     return paramsList.join("\n");
   }
 
@@ -93,30 +88,13 @@ export default function apiDocs(data: IDocData) {
     return ret;
   }
 
-  function formatExample(str: string, data: Record<string, unknown>) {
-    return str
-      .split("\n")
-      .map((s) => {
-        const r = s.match(/"(.*)":/);
-        if (r?.[1] && data[r[1]] && (data[r[1]] as Record<string, unknown>).comment) {
-          return `${s} \t// ${(data[r[1]] as Record<string, unknown>).comment}`;
-        }
-        return s;
-      })
-      .join("\n");
-  }
-
-  function examples(exampleList: IExample[], response?: SchemaType | ISchemaType) {
+  function examples(exampleList: IExample[], _response?: SchemaType) {
     return exampleList
       .map((item) => {
         const title = `// ${stringOrEmpty(item.name)} - ${item.path} `;
         const header = item.headers ? `\nheaders = ${jsonStringify(item.headers, 2)}\n` : "";
         const input = item.input && `input = ${jsonStringify(formatExampleInput(item.input), 2)};`;
-        let outString = jsonStringify(item.output || {}, 2);
-        // FIXME: 处理更多返回类型
-        if (response && typeof response === "object" && "fields" in response) {
-          outString = formatExample(outString, (response as unknown as { fields: Record<string, unknown> }).fields);
-        }
+        const outString = jsonStringify(item.output || {}, 2);
         const output = `output = ${outString};`;
         return `${title}\n${header}${input}\n${output}`.trim();
       })
@@ -155,7 +133,7 @@ export default function apiDocs(data: IDocData) {
     if (item.examples.length > 0) {
       line.push("\n### 使用示例：\n");
       line.push("```javascript");
-      line.push(examples(item.examples, item.responseSchema));
+      line.push(examples(item.examples, item.responseSchema as SchemaType));
       line.push("\n```");
     }
 

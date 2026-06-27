@@ -1,7 +1,7 @@
 import Koa from "koa";
 import bodyParser from "koa-bodyparser";
 import KoaRouter from "koa-router";
-import { TYPES } from "./helper";
+import { z } from "zod";
 import lib from "./lib";
 
 // Helper to set up ERest instance for forceGroup: true
@@ -47,14 +47,14 @@ describe("ERest Koa Integration", () => {
     api
       .get("/query-test")
       .group("Index")
-      .query({ name: { type: TYPES.String, required: true } })
+      .query(z.object({ name: z.string() }))
       .register((ctx: any) => {
         ctx.reply.json({ name: ctx.$params.name });
       });
     api
       .post("/body-test")
       .group("Index")
-      .body({ id: { type: TYPES.Integer, required: true } })
+      .body(z.object({ id: z.coerce.number().int() }))
       .register((ctx: any) => {
         ctx.reply.json({ id: ctx.$params.id });
       });

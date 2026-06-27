@@ -11,7 +11,7 @@
 
 import { Application, component, Router } from "@leizm/web";
 import { afterAll, describe, expect, it } from "vitest";
-import { build, TYPES } from "./helper";
+import { z } from "zod";
 import lib from "./lib";
 
 describe("@leizm/web Integration - bind() 非 forceGroup 模式", () => {
@@ -34,7 +34,7 @@ describe("@leizm/web Integration - bind() 非 forceGroup 模式", () => {
     .get("/lei/query")
     .group("Index")
     .title("Query校验")
-    .query({ name: build(TYPES.String, "名称", true) })
+    .query(z.object({ name: z.string() }))
     .register((ctx: any) => {
       ctx.reply.json({ name: ctx.$params.name });
     });
@@ -43,7 +43,7 @@ describe("@leizm/web Integration - bind() 非 forceGroup 模式", () => {
     .post("/lei/body")
     .group("Index")
     .title("Body校验")
-    .body({ id: build(TYPES.Integer, "ID", true) })
+    .body(z.object({ id: z.coerce.number().int() }))
     .register((ctx: any) => {
       ctx.reply.json({ id: ctx.$params.id });
     });
@@ -105,7 +105,7 @@ describe("@leizm/web Integration - bind() forceGroup 模式", () => {
     .group("user")
     .get("/info")
     .title("user分组")
-    .query({ name: build(TYPES.String, "名称", true) })
+    .query(z.object({ name: z.string() }))
     .register((ctx: any) => {
       ctx.reply.json({ group: "user info", name: ctx.$params.name });
     });

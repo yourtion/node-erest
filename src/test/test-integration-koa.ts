@@ -13,7 +13,7 @@ import Koa from "koa";
 import bodyParser from "koa-bodyparser";
 import KoaRouter from "koa-router";
 import { afterAll, describe, expect, it } from "vitest";
-import { build, TYPES } from "./helper";
+import { z } from "zod";
 import lib from "./lib";
 
 describe("Koa Integration - bind() 非 forceGroup 模式", () => {
@@ -47,7 +47,7 @@ describe("Koa Integration - bind() 非 forceGroup 模式", () => {
     .get("/koa/query")
     .group("Index")
     .title("Query校验")
-    .query({ name: build(TYPES.String, "名称", true) })
+    .query(z.object({ name: z.string() }))
     .register((ctx: any) => {
       ctx.reply.json({ name: ctx.$params.name });
     });
@@ -56,7 +56,7 @@ describe("Koa Integration - bind() 非 forceGroup 模式", () => {
     .post("/koa/body")
     .group("Index")
     .title("Body校验")
-    .body({ id: build(TYPES.Integer, "ID", true) })
+    .body(z.object({ id: z.coerce.number().int() }))
     .register((ctx: any) => {
       ctx.reply.json({ id: ctx.$params.id });
     });
@@ -129,7 +129,7 @@ describe("Koa Integration - bind() forceGroup 模式", () => {
     .group("user")
     .get("/info")
     .title("user分组")
-    .query({ name: build(TYPES.String, "名称", true) })
+    .query(z.object({ name: z.string() }))
     .register((ctx: any) => {
       ctx.reply.json({ group: "user info", name: ctx.$params.name });
     });

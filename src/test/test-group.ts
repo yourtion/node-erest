@@ -2,6 +2,7 @@ import { Application, type Context as LeiContext, Router } from "@leizm/web";
 import express from "express";
 import Koa from "koa";
 import KoaRouter from "koa-router";
+import { z } from "zod";
 
 import type { Context } from "../lib/adapters/types.js";
 import { hook } from "./helper";
@@ -121,12 +122,7 @@ describe("Group - 使用define定义路由", () => {
     path: "/",
     title: "Patch",
     description: "test patch",
-    response: {},
-    body: {},
-    params: {},
-    headers: {},
-    required: [],
-    requiredOneOf: [],
+    response: z.object({}),
     before: [beforHook],
     middlewares: [middleware],
     handler: (ctx: Context) => {
@@ -210,12 +206,7 @@ describe("Group - 高级分组配置", () => {
     path: "/index",
     title: "Patch",
     description: "test patch",
-    response: {},
-    body: {},
-    params: {},
-    headers: {},
-    required: [],
-    requiredOneOf: [],
+    response: z.object({}),
     before: [beforHook],
     middlewares: [middleware],
     handler: (ctx: Context) => {

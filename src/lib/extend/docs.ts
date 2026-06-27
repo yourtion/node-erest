@@ -43,18 +43,17 @@ const DOC_FIELD = [
   "realPath",
   "examples",
   "middlewares",
-  "query",
-  "body",
-  "params",
+  "querySchema",
+  "bodySchema",
+  "paramsSchema",
   "group",
   "title",
   "description",
   "response",
-  "required",
   "requiredOneOf",
   "tested",
   "responseSchema",
-  "headers",
+  "headersSchema",
 ];
 
 /** 文档数据 */

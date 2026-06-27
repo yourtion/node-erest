@@ -92,11 +92,15 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
         mode: "urlencoded",
         urlencoded: [],
       };
-      for (const sKey in item.body as Record<string, unknown>) {
-        req.request.body.urlencoded?.push({
-          key: sKey,
-          description: (item.body as Record<string, { comment?: string }>)[sKey].comment,
-        });
+      // Stage 1：从预编译的 Zod bodySchema 提取字段名
+      const bodyShape = (item.bodySchema as { _def?: { shape?: Record<string, unknown> } })?._def?.shape;
+      if (bodyShape) {
+        for (const sKey of Object.keys(bodyShape)) {
+          req.request.body.urlencoded?.push({
+            key: sKey,
+            description: "",
+          });
+        }
       }
     }
 

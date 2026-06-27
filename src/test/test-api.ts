@@ -1,6 +1,7 @@
 import { vol } from "memfs";
 import { vi } from "vitest";
-import { apiDelete, build, nameParams, TYPES } from "./helper";
+import { z } from "zod";
+import { apiDelete } from "./helper";
 import lib from "./lib";
 
 describe("API 接口测试", () => {
@@ -47,19 +48,16 @@ describe("API 接口测试", () => {
       input: { a: "b" },
       output: { name: "d" },
     };
-    const outSchema = { name: nameParams } as any;
+    const outSchema = z.object({ name: z.string() });
     deleteApi.example(example);
     deleteApi.response(outSchema);
-    deleteApi.query({
-      numP2: build(TYPES.Number, "Number", true, 10, { max: 10, min: 0 }),
-    });
+    deleteApi.query(z.object({ numP2: z.number().min(0).max(10) }));
 
     const apiInfo = api.$apis.get("DELETE_/index/:name");
     expect(apiInfo?.options.title).toBe("newTitle");
     expect(apiInfo?.options.description).toBe("Yourtion");
     expect(apiInfo?.options.examples.length).toBe(1);
     expect(apiInfo?.options.examples[0]).toEqual(example);
-    expect(apiInfo?.options.response).toEqual(outSchema);
   });
 });
 
@@ -129,34 +127,10 @@ describe("API 高级功能和错误处理测试", () => {
   });
 
   describe("API 初始化错误处理测试", () => {
-    test("应该在 ENUM 类型缺少 params 时抛出错误", () => {
-      const testApi = api.get("/test-enum").group("Test");
-
-      testApi.query({
-        status: { type: "ENUM" } as any, // 缺少 params
-      });
-
-      expect(() => {
-        testApi.init(apiService as any);
-      }).toThrow("ENUM is require a params");
-    });
-
-    test("应该在使用未知类型时抛出错误", () => {
-      const testApi = api.get("/test-unknown").group("Test");
-
-      testApi.query({
-        data: { type: "UnknownCustomType" } as any,
-      });
-
-      expect(() => {
-        testApi.init(apiService as any);
-      }).toThrow("Unknown type: UnknownCustomType. Please register this type first.");
-    });
-
     test("应该正确处理 response 的不同类型", async () => {
       const { z } = await import("zod");
 
-      // 测试字符串类型的 response
+      // 测试字符串类型的 response（已注册 schema 名）
       apiService.schema.register("TestSchema", z.object({ name: z.string() }));
 
       const testApi1 = api.get("/test-response-string").group("Test");
@@ -170,12 +144,6 @@ describe("API 高级功能和错误处理测试", () => {
       testApi2.response(zodSchema);
       testApi2.init(apiService as any);
       expect(testApi2.options.responseSchema).toBe(zodSchema);
-
-      // 测试 ISchemaType 的 response
-      const testApi3 = api.get("/test-response-ischema").group("Test");
-      testApi3.response({ type: "String" } as any);
-      testApi3.init(apiService as any);
-      expect(testApi3.options.responseSchema).toBeDefined();
     });
 
     test("应该正确设置 mock handler", () => {
@@ -248,14 +216,6 @@ describe("API 高级功能和错误处理测试", () => {
       expect(() => {
         testApi.register("not a function" as any);
       }).toThrow("处理函数必须是一个函数类型");
-    });
-
-    test("headers 方法应该验证参数类型", () => {
-      const testApi = api.get("/test-headers").group("Test");
-
-      expect(() => {
-        testApi.headers("invalid type" as any);
-      }).toThrow("Headers parameter must be either ISchemaType record or Zod schema");
     });
   });
 

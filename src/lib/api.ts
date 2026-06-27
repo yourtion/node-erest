@@ -1,5 +1,5 @@
 /**
- * @file API Scheme
+ * @file API Scheme（Stage 1：Zod 唯一）
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
@@ -9,18 +9,10 @@ import { type ZodTypeAny, z } from "zod";
 import type { Middleware, Reply } from "./adapters/types.js";
 import { api as debug } from "./debug.js";
 import type ERest from "./index.js";
-import type { ISchemaType, SchemaType } from "./params.js";
-import {
-  buildZodObjectFromSchemaType,
-  compileValidate,
-  type CompiledRoute,
-  isISchemaTypeRecord,
-  isZodSchema,
-  zodTypeMap,
-} from "./params.js";
+import { compileValidate, type CompiledRoute, type SchemaType } from "./params.js";
 import { getRealPath, getSchemaKey, type SourceResult } from "./utils.js";
 
-export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
+export type TYPE_RESPONSE = string | SchemaType | ZodTypeAny;
 
 export interface IExample {
   name?: string | undefined;
@@ -45,11 +37,10 @@ export interface APICommon<T = DEFAULT_HANDLER> {
 
 export interface APIDefine<T> extends APICommon<T> {
   group?: string;
-  headers?: Record<string, ISchemaType>;
-  query?: Record<string, ISchemaType>;
-  body?: Record<string, ISchemaType>;
-  params?: Record<string, ISchemaType>;
-  required?: string[];
+  headers?: ZodTypeAny;
+  query?: ZodTypeAny;
+  body?: ZodTypeAny;
+  params?: ZodTypeAny;
   requiredOneOf?: string[];
   before?: Array<T>;
   middlewares?: Array<T>;
@@ -58,19 +49,18 @@ export interface APIDefine<T> extends APICommon<T> {
 }
 
 export interface APIOption<T> extends Record<string, unknown> {
+  sourceFile: SourceResult;
   group: string;
   realPath: string;
   examples: IExample[];
   beforeHooks: Set<T>;
   middlewares: Set<T>;
-  required: Set<string>;
   requiredOneOf: string[][];
-  _allParams: Map<string, ISchemaType>;
   mock?: Record<string, unknown>;
   tested: boolean;
   response?: TYPE_RESPONSE;
-  responseSchema?: SchemaType | ISchemaType;
-  // Zod schema 支持
+  responseSchema?: SchemaType | ZodTypeAny;
+  // Zod schema 支持（Stage 1：唯一参数定义方式）
   querySchema?: z.ZodObject<z.ZodRawShape>;
   bodySchema?: z.ZodObject<z.ZodRawShape>;
   paramsSchema?: z.ZodObject<z.ZodRawShape>;
@@ -106,15 +96,9 @@ export default class API<T = DEFAULT_HANDLER> {
       path,
       realPath: getRealPath(this.key),
       examples: [],
-      required: new Set(),
       requiredOneOf: [],
       beforeHooks: new Set(),
       middlewares: new Set(),
-      query: {} as Record<string, ISchemaType>,
-      body: {} as Record<string, ISchemaType>,
-      params: {} as Record<string, ISchemaType>,
-      headers: {} as Record<string, ISchemaType>,
-      _allParams: new Map<string, ISchemaType>(),
       group: group || "",
       tested: false,
     };
@@ -149,9 +133,6 @@ export default class API<T = DEFAULT_HANDLER> {
     }
     if (options.headers) {
       schema.headers(options.headers);
-    }
-    if (options.required) {
-      schema.required(options.required);
     }
     if (options.requiredOneOf) {
       schema.requiredOneOf(options.requiredOneOf);
@@ -225,7 +206,6 @@ export default class API<T = DEFAULT_HANDLER> {
    * API使用例子
    */
   public example(example: IExample) {
-    // this.checkInited();
     assert(example.input && typeof example.input === "object", "`input`必须是一个对象");
     assert(example.output && typeof example.output === "object", "`output`必须是一个对象");
     this.addExample(example);
@@ -236,146 +216,45 @@ export default class API<T = DEFAULT_HANDLER> {
    * 输出结果对象
    */
   public response(response: TYPE_RESPONSE) {
-    // assert(typeof response === "object", "`schema`必须是一个对象");
     this.options.response = response;
     return this;
   }
 
   /**
-   * 输入参数
+   * 设置 Zod schema 到对应层级（Stage 1：唯一参数定义方式）
    */
-  private setParam(name: string, options: ISchemaType, place: string) {
+  private setZodSchema(place: "query" | "body" | "params" | "headers", schema: ZodTypeAny) {
     this.checkInited();
-
-    assert(typeof name === "string", "`name`必须是字符串类型");
-    assert(
-      place && ["query", "body", "params", "headers"].indexOf(place) > -1,
-      '`place` 必须是 "query" "body", "params", "headers"'
-    );
-    assert(name.indexOf(" ") === -1, "`name`不能包含空格");
-    assert(name[0] !== "$", '`name`不能以"$"开头');
-    assert(!(name in this.options._allParams), `参数 ${name} 已存在`);
-
-    assert(options && (typeof options === "string" || typeof options === "object"));
-
-    this.options._allParams.set(name, options);
-    (this.options[place] as Record<string, ISchemaType>)[name] = options;
-  }
-
-  /**
-   * 输入参数
-   */
-  private setParams(place: string, obj: Record<string, ISchemaType>) {
-    for (const [key, o] of Object.entries(obj)) {
-      this.setParam(key, o, place);
-    }
-  }
-
-  /**
-   * 检测混合使用并设置 Zod Schema
-   */
-  private setZodSchema(place: string, schema: z.ZodTypeAny) {
-    this.checkInited();
-
-    // 检查是否已经有 ISchemaType 参数
-    const hasISchemaType = Object.keys(this.options[place] as Record<string, ISchemaType>).length > 0;
-    if (hasISchemaType) {
-      throw new Error(
-        `Cannot mix ISchemaType and Zod schema in ${place}. Please use either ISchemaType or Zod schema, not both.`
-      );
-    }
-
-    // 设置对应的 Zod Schema
     const schemaKey = `${place}Schema` as keyof typeof this.options;
     this.options[schemaKey] = schema;
   }
 
-  /**
-   * 检测混合使用并设置 ISchemaType 参数
-   */
-  private checkMixedUsage(place: string) {
-    const schemaKey = `${place}Schema` as keyof typeof this.options;
-    if (this.options[schemaKey]) {
-      throw new Error(
-        `Cannot mix ISchemaType and Zod schema in ${place}. Please use either ISchemaType or Zod schema, not both.`
-      );
-    }
+  /** Body 参数（原生 Zod schema） */
+  public body(schema: ZodTypeAny) {
+    this.setZodSchema("body", schema);
+    return this;
   }
 
-  /**
-   * Body 参数 - 支持 ISchemaType 和原生 Zod Schema
-   */
-  public body(obj: Record<string, ISchemaType> | ZodTypeAny) {
-    if (isZodSchema(obj)) {
-      this.setZodSchema("body", obj);
-    } else if (isISchemaTypeRecord(obj)) {
-      this.checkMixedUsage("body");
-      this.setParams("body", obj);
-    } else {
-      throw new Error("Body parameter must be either ISchemaType record or Zod schema");
-    }
+  /** Query 参数（原生 Zod schema） */
+  public query(schema: ZodTypeAny) {
+    this.setZodSchema("query", schema);
+    return this;
+  }
+
+  /** Path 参数（原生 Zod schema） */
+  public params(schema: ZodTypeAny) {
+    this.setZodSchema("params", schema);
+    return this;
+  }
+
+  /** Headers 参数（原生 Zod schema） */
+  public headers(schema: ZodTypeAny) {
+    this.setZodSchema("headers", schema);
     return this;
   }
 
   /**
-   * Query 参数 - 支持 ISchemaType 和原生 Zod Schema
-   */
-  public query(obj: Record<string, ISchemaType> | ZodTypeAny) {
-    if (isZodSchema(obj)) {
-      this.setZodSchema("query", obj);
-    } else if (isISchemaTypeRecord(obj)) {
-      this.checkMixedUsage("query");
-      this.setParams("query", obj);
-    } else {
-      throw new Error("Query parameter must be either ISchemaType record or Zod schema");
-    }
-    return this;
-  }
-
-  /**
-   * Param 参数 - 支持 ISchemaType 和原生 Zod Schema
-   */
-  public params(obj: Record<string, ISchemaType> | ZodTypeAny) {
-    if (isZodSchema(obj)) {
-      this.setZodSchema("params", obj);
-    } else if (isISchemaTypeRecord(obj)) {
-      this.checkMixedUsage("params");
-      this.setParams("params", obj);
-    } else {
-      throw new Error("Params parameter must be either ISchemaType record or Zod schema");
-    }
-    return this;
-  }
-
-  /**
-   * Headers 参数 - 支持 ISchemaType 和原生 Zod Schema
-   */
-  public headers(obj: Record<string, ISchemaType> | ZodTypeAny) {
-    if (isZodSchema(obj)) {
-      this.setZodSchema("headers", obj);
-    } else if (isISchemaTypeRecord(obj)) {
-      this.checkMixedUsage("headers");
-      this.setParams("headers", obj);
-    } else {
-      throw new Error("Headers parameter must be either ISchemaType record or Zod schema");
-    }
-    return this;
-  }
-
-  /**
-   * 必填参数
-   */
-  public required(list: string[]) {
-    this.checkInited();
-    for (const item of list) {
-      assert(typeof item === "string", "`name`必须是字符串类型");
-      this.options.required.add(item);
-    }
-    return this;
-  }
-
-  /**
-   * 多选一必填参数
+   * 多选一必填参数（Zod 之上的便利方法，无完美 Zod 等价）
    */
   public requiredOneOf(list: string[]) {
     this.checkInited();
@@ -529,52 +408,13 @@ export default class API<T = DEFAULT_HANDLER> {
       `请先配置 ${this.options.group} 分组`
     );
 
-    // 初始化时参数类型检查
-    for (const [name, options] of this.options._allParams.entries()) {
-      const typeName = options.type;
-
-      // 特殊类型验证
-      if (typeName === "ENUM") {
-        if (!options.params || !Array.isArray(options.params)) {
-          throw new Error("ENUM is require a params");
-        }
-      }
-
-      // 检查是否为基础类型或已注册的自定义类型
-      // 处理数组类型，如 'JsonSchema[]'
-      const baseTypeName = typeName.endsWith("[]") ? typeName.slice(0, -2) : typeName;
-
-      if (!parent.type.has(baseTypeName) && !parent.schema.has(baseTypeName)) {
-        // 检查是否为内置的 zod 类型（从 zodTypeMap 派生，避免硬编码重复）
-        const builtinTypes = new Set([
-          ...Object.keys(zodTypeMap),
-          // 兼容小写别名
-          "integer",
-        ]);
-        if (!builtinTypes.has(baseTypeName)) {
-          throw new Error(`Unknown type: ${baseTypeName}. Please register this type first.`);
-        }
-      }
-
-      if (options.required) {
-        this.options.required.add(name);
-      }
-    }
-
     if (this.options.response) {
       if (typeof this.options.response === "string") {
         this.options.responseSchema = parent.schema.get(this.options.response);
       } else if (this.options.response instanceof z.ZodType) {
         this.options.responseSchema = this.options.response;
-      } else if (typeof (this.options.response as ISchemaType).type === "string") {
-        this.options.responseSchema = this.options.response as ISchemaType;
-      } else {
-        this.options.responseSchema = parent.schema.createZodSchema(this.options.response as ISchemaType);
       }
     }
-
-    // 预编译 ISchemaType Record 为 ZodObject，提升运行时性能
-    this.precompileSchemas();
 
     // 预编译校验闭包（Stage 1：热路径零分配）
     this.options.compiled = compileValidate(parent as ERest<unknown>, {
@@ -589,35 +429,5 @@ export default class API<T = DEFAULT_HANDLER> {
     }
 
     this.inited = true;
-  }
-
-  /**
-   * 预编译 ISchemaType Record 为 ZodObject
-   * 在 init 阶段执行，避免每次请求时重复创建 Zod schema
-   */
-  private precompileSchemas() {
-    // 预编译 query schema
-    if (!this.options.querySchema && this.options.query && Object.keys(this.options.query).length > 0) {
-      debug("precompile query schema for %s", this.key);
-      this.options.querySchema = buildZodObjectFromSchemaType(this.options.query as Record<string, ISchemaType>);
-    }
-
-    // 预编译 body schema
-    if (!this.options.bodySchema && this.options.body && Object.keys(this.options.body).length > 0) {
-      debug("precompile body schema for %s", this.key);
-      this.options.bodySchema = buildZodObjectFromSchemaType(this.options.body as Record<string, ISchemaType>);
-    }
-
-    // 预编译 params schema
-    if (!this.options.paramsSchema && this.options.params && Object.keys(this.options.params).length > 0) {
-      debug("precompile params schema for %s", this.key);
-      this.options.paramsSchema = buildZodObjectFromSchemaType(this.options.params as Record<string, ISchemaType>);
-    }
-
-    // 预编译 headers schema
-    if (!this.options.headersSchema && this.options.headers && Object.keys(this.options.headers).length > 0) {
-      debug("precompile headers schema for %s", this.key);
-      this.options.headersSchema = buildZodObjectFromSchemaType(this.options.headers as Record<string, ISchemaType>);
-    }
   }
 }

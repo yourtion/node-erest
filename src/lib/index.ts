@@ -21,15 +21,7 @@ import { defaultErrors } from "./default/index.js";
 import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs.js";
 import IAPITest from "./extend/test.js";
 import { ErrorManager } from "./manager/index.js";
-import {
-  apiParamsCheck,
-  createZodSchema,
-  type ISchemaType,
-  paramsChecker,
-  responseChecker,
-  schemaChecker,
-  zodTypeMap,
-} from "./params.js";
+import { zodTypeMap } from "./params.js";
 import * as utils from "./utils.js";
 import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils.js";
 
@@ -252,7 +244,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
     get: (name: string) => ZodType | undefined;
     has: (name: string) => boolean;
     check: (name: string, value: unknown) => boolean;
-    createZodSchema: (schemaType: ISchemaType) => ZodType;
   } {
     return {
       register: (name: string, schema: ZodType) => {
@@ -276,21 +267,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
           return false;
         }
       },
-      createZodSchema: (schemaType: ISchemaType) => {
-        return createZodSchema(schemaType);
-      },
     };
-  }
-
-  /**
-   * 创建 Schema 对象
-   */
-  createSchema(schemaObj: Record<string, ISchemaType>) {
-    const schemaFields: Record<string, ZodType> = {};
-    for (const [key, typeInfo] of Object.entries(schemaObj)) {
-      schemaFields[key] = createZodSchema(typeInfo);
-    }
-    return z.object(schemaFields);
   }
 
   constructor(options: IApiOption) {
@@ -388,35 +365,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
       koa: new KoaAdapter<T>(),
       leizmweb: new LeizmWebAdapter<T>(),
     };
-  }
-
-  /**
-   * 获取参数检查实例
-   */
-  public paramsChecker() {
-    return (name: string, value: unknown, schema: ISchemaType) =>
-      paramsChecker(this as ERest<unknown>, name, value, schema);
-  }
-
-  /**
-   * 获取Schema检查实例
-   */
-  public schemaChecker() {
-    return (data: unknown, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
-      schemaChecker(this as ERest<unknown>, data as Record<string, unknown>, schema, requiredOneOf);
-  }
-
-  public responseChecker() {
-    return (data: unknown, schema: ISchemaType) =>
-      responseChecker(this as ERest<unknown>, data as Record<string, unknown>, schema);
-  }
-
-  /**
-   * 获取API参数检查实例
-   */
-  public apiParamsCheck() {
-    return (data: unknown, schema: Record<string, ISchemaType>) =>
-      apiParamsCheck(this as ERest<unknown>, data as API<unknown>, schema);
   }
 
   /**

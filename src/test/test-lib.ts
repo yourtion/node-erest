@@ -3,7 +3,6 @@ import { z } from "zod";
 import type { IApiOption } from "../lib";
 import ERest, { ERestError } from "../lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";
-import { build, TYPES } from "./helper";
 import lib, { GROUPS, INFO } from "./lib";
 
 describe("ERest - 基础测试", () => {
@@ -124,21 +123,6 @@ describe("ERest - 基础测试", () => {
         expect(erest.schema.check("TestSchema", { name: "John" })).toBe(true);
         expect(erest.schema.check("TestSchema", { age: 25 })).toBe(false);
         expect(erest.schema.check("NonExistentSchema", {})).toBe(false);
-      });
-
-      test("should create schema from ISchemaType objects", () => {
-        const erest = new ERest({});
-        const schemaObj = {
-          name: { type: "String", required: true },
-          age: { type: "Integer", required: false },
-        };
-
-        const schema = erest.createSchema(schemaObj);
-        expect(schema).toBeDefined();
-
-        // Test valid data
-        const validResult = schema.safeParse({ name: "John", age: 25 });
-        expect(validResult.success).toBe(true);
       });
     });
 
@@ -345,32 +329,6 @@ describe("ERest - 基础测试", () => {
       });
     });
 
-    describe("Checker Methods", () => {
-      test("should create parameter checker", () => {
-        const erest = new ERest({});
-        const checker = erest.paramsChecker();
-        expect(typeof checker).toBe("function");
-      });
-
-      test("should create schema checker", () => {
-        const erest = new ERest({});
-        const checker = erest.schemaChecker();
-        expect(typeof checker).toBe("function");
-      });
-
-      test("should create response checker", () => {
-        const erest = new ERest({});
-        const checker = erest.responseChecker();
-        expect(typeof checker).toBe("function");
-      });
-
-      test("should create API params checker", () => {
-        const erest = new ERest({});
-        const checker = erest.apiParamsCheck();
-        expect(typeof checker).toBe("function");
-      });
-    });
-
     describe("Error Handling", () => {
       test("should handle group registration with forceGroup", () => {
         const erest = new ERest({
@@ -455,20 +413,14 @@ describe("ERest - schema 注册与使用", () => {
   });
 
   test("add Schema", () => {
-    // 注册一个名字为`a`的 schema
-    const aSchema = apiService.createSchema({
-      a: build(TYPES.String, "str"),
-    });
+    // Stage 1：直接注册 Zod schema（createSchema 已移除）
+    const aSchema = z.object({ a: z.string() });
     apiService.schema.register("a", aSchema);
 
     apiService.api
       .get("/")
       .group("Index")
-      .query({
-        a: build("a", "Object-a", true),
-        // 使用 a 类型对象的数组
-        b: build("a[]", "Object-a Array", true),
-      })
+      .query(z.object({ a: z.string() }))
       .register(() => {});
 
     const router = express();
@@ -509,31 +461,6 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
   // TODO: 完善 Mock 方法
   apiService.setMockHandler(() => () => {});
   apiService.api.get("/b").mock();
-
-  describe("Checker", () => {
-    const api = apiService.api.define({
-      method: "get",
-      path: "/a",
-      group: "Index",
-      title: "ENUM Without params Test",
-      query: { p: build(TYPES.ENUM, "ENUM Without params", true) },
-      handler: () => {},
-    });
-
-    test("apiParamsCheck", () => {
-      expect(() => api.init(apiService)).toThrow("ENUM is require a params");
-    });
-
-    test("responseChecker", () => {
-      const checker = apiService.responseChecker();
-      const ret = checker({}, { type: "object" });
-      expect(ret).toEqual({ ok: true, message: "success", value: {} });
-    });
-
-    test("require params", () => {
-      expect(() => api.init(apiService)).toThrow("ENUM is require a params");
-    });
-  });
 });
 
 describe("ERestError - 自定义错误类", () => {

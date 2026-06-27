@@ -7,4 +7,3 @@ export * from "./api-helpers";
 export * from "./assertion-helpers";
 export * from "./mock-factories";
 export * from "./test-setup";
-export * from "./type-helpers";

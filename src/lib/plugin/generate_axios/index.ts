@@ -22,9 +22,15 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
     return `${req.method}${slashToCamel(rmPathParam(req.realPath))}`;
   }
 
+  // Stage 1：从预编译的 Zod schema 提取字段名（替代旧 ISchemaType Record 的 keys）
+  function schemaFieldNames(schema: unknown): string[] {
+    if (!schema) return [];
+    const def = (schema as { _def?: { shape?: Record<string, unknown> } })._def;
+    return def?.shape ? Object.keys(def.shape) : [];
+  }
+
   function getFuncParams(req: APIOption<unknown>) {
-    const parseData = req.method === "get" ? req.query : req.body;
-    const dataKeys = Object.keys(parseData as Record<string, unknown>);
+    const dataKeys = req.method === "get" ? schemaFieldNames(req.querySchema) : schemaFieldNames(req.bodySchema);
     if (!dataKeys.length) {
       return "";
     }
@@ -42,20 +48,15 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
     return `'${path}'`;
   }
 
-  function getPathParams(req: APIOption<unknown>) {
-    if (req.params) {
-      const params = Object.keys(req.params as Record<string, unknown>)
-        .map((key) => `${key},`)
-        .join("");
-      return params;
-    }
-    return "";
+  function getPathParams(_req: APIOption<unknown>) {
+    const dataKeys = schemaFieldNames(_req.paramsSchema);
+    if (!dataKeys.length) return "";
+    return dataKeys.map((key) => `${key},`).join("");
   }
 
   function getReqSendData(req: APIOption<unknown>) {
     const isGetReq = req.method === "get";
-    const parseData = isGetReq ? req.query : req.body;
-    const dataKeys = Object.keys(parseData as Record<string, unknown>);
+    const dataKeys = isGetReq ? schemaFieldNames(req.querySchema) : schemaFieldNames(req.bodySchema);
     if (!dataKeys.length) {
       return "";
     }
