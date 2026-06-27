@@ -383,26 +383,25 @@ api.api
 
 若仅需聚合读取、无同名冲突，`$params`（扁平）与 `$validated`（分层）均可。
 
-## CJS / ESM 集成
+## ESM 集成
 
-erest 同时支持 CommonJS 与 ESM（含 `NodeNext` + `verbatimModuleSyntax` 的纯 ESM 工程）：
+> **BREAKING（3.0）**：erest 3.0 起为 **ESM-only**，仅发布 ESM 产物。`require('erest')` 的 CommonJS
+> 工程需迁移为 ESM（`import`），或改用动态 `import()` 加载。这是 3.0 major 的破坏性变更。
 
 ```typescript
-// ESM 工程：直接 import，无需 createRequire 绕过
+// ESM 工程（package.json "type": "module"，或 .mjs 文件）：直接 import
 import ERest, { z } from 'erest';
 const api = new ERest({ groups: { user: '用户管理' } });
 ```
 
 ```javascript
-// CommonJS 工程
-const { default: ERest, z } = require('erest');
+// CommonJS 工程：用动态 import() 加载（顶层 require 不再支持）
+const { default: ERest } = await import('erest');
 const api = new ERest({ groups: { user: '用户管理' } });
 ```
 
-erest 同时发布 ESM 与 CJS 两套产物（`dist/esm` 与 `dist/lib`），通过 `package.json` 的 `exports`
-字段按 `import`/`require` 自动选择。在 `module: nodenext` + `verbatimModuleSyntax` 的最严格
-ESM 工程下，`import ERest from 'erest'` 既有正确运行时（可直接 `new`）又有正确类型推导，无需
-任何 `createRequire` 绕过或模块增强声明。
+erest 3.0 仅发布一套 ESM 产物（`dist/lib`）。在 `module: nodenext` + `verbatimModuleSyntax` 的
+最严格 ESM 工程下，`import ERest from 'erest'` 既有正确运行时（可直接 `new`）又有正确类型推导。
 
 ## 高级用法
 

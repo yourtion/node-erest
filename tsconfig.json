@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "module": "commonjs",
+    "module": "NodeNext",
     "target": "es2022",
     "lib": ["es2022"],
     "declaration": true,
@@ -13,7 +13,7 @@
     "noImplicitThis": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
+    "moduleResolution": "NodeNext",
     "baseUrl": "./",
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
