@@ -10,7 +10,7 @@ import type { Middleware, Reply } from "./adapters/types.js";
 import { api as debug } from "./debug.js";
 import type ERest from "./index.js";
 import type { ISchemaType, SchemaType } from "./params.js";
-import { buildZodObjectFromSchemaType, isISchemaTypeRecord, isZodSchema, zodTypeMap } from "./params.js";
+import { buildZodObjectFromSchemaType, compileValidate, type CompiledRoute, isISchemaTypeRecord, isZodSchema, zodTypeMap } from "./params.js";
 import { getRealPath, getSchemaKey, type SourceResult } from "./utils.js";
 
 export type TYPE_RESPONSE = string | SchemaType | ISchemaType | Record<string, ISchemaType>;
@@ -68,6 +68,8 @@ export interface APIOption<T> extends Record<string, unknown> {
   bodySchema?: z.ZodObject<z.ZodRawShape>;
   paramsSchema?: z.ZodObject<z.ZodRawShape>;
   headersSchema?: z.ZodObject<z.ZodRawShape>;
+  /** 预编译的校验执行器（init 阶段产出，Stage 1 热路径零分配） */
+  compiled?: CompiledRoute;
 }
 
 export default class API<T = DEFAULT_HANDLER> {
@@ -566,6 +568,14 @@ export default class API<T = DEFAULT_HANDLER> {
 
     // 预编译 ISchemaType Record 为 ZodObject，提升运行时性能
     this.precompileSchemas();
+
+    // 预编译校验闭包（Stage 1：热路径零分配）
+    this.options.compiled = compileValidate(parent as ERest<unknown>, {
+      paramsSchema: this.options.paramsSchema,
+      querySchema: this.options.querySchema,
+      bodySchema: this.options.bodySchema,
+      headersSchema: this.options.headersSchema,
+    });
 
     if (this.options.mock && parent.privateInfo.mockHandler && !this.options.handler) {
       this.options.handler = parent.privateInfo.mockHandler(this.options.mock);
