@@ -165,6 +165,12 @@ export interface CompiledRoute extends CompiledSchemas {
   }) => LayeredParams;
 }
 
+/** 错误工厂接口（compileValidate 只依赖这两个方法，解耦 ERest） */
+export interface ValidationErrorFactory {
+  missingParameter: (msg: string) => Error;
+  invalidParameter: (msg: string) => Error;
+}
+
 /**
  * 把 Zod schema 集合预编译为热路径零分配的 validate 闭包。
  *
@@ -175,8 +181,7 @@ export interface CompiledRoute extends CompiledSchemas {
  * - 缺失必填 → "missing required parameter 'field'"
  * - 类型错误 → "'field' should be valid"
  */
-export function compileValidate(ctx: ERest<unknown>, schemas: CompiledSchemas): CompiledRoute {
-  const { error } = ctx.privateInfo;
+export function compileValidate(errorFactory: ValidationErrorFactory, schemas: CompiledSchemas): CompiledRoute {
   const { paramsSchema, querySchema, bodySchema, headersSchema } = schemas;
 
   // Zod 4 的 issue：缺失字段 message 含 "received undefined"（含 union 嵌套 errors），
@@ -201,9 +206,9 @@ export function compileValidate(ctx: ERest<unknown>, schemas: CompiledSchemas): 
       const issue = result.error.issues[0];
       const field = (issue.path[0] as string) ?? "value";
       if (isMissing(issue as never)) {
-        throw error.missingParameter(`'${field}'`);
+        throw errorFactory.missingParameter(`'${field}'`);
       }
-      throw error.invalidParameter(`'${field}' should be valid`);
+      throw errorFactory.invalidParameter(`'${field}' should be valid`);
     };
 
   // 闭包裁剪：只为存在的层组装校验调用（无该层 schema 时该分支为常量 {}）

@@ -417,12 +417,18 @@ export default class API<T = DEFAULT_HANDLER> {
     }
 
     // 预编译校验闭包（Stage 1：热路径零分配）
-    this.options.compiled = compileValidate(parent as ERest<unknown>, {
-      paramsSchema: this.options.paramsSchema,
-      querySchema: this.options.querySchema,
-      bodySchema: this.options.bodySchema,
-      headersSchema: this.options.headersSchema,
-    });
+    this.options.compiled = compileValidate(
+      {
+        missingParameter: (m) => parent.privateInfo.error.missingParameter(m),
+        invalidParameter: (m) => parent.privateInfo.error.invalidParameter(m),
+      },
+      {
+        paramsSchema: this.options.paramsSchema,
+        querySchema: this.options.querySchema,
+        bodySchema: this.options.bodySchema,
+        headersSchema: this.options.headersSchema,
+      }
+    );
 
     if (this.options.mock && parent.privateInfo.mockHandler && !this.options.handler) {
       this.options.handler = parent.privateInfo.mockHandler(this.options.mock);

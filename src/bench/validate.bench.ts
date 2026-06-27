@@ -22,11 +22,17 @@ const input = {
 };
 
 // 预编译路径（Stage 1 目标：热路径零分配）
-const compiled = compileValidate(erest, {
-  paramsSchema: api.options.paramsSchema,
-  querySchema: api.options.querySchema,
-  bodySchema: api.options.bodySchema,
-});
+const compiled = compileValidate(
+  {
+    missingParameter: (m: string) => new Error(m),
+    invalidParameter: (m: string) => new Error(m),
+  },
+  {
+    paramsSchema: api.options.paramsSchema,
+    querySchema: api.options.querySchema,
+    bodySchema: api.options.bodySchema,
+  }
+);
 
 bench("compiled.validate: typical POST (params+query+body)", () => {
   compiled.validate(input);
