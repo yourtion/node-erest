@@ -59,7 +59,7 @@ describe("ERest Koa Integration", () => {
         ctx.reply.json({ id: ctx.$params.id });
       });
 
-    apiService.bindRouter(router, apiService.checkerKoa);
+    apiService.bind({ framework: "koa", router });
     app.use(router.routes()).use(router.allowedMethods());
 
     it("should handle basic GET request (execution)", async () => {
@@ -100,7 +100,7 @@ describe("ERest Koa Integration", () => {
         ctx.reply.json({ group: "user info" });
       });
 
-    erestGroup.bindKoaRouterToApp(appGroup, KoaRouter, erestGroup.checkerKoa);
+    erestGroup.bind({ framework: "koa", app: appGroup, router: KoaRouter });
 
     it("should handle basic GET request in a group with explicit prefix (execution)", async () => {
       const ret = await erestGroup.test.get("/v1/grouped-test").success();

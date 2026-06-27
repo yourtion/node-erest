@@ -16,19 +16,19 @@ const middleware = hook("middleware");
 const subBefore = hook("subBefore");
 const subMidd = hook("subMidd");
 
-test("Group - 开启forceGroup必须使用bindGroupToApp", () => {
+test("Group - forceGroup模式bind缺app应抛错", () => {
   const apiService = lib({ forceGroup: true });
   const router = express.Router();
-  const fn = () => apiService.bindRouter(router, apiService.checkerExpress);
-  expect(fn).toThrow("internal error 使用了 forceGroup，请使用bindGroupToApp");
+  const fn = () => apiService.bind({ framework: "express", router });
+  expect(fn).toThrow("forceGroup 模式需要提供 app 和 router");
 });
 
-test("Group - 没有开启forceGroup必须使用bindRouter", () => {
+test("Group - 非forceGroup模式bind应正常工作", () => {
   const apiService = lib();
   apiService.group("test");
-  const app = express();
-  const fn = () => apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress);
-  expect(fn).toThrow("internal error 没有开启 forceGroup，请使用bindRouter");
+  const router = express.Router();
+  // 非 forceGroup 模式 bind 不应抛错
+  expect(() => apiService.bind({ framework: "express", router })).not.toThrow();
 });
 
 describe("Group - 绑定分组路由到App上", () => {
@@ -54,7 +54,7 @@ describe("Group - 绑定分组路由到App上", () => {
   api.put("/").register((ctx: Context) => ctx.reply.json("ok"));
   api.delete("/").register((ctx: Context) => ctx.reply.json("ok"));
   api.patch("/").register((ctx: Context) => ctx.reply.json("ok"));
-  apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress);
+  apiService.bind({ framework: "express", app, router: express.Router });
 
   // 错误处理（标准化后错误经 dispatch 的 reject 传播到 Express next(err)）
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -83,7 +83,7 @@ describe("Group - 绑定分组路由到App上", () => {
         ctx.state.order.push("handler");
         ctx.reply.json({ order: ctx.state.order });
       });
-    apiService2.bindRouterToApp(app2, express.Router, apiService2.checkerExpress);
+    apiService2.bind({ framework: "express", app: app2, router: express.Router });
     app2.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
       res.status(500).json({ error: (err as Error).message });
     });
@@ -129,7 +129,7 @@ describe("Group - 使用define定义路由", () => {
       ctx.reply.json("Hello, API Framework Index");
     },
   });
-  apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress);
+  apiService.bind({ framework: "express", app, router: express.Router });
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     res.status(500).end((err as Error).message);
   });
@@ -155,7 +155,7 @@ describe("Group - 使用@leizm/web框架", () => {
     .register((ctx: Context) => {
       ctx.reply.json("Hello, API Framework Index");
     });
-  apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb);
+  apiService.bind({ framework: "leizmweb", app, router: Router });
 
   test("Get请求成功", async () => {
     apiService.initTest(app.server);
@@ -174,7 +174,7 @@ describe("Group - 使用koa框架", () => {
     .register((ctx: Context) => {
       ctx.reply.json("Hello, API Framework Index");
     });
-  apiService.bindKoaRouterToApp(app, KoaRouter, apiService.checkerKoa);
+  apiService.bind({ framework: "koa", app, router: KoaRouter });
 
   test("Get请求成功", async () => {
     apiService.initTest(app.callback());
@@ -213,7 +213,7 @@ describe("Group - 高级分组配置", () => {
       ctx.reply.json("Hello, API Framework Index");
     },
   });
-  apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress);
+  apiService.bind({ framework: "express", app, router: express.Router });
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     res.status(500).end((err as Error).message);
   });

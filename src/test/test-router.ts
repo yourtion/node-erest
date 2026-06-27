@@ -18,7 +18,7 @@ describe("Router - Basic Binding Functionality", () => {
       const apiService = createTestERestInstance();
       const router = express.Router();
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       expect(router.stack.length).toBe(0);
     });
@@ -33,7 +33,7 @@ describe("Router - Basic Binding Functionality", () => {
       // Create all CRUD APIs using helper
       createAllCrudApis(api);
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       // Should have multiple routes bound
       expect(router.stack.length).toBeGreaterThan(0);
@@ -47,7 +47,7 @@ describe("Router - Basic Binding Functionality", () => {
       createGetApi(api, "/test", "Test GET API");
       createPostApi(api, "/test", "Test POST API");
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       // Verify APIs are registered correctly
       assertApiRegistered(api, "get", "/test", "GET_/test");
@@ -72,7 +72,7 @@ describe("Router - Basic Binding Functionality", () => {
         })
       );
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       // Should throw error when trying to modify after binding
       assertThrowsWithMessage(() => getApi.title("Should Fail"), /已经完成初始化，不能再进行更改/);
@@ -117,7 +117,7 @@ describe("Router - Hook System Integration", () => {
           ctx.reply.json({ order: ctx.state.order });
         });
 
-      apiService.bindRouter(app, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).end((err as Error).message);
       });
@@ -148,7 +148,7 @@ describe("Router - Hook System Integration", () => {
           ctx.reply.json({ order: ctx.state.order });
         });
 
-      apiService.bindRouter(app, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).end((err as Error).message);
       });
@@ -179,7 +179,7 @@ describe("Router - Hook System Integration", () => {
           ctx.reply.json({ order: ctx.state.order });
         });
 
-      apiService.bindRouter(app, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).end((err as Error).message);
       });
@@ -211,7 +211,7 @@ describe("Router - Hook System Integration", () => {
           ctx.reply.json({ order: ctx.state.order });
         });
 
-      apiService.bindRouter(app, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).end((err as Error).message);
       });
@@ -248,7 +248,7 @@ describe("Router - Parameter Validation Integration", () => {
           ctx.reply.json({ message: "Query validation passed" });
         });
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       // Verify API is registered with query schema
       const apiInfo = api.$apis.get("GET_/query-validation");
@@ -277,7 +277,7 @@ describe("Router - Parameter Validation Integration", () => {
           ctx.reply.json({ message: "Body validation passed" });
         });
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       const apiInfo = api.$apis.get("POST_/body-validation");
       expect(apiInfo?.options.bodySchema).toBeDefined();
@@ -299,7 +299,7 @@ describe("Router - Parameter Validation Integration", () => {
           ctx.reply.json({ message: "Path validation passed" });
         });
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       const apiInfo = api.$apis.get("GET_/users/:id/posts/:postId");
       expect(apiInfo?.options.paramsSchema).toBeDefined();
@@ -326,7 +326,7 @@ describe("Router - Parameter Validation Integration", () => {
           ctx.reply.json({ message: "Header validation passed" });
         });
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       // Verify API is registered with header schema
       const apiInfo = api.$apis.get("GET_/header-validation");
@@ -357,7 +357,7 @@ describe("Router - Advanced Configuration", () => {
       };
 
       api.define(apiDefinition);
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       // Verify API is registered correctly
       const apiInfo = api.$apis.get("PATCH_/defined-api");
@@ -392,7 +392,7 @@ describe("Router - Advanced Configuration", () => {
           });
         });
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       // Verify response schema is configured
       const apiInfo = api.$apis.get("GET_/response-schema");
@@ -421,7 +421,7 @@ describe("Router - Advanced Configuration", () => {
           ctx.reply.json({ success: true, id: 123 });
         });
 
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
 
       // Verify example is configured
       const apiInfo = api.$apis.get("POST_/example-api");
@@ -432,22 +432,13 @@ describe("Router - Advanced Configuration", () => {
 
 describe("Router - Error Handling and Edge Cases", () => {
   describe("Invalid Router Configuration", () => {
-    test("should handle null router gracefully", () => {
-      const apiService = createTestERestInstance();
-
-      // Test that null router is handled without throwing
-      expect(() => {
-        apiService.bindRouter(null as any, apiService.checkerExpress);
-      }).not.toThrow();
-    });
-
-    test("should handle invalid checker function", () => {
+    test("should handle empty bind without throwing", () => {
       const apiService = createTestERestInstance();
       const router = express.Router();
 
-      // Test that null checker is handled without throwing
+      // bind 无 API 时不应抛错
       expect(() => {
-        apiService.bindRouter(router, null as any);
+        apiService.bind({ framework: "express", router });
       }).not.toThrow();
     });
   });
@@ -463,7 +454,7 @@ describe("Router - Error Handling and Edge Cases", () => {
 
       // Binding router with incomplete APIs should throw an error
       expect(() => {
-        apiService.bindRouter(router, apiService.checkerExpress);
+        apiService.bind({ framework: "express", router });
       }).toThrow();
     });
 
@@ -503,7 +494,7 @@ describe("Router - Error Handling and Edge Cases", () => {
       }
 
       const startTime = Date.now();
-      apiService.bindRouter(router, apiService.checkerExpress);
+      apiService.bind({ framework: "express", router });
       const endTime = Date.now();
 
       // Should bind all APIs

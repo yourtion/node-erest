@@ -2,11 +2,6 @@ import { bench } from "vitest";
 import { z } from "zod";
 import { compileValidate } from "../lib/params.js";
 import API from "../lib/api.js";
-import type ERest from "../lib/index.js";
-import lib from "../test/lib.js";
-
-const apiService = lib();
-const erest = apiService as unknown as ERest<unknown>;
 
 // 构造一个典型 API：params + query + body
 const api = new API<unknown>("post", "/users/:id/groups", { absolute: "test" } as never, "user", "/user");

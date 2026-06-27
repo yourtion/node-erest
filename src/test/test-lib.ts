@@ -299,33 +299,20 @@ describe("ERest - 基础测试", () => {
       test("should throw error when using bindRouter with forceGroup", () => {
         const erest = new ERest({ forceGroup: true });
         const mockRouter = {};
-        const mockChecker = () => () => {};
 
         expect(() => {
-          erest.bindRouter(mockRouter, mockChecker);
-        }).toThrow("使用了 forceGroup，请使用bindGroupToApp");
+          erest.bind({ framework: "express" as const, router: mockRouter });
+        }).toThrow("forceGroup 模式需要提供 app 和 router");
       });
 
-      test("should throw error when using bindRouterToApp without forceGroup", () => {
+      test("should throw error when using bind with forceGroup but missing app/router", () => {
         const erest = new ERest({ forceGroup: false });
-        const mockApp = {};
         const mockRouter = {};
-        const mockChecker = () => () => {};
 
+        // 非 forceGroup 模式提供 app 应抛错（需 router）
         expect(() => {
-          erest.bindRouterToApp(mockApp, mockRouter, mockChecker);
-        }).toThrow("没有开启 forceGroup，请使用bindRouter");
-      });
-
-      test("should throw error when using bindKoaRouterToApp without forceGroup", () => {
-        const erest = new ERest({ forceGroup: false });
-        const mockApp = {};
-        const mockKoaRouter = {};
-        const mockChecker = () => () => {};
-
-        expect(() => {
-          erest.bindKoaRouterToApp(mockApp, mockKoaRouter, mockChecker);
-        }).toThrow("没有开启 forceGroup，请使用 bindRouterToKoa");
+          erest.bind({ framework: "express" as const, router: mockRouter });
+        }).not.toThrow();
       });
     });
 
@@ -424,7 +411,7 @@ describe("ERest - schema 注册与使用", () => {
       .register(() => {});
 
     const router = express();
-    apiService.bindRouter(router, apiService.checkerExpress);
+    apiService.bind({ framework: "express", router });
     expect(apiService.schema.has("a")).toBeTruthy();
   });
 });

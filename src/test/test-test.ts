@@ -53,7 +53,7 @@ describe("ERest 测试套件", () => {
     apiJson(api as any, "/json4").query(z.object({ a: z.array(JsonSchemaObj) }));
 
     // 绑定路由并开始测试
-    apiService.bindRouter(router, apiService.checkerExpress);
+    apiService.bind({ framework: "express", router });
     // 绑定路由后再加载错误处理中间件
     router.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
       if (err) return res.end((err as Error).message);
