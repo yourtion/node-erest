@@ -1,5 +1,4 @@
-import { vi } from "vitest";
-import type { IDocData, IDocTypes } from "../lib/extend/docs";
+import type { IDocData } from "../lib/extend/docs";
 import typeDocs from "../lib/plugin/generate_markdown/types";
 import {
   fieldString,

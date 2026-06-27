@@ -290,8 +290,7 @@ export function buildSwagger(data: IDocData) {
   generateSwaggerSchemaDefinitions(data, result);
 
   const paths = result.paths as Record<string, unknown>;
-  const apis = data.apis as Record<string, any>;
-  for (const [key, api] of Object.entries(apis)) {
+  for (const [key, api] of Object.entries(data.apis)) {
     const newPath = utils.getRealPath(key).replace(/:(\w+)/, "{$1}");
     if (!paths[newPath]) {
       paths[newPath] = {};

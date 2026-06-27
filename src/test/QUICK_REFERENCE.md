@@ -15,6 +15,7 @@ const api = apiService.api;
 ## 📝 Common Patterns
 
 ### Parameter Validation
+
 ```typescript
 // Success case
 assertParamValidation(paramsChecker, "name", "John", stringParam, "John");
@@ -24,6 +25,7 @@ assertParamValidationError(paramsChecker, "name", null, stringParam, /required/)
 ```
 
 ### Schema Validation
+
 ```typescript
 // Valid data
 assertSchemaValidation(schemaChecker, validData, schema, expectedResult);
@@ -33,6 +35,7 @@ assertSchemaValidationError(schemaChecker, invalidData, schema, /error pattern/)
 ```
 
 ### API Creation
+
 ```typescript
 // Simple API
 const api = createGetApi(apiService.api, "/users", "Get Users");
@@ -44,10 +47,11 @@ const api = createPostApi(apiService.api, "/users", "Create User")
 ```
 
 ### Router Testing
+
 ```typescript
 // Test router binding (recommended)
 const router = express.Router();
-apiService.bind({ framework: 'express', router });
+apiService.bind({ framework: "express", router });
 
 // Legacy method (deprecated)
 // apiService.bindRouter(router, apiService.checkerExpress);
@@ -58,13 +62,13 @@ assertApiRegistered(api, "get", "/users", "GET_/users");
 
 ## 🛠️ Utility Functions
 
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `createTestERestInstance()` | Create test API service | `const api = createTestERestInstance()` |
-| `assertParamValidation()` | Test parameter validation | `assertParamValidation(checker, "name", "John", param, "John")` |
-| `assertSchemaValidation()` | Test schema validation | `assertSchemaValidation(checker, data, schema, result)` |
-| `createGetApi()` | Create GET API | `createGetApi(api, "/users", "Get Users")` |
-| `createMockHook()` | Create mock hook | `const hook = createMockHook("testHook")` |
+| Function                    | Purpose                   | Example                                                         |
+| --------------------------- | ------------------------- | --------------------------------------------------------------- |
+| `createTestERestInstance()` | Create test API service   | `const api = createTestERestInstance()`                         |
+| `assertParamValidation()`   | Test parameter validation | `assertParamValidation(checker, "name", "John", param, "John")` |
+| `assertSchemaValidation()`  | Test schema validation    | `assertSchemaValidation(checker, data, schema, result)`         |
+| `createGetApi()`            | Create GET API            | `createGetApi(api, "/users", "Get Users")`                      |
+| `createMockHook()`          | Create mock hook          | `const hook = createMockHook("testHook")`                       |
 
 ## 📋 Common Parameters
 
@@ -72,10 +76,10 @@ assertApiRegistered(api, "get", "/users", "GET_/users");
 import { commonParams } from "./utils/api-helpers";
 
 // Available parameters
-commonParams.id        // String ID parameter
-commonParams.name      // String name parameter  
-commonParams.age       // Number age parameter
-commonParams.email     // String email parameter
+commonParams.id; // String ID parameter
+commonParams.name; // String name parameter
+commonParams.age; // Number age parameter
+commonParams.email; // String email parameter
 ```
 
 ## 🎯 Test Structure
@@ -86,10 +90,10 @@ describe("Component - Feature", () => {
     test("should handle specific case", () => {
       // Arrange
       const testData = /* setup */;
-      
+
       // Act
       const result = /* execute */;
-      
+
       // Assert
       assertSomething(result, expected);
     });
@@ -99,12 +103,12 @@ describe("Component - Feature", () => {
 
 ## 🔧 Error Patterns
 
-| Error Type | Pattern | Example |
-|------------|---------|---------|
-| Required parameter | `/missing required parameter/` | Missing required field |
-| Type validation | `/should be valid (Type)/` | Invalid type conversion |
-| Enum validation | `/should be valid ENUM/` | Invalid enum value |
-| Schema validation | `/missing required parameter/` | Schema validation failure |
+| Error Type         | Pattern                        | Example                   |
+| ------------------ | ------------------------------ | ------------------------- |
+| Required parameter | `/missing required parameter/` | Missing required field    |
+| Type validation    | `/should be valid (Type)/`     | Invalid type conversion   |
+| Enum validation    | `/should be valid ENUM/`       | Invalid enum value        |
+| Schema validation  | `/missing required parameter/` | Schema validation failure |
 
 ## 📦 Import Cheatsheet
 
@@ -113,24 +117,13 @@ describe("Component - Feature", () => {
 import { createTestERestInstance, setupExpressTest } from "./utils/test-setup";
 
 // Assertions
-import { 
-  assertParamValidation, 
-  assertSchemaValidation,
-  assertApiRegistered 
-} from "./utils/assertion-helpers";
+import { assertParamValidation, assertSchemaValidation, assertApiRegistered } from "./utils/assertion-helpers";
 
 // API helpers
-import { 
-  createGetApi, 
-  createPostApi, 
-  commonParams 
-} from "./utils/api-helpers";
+import { createGetApi, createPostApi, commonParams } from "./utils/api-helpers";
 
 // Mocks
-import { 
-  createMockHook, 
-  createStandardHooks 
-} from "./utils/mock-factories";
+import { createMockHook, createStandardHooks } from "./utils/mock-factories";
 
 // Fixtures
 import { apiFixtures, schemaFixtures } from "./fixtures";
@@ -145,12 +138,12 @@ import { apiFixtures, schemaFixtures } from "./fixtures";
 
 ## 🐛 Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| Import errors | Check relative paths to utils |
-| Type errors | Use proper TypeScript types |
-| Assertion failures | Verify error patterns match actual messages |
-| Setup issues | Ensure proper test environment initialization |
+| Issue              | Solution                                      |
+| ------------------ | --------------------------------------------- |
+| Import errors      | Check relative paths to utils                 |
+| Type errors        | Use proper TypeScript types                   |
+| Assertion failures | Verify error patterns match actual messages   |
+| Setup issues       | Ensure proper test environment initialization |
 
 ---
 

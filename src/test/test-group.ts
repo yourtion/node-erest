@@ -1,8 +1,9 @@
 import { Application, type Context as LeiContext, Router } from "@leizm/web";
 import express from "express";
-import Koa, { type Context as KoaContext } from "koa";
+import Koa from "koa";
 import KoaRouter from "koa-router";
 
+import type { Context } from "../lib/adapters/types.js";
 import { hook } from "./helper";
 import lib from "./lib";
 
@@ -43,15 +44,15 @@ describe("Group - 绑定分组路由到App上", () => {
     .title("Get")
     .before(beforHook)
     .middlewares(middleware)
-    .register((ctx: any) => {
+    .register((ctx: Context) => {
       const order = ctx.state.order || [];
       order.push("reqFn");
       ctx.reply.json({ order });
     });
-  api.post("/").register((ctx: any) => ctx.reply.json("ok"));
-  api.put("/").register((ctx: any) => ctx.reply.json("ok"));
-  api.delete("/").register((ctx: any) => ctx.reply.json("ok"));
-  api.patch("/").register((ctx: any) => ctx.reply.json("ok"));
+  api.post("/").register((ctx: Context) => ctx.reply.json("ok"));
+  api.put("/").register((ctx: Context) => ctx.reply.json("ok"));
+  api.delete("/").register((ctx: Context) => ctx.reply.json("ok"));
+  api.patch("/").register((ctx: Context) => ctx.reply.json("ok"));
   apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress);
 
   // 错误处理（标准化后错误经 dispatch 的 reject 传播到 Express next(err)）
@@ -64,7 +65,7 @@ describe("Group - 绑定分组路由到App上", () => {
     const apiService2 = lib({ forceGroup: true, info: { basePath: "" } });
     const app2 = express();
     app2.use(express.json());
-    const orderHook = (name: string) => (ctx: any, next: any) => {
+    const orderHook = (name: string) => (ctx: Context, next: () => Promise<void> | void) => {
       ctx.state.order = ctx.state.order || [];
       ctx.state.order.push(name);
       return next();
@@ -77,7 +78,7 @@ describe("Group - 绑定分组路由到App上", () => {
       .get("/order")
       .before(orderHook("apiBefore"))
       .middlewares(orderHook("apiMiddleware"))
-      .register((ctx: any) => {
+      .register((ctx: Context) => {
         ctx.state.order.push("handler");
         ctx.reply.json({ order: ctx.state.order });
       });
@@ -128,7 +129,7 @@ describe("Group - 使用define定义路由", () => {
     requiredOneOf: [],
     before: [beforHook],
     middlewares: [middleware],
-    handler: (ctx: any) => {
+    handler: (ctx: Context) => {
       ctx.reply.json("Hello, API Framework Index");
     },
   });
@@ -155,7 +156,7 @@ describe("Group - 使用@leizm/web框架", () => {
   api
     .get("/")
     .title("Get")
-    .register((ctx: any) => {
+    .register((ctx: Context) => {
       ctx.reply.json("Hello, API Framework Index");
     });
   apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb);
@@ -174,7 +175,7 @@ describe("Group - 使用koa框架", () => {
   api
     .get("/")
     .title("Get")
-    .register((ctx: any) => {
+    .register((ctx: Context) => {
       ctx.reply.json("Hello, API Framework Index");
     });
   apiService.bindKoaRouterToApp(app, KoaRouter, apiService.checkerKoa);
@@ -217,7 +218,7 @@ describe("Group - 高级分组配置", () => {
     requiredOneOf: [],
     before: [beforHook],
     middlewares: [middleware],
-    handler: (ctx: any) => {
+    handler: (ctx: Context) => {
       ctx.reply.json("Hello, API Framework Index");
     },
   });

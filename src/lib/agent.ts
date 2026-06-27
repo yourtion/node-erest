@@ -115,7 +115,7 @@ export class TestAgent {
     getBaseUrl: () => Promise<string>,
     ready: () => Promise<void>,
     cookieHeader?: () => string | undefined,
-    onResponse?: (headers: Record<string, string>) => void,
+    onResponse?: (headers: Record<string, string>) => void
   ) {
     this.options.getBaseUrl = getBaseUrl;
     this.options.ready = ready;

@@ -1,3 +1,4 @@
+import type { Context, Middleware } from "../lib/adapters/types.js";
 import type { IApiInfo } from "../lib/index.js";
 
 /**
@@ -75,7 +76,7 @@ export function apiGet(api: IApiInfo<unknown>) {
     .get("/")
     .group("Index")
     .title("Get")
-    .register(function get(ctx: any) {
+    .register(function get(ctx: Context) {
       ctx.reply.send("Hello, API Framework Index");
     });
 }
@@ -87,7 +88,7 @@ export function apiGet2(api: IApiInfo<unknown>) {
     .group("Index")
     .query({ name: nameParams })
     .title("Get2")
-    .register(function get2(ctx: any) {
+    .register(function get2(ctx: Context) {
       ctx.reply.send(`Get ${ctx.$params.name}`);
     });
 }
@@ -101,7 +102,7 @@ export function apiPost(api: IApiInfo<unknown>) {
     .body({ age: ageParams })
     .title("Post")
     .required(["name", "age"])
-    .register(function post(ctx: any) {
+    .register(function post(ctx: Context) {
       ctx.reply.send(`Post ${ctx.$params.name}:${ctx.$params.age}`);
     });
 }
@@ -113,7 +114,7 @@ export function apiPut(api: IApiInfo<unknown>) {
     .group("Index")
     .title("Put")
     .body({ age: ageParams })
-    .register(function put(ctx: any) {
+    .register(function put(ctx: Context) {
       ctx.reply.send(`Put ${ctx.$params.age}`);
     });
 }
@@ -125,7 +126,7 @@ export function apiDelete(api: IApiInfo<unknown>) {
     .group("Index")
     .params({ name: nameParams })
     .title("Delete")
-    .register(function del(ctx: any) {
+    .register(function del(ctx: Context) {
       ctx.reply.send(`Delete ${ctx.$params.name}`);
     });
 }
@@ -136,7 +137,7 @@ export function apiPatch(api: IApiInfo<unknown>) {
     .patch("/index")
     .group("Index")
     .title("Patch")
-    .register(function patch(ctx: any) {
+    .register(function patch(ctx: Context) {
       ctx.reply.send(`Patch`);
     });
 }
@@ -148,7 +149,7 @@ export function apiPatch(api: IApiInfo<unknown>) {
  * - 当没有 age 或者 age<18 时返回 `{ success: false }`
  */
 export function apiJson(api: IApiInfo<unknown>, path = "/json") {
-  function json(ctx: any) {
+  function json(ctx: Context) {
     if (!ctx.$params.age || ctx.$params.age < 18) {
       return ctx.reply.json({ success: false });
     }
@@ -177,10 +178,10 @@ export function apiAll(api: IApiInfo<unknown>) {
 
 /** 生成标准化 hook（签名 (ctx, next)，写 ctx.state["$name"]） */
 export function hook(name: string, value: unknown = 1) {
-  return renameFunction(name, (ctx: any, next: any) => {
+  return renameFunction(name, ((ctx: Context, next: () => Promise<void> | void) => {
     ctx.state[`$${name}`] = value;
     return next();
-  });
+  }) as Middleware);
 }
 
 /** `GET /header`（返回："Get ${header.name}"） */
@@ -190,7 +191,7 @@ export function apiHeader(api: IApiInfo<unknown>) {
     .group("Index")
     .headers({ name: nameParams })
     .title("Header")
-    .register((ctx: any) => {
+    .register((ctx: Context) => {
       ctx.reply.send(`Get ${ctx.$params.name}`);
     });
 }

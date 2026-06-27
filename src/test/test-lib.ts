@@ -1,5 +1,4 @@
 import express from "express";
-import { vi } from "vitest";
 import { z } from "zod";
 import type { IApiOption } from "../lib";
 import ERest, { ERestError } from "../lib";
@@ -147,11 +146,11 @@ describe("ERest - 基础测试", () => {
       test("should register APIs with different HTTP methods", () => {
         const erest = new ERest({});
 
-        const getApi = erest.api.get("/test-get");
-        const postApi = erest.api.post("/test-post");
-        const putApi = erest.api.put("/test-put");
-        const deleteApi = erest.api.delete("/test-delete");
-        const patchApi = erest.api.patch("/test-patch");
+        erest.api.get("/test-get");
+        erest.api.post("/test-post");
+        erest.api.put("/test-put");
+        erest.api.delete("/test-delete");
+        erest.api.patch("/test-patch");
 
         expect(erest.api.$apis.has("GET_/test-get")).toBe(true);
         expect(erest.api.$apis.has("POST_/test-post")).toBe(true);
@@ -214,7 +213,7 @@ describe("ERest - 基础测试", () => {
         const middleware2 = () => {};
         const beforeHook = () => {};
 
-        const group = erest.group("test").middleware(middleware1, middleware2).before(beforeHook);
+        erest.group("test").middleware(middleware1, middleware2).before(beforeHook);
 
         expect(erest.privateInfo.groupInfo.test.middleware).toContain(middleware1);
         expect(erest.privateInfo.groupInfo.test.middleware).toContain(middleware2);
@@ -224,7 +223,7 @@ describe("ERest - 基础测试", () => {
       test("should create group with dynamic info", () => {
         const erest = new ERest({ forceGroup: true });
 
-        const group = erest.group("dynamic", { name: "Dynamic Group", prefix: "/dyn" });
+        erest.group("dynamic", { name: "Dynamic Group", prefix: "/dyn" });
         expect(erest.privateInfo.groups.dynamic).toBe("Dynamic Group");
         expect(erest.privateInfo.groupInfo.dynamic.prefix).toBe("/dyn");
       });

@@ -7,11 +7,10 @@
 import express from "express";
 import { describe, expect, test } from "vitest";
 import { build, TYPES } from "./helper";
-import lib from "./lib";
 import { commonParams, createAllCrudApis, createGetApi, createPostApi } from "./utils/api-helpers";
-import { assertApiRegistered, assertRouterStackOrder, assertThrowsWithMessage } from "./utils/assertion-helpers";
-import { createMockHook, createStandardHooks, STANDARD_HOOK_ORDER } from "./utils/mock-factories";
-import { createTestERestInstance, setupExpressTest } from "./utils/test-setup";
+import { assertApiRegistered, assertThrowsWithMessage } from "./utils/assertion-helpers";
+import { createMockHook, createStandardHooks } from "./utils/mock-factories";
+import { createTestERestInstance } from "./utils/test-setup";
 
 describe("Router - Basic Binding Functionality", () => {
   describe("Empty Router Binding", () => {
@@ -45,8 +44,8 @@ describe("Router - Basic Binding Functionality", () => {
       const api = apiService.api;
       const router = express.Router();
 
-      const getApi = createGetApi(api, "/test", "Test GET API");
-      const postApi = createPostApi(api, "/test", "Test POST API");
+      createGetApi(api, "/test", "Test GET API");
+      createPostApi(api, "/test", "Test POST API");
 
       apiService.bindRouter(router, apiService.checkerExpress);
 
@@ -472,7 +471,7 @@ describe("Router - Error Handling and Edge Cases", () => {
       const router = express.Router();
 
       // Create API without registering handler
-      const incompleteApi = api.get("/incomplete").group("Index").title("Incomplete API");
+      api.get("/incomplete").group("Index").title("Incomplete API");
 
       // Binding router with incomplete APIs should throw an error
       expect(() => {

@@ -43,7 +43,7 @@ const commonParams = {
   id: build(TYPES.String, "ID", true),
   name: build(TYPES.String, "Name", true),
   age: build(TYPES.Number, "Age", false),
-  email: build(TYPES.String, "Email", false)
+  email: build(TYPES.String, "Email", false),
 };
 ```
 
@@ -57,7 +57,7 @@ test("should create user API", () => {
   const userApi = createGetApi(api, "/users/:id", "Get User")
     .params({ id: commonParams.id })
     .query({ include: commonParams.name });
-  
+
   // API is now ready for testing
 });
 ```
@@ -94,18 +94,12 @@ import { assertParamValidation, assertSchemaValidation } from "./utils/assertion
 
 test("should validate parameters correctly", () => {
   const stringParam = build(TYPES.String, "Name", true);
-  
+
   // Test successful validation
   assertParamValidation(paramsChecker, "name", "John", stringParam, "John");
-  
+
   // Test validation error
-  assertParamValidationError(
-    paramsChecker, 
-    "name", 
-    null, 
-    stringParam, 
-    /missing required parameter/
-  );
+  assertParamValidationError(paramsChecker, "name", null, stringParam, /missing required parameter/);
 });
 ```
 
@@ -139,13 +133,9 @@ import { createMockHook, createStandardHooks } from "./utils/mock-factories";
 
 test("should handle hooks correctly", () => {
   const hooks = createStandardHooks();
-  
-  api
-    .get("/test")
-    .before(hooks.beforHook)
-    .middlewares(hooks.middleware)
-    .register(handler);
-    
+
+  api.get("/test").before(hooks.beforHook).middlewares(hooks.middleware).register(handler);
+
   // Test hook execution order
 });
 ```
@@ -163,7 +153,7 @@ const apiService = createTestERestInstance(options?);
 // Setup Express test environment
 const { app, server } = setupExpressTest(apiService);
 
-// Setup Koa test environment  
+// Setup Koa test environment
 const { app, server } = setupKoaTest(apiService);
 
 // Cleanup test environment
@@ -177,12 +167,12 @@ import { createTestERestInstance, setupExpressTest } from "./utils/test-setup";
 
 describe("API Integration Tests", () => {
   let apiService, app, server;
-  
+
   beforeEach(() => {
     apiService = createTestERestInstance();
     ({ app, server } = setupExpressTest(apiService));
   });
-  
+
   afterEach(() => {
     cleanupTestEnvironment(server);
   });
@@ -229,16 +219,18 @@ export const apiFixtures = {
     method: "get",
     path: "/test",
     title: "Test API",
-    group: "Test"
+    group: "Test",
   },
-  
+
   complexPostApi: {
     method: "post",
     path: "/users",
     title: "Create User",
-    body: { /* ... */ },
-    required: ["name", "email"]
-  }
+    body: {
+      /* ... */
+    },
+    required: ["name", "email"],
+  },
 };
 ```
 
@@ -251,13 +243,13 @@ export const schemaFixtures = {
   userSchema: {
     name: { type: "String", required: true },
     age: { type: "Number", required: false },
-    email: { type: "String", required: true }
+    email: { type: "String", required: true },
   },
-  
+
   testData: {
     validUser: { name: "John", age: 30, email: "john@example.com" },
-    invalidUser: { name: "John" } // missing required email
-  }
+    invalidUser: { name: "John" }, // missing required email
+  },
 };
 ```
 
@@ -269,10 +261,10 @@ export const schemaFixtures = {
 describe("Parameter Validation", () => {
   test("should validate required parameters", () => {
     const param = build(TYPES.String, "Name", true);
-    
+
     // Test valid input
     assertParamValidation(checker, "name", "John", param, "John");
-    
+
     // Test invalid input
     assertParamValidationError(checker, "name", null, param, /required/);
   });
@@ -286,14 +278,14 @@ describe("Schema Validation", () => {
   test("should validate complete schema", () => {
     const schema = schemaFixtures.userSchema;
     const validData = schemaFixtures.testData.validUser;
-    
+
     assertSchemaValidation(checker, validData, schema, validData);
   });
-  
+
   test("should handle validation errors", () => {
     const schema = schemaFixtures.userSchema;
     const invalidData = schemaFixtures.testData.invalidUser;
-    
+
     assertSchemaValidationError(checker, invalidData, schema, /missing.*email/);
   });
 });
@@ -304,15 +296,15 @@ describe("Schema Validation", () => {
 ```typescript
 describe("API Integration", () => {
   let apiService, api;
-  
+
   beforeEach(() => {
     apiService = createTestERestInstance();
     api = apiService.api;
   });
-  
+
   test("should register API correctly", () => {
     const userApi = createGetApi(api, "/users", "Get Users");
-    
+
     assertApiRegistered(api, "get", "/users", "GET_/users");
   });
 });
@@ -326,27 +318,19 @@ describe("Router Configuration", () => {
     const apiService = createTestERestInstance();
     const router = express.Router();
     const hooks = createStandardHooks();
-    
+
     // Setup API with hooks
-    api.get("/test")
-       .before(hooks.beforHook)
-       .middlewares(hooks.middleware)
-       .register(handler);
-    
+    api.get("/test").before(hooks.beforHook).middlewares(hooks.middleware).register(handler);
+
     // Recommended: use bind() with framework type
-    apiService.bind({ framework: 'express', router });
-    
+    apiService.bind({ framework: "express", router });
+
     // Deprecated: apiService.bindRouter(router, apiService.checkerExpress);
-    
+
     // Verify middleware order
     // Order: beforeHooks -> groupBefore -> apiBeforeHooks -> checker -> groupMiddleware -> apiMiddlewares -> handler
     const routerStack = router.stack[0].route?.stack;
-    assertRouterStackOrder(routerStack, [
-      "beforHook",
-      "apiParamsChecker", 
-      "middleware",
-      "handler"
-    ]);
+    assertRouterStackOrder(routerStack, ["beforHook", "apiParamsChecker", "middleware", "handler"]);
   });
 });
 ```
@@ -417,6 +401,7 @@ const param = build(TYPES.String, "Name", true) as any;
 ### From Old Pattern to New Pattern
 
 #### Before (Old Pattern):
+
 ```typescript
 test("parameter validation", () => {
   const param = build(TYPES.String, "Name", true);
@@ -426,13 +411,14 @@ test("parameter validation", () => {
 ```
 
 #### After (New Pattern):
+
 ```typescript
 test("should validate string parameters", () => {
   const param = build(TYPES.String, "Name", true);
-  
+
   // Success case
   assertParamValidation(paramsChecker, "name", "John", param, "John");
-  
+
   // Error case with specific pattern
   assertParamValidationError(paramsChecker, "name", null, param, /missing required parameter/);
 });
@@ -474,12 +460,14 @@ The refactored test architecture provides several performance benefits:
 ## 📈 Metrics
 
 ### Test Coverage Maintained:
+
 - **371 tests** across 11 test files
 - **100% functionality preserved**
 - **Zero regression issues**
 - **Improved execution time**: ~1.16s total
 
 ### Code Quality Improvements:
+
 - **Reduced duplication**: ~40% less repetitive code
 - **Enhanced readability**: Consistent patterns and naming
 - **Better maintainability**: Modular architecture

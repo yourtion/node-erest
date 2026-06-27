@@ -5,10 +5,10 @@
  * - api.schema.register + createSchema：注册可复用的对象 Schema，handler 校验时复用。
  * - 这里同时导出原生 Zod schema，供 registerTyped 直接使用（类型推导）。
  */
-import { z } from 'zod';
+import { z } from "zod";
 
 /** Slug：小写字母与连字符（自定义类型示例） */
-export const SlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'slug 格式不合法');
+export const SlugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug 格式不合法");
 
 /** 文章创建 schema（registerTyped 直接用，享受类型推导） */
 export const CreatePostSchema = z.object({
@@ -30,9 +30,9 @@ export const UpdatePostSchema = z.object({
  */
 export function registerTypes(api) {
   // 注册自定义类型 Slug（可在 ISchemaType Record 中按 'Slug' 引用）
-  api.type.register('Slug', SlugSchema);
+  api.type.register("Slug", SlugSchema);
 
   // 注册可复用 Schema（文档生成时会出现）
-  api.schema.register('CreatePost', CreatePostSchema);
-  api.schema.register('UpdatePost', UpdatePostSchema);
+  api.schema.register("CreatePost", CreatePostSchema);
+  api.schema.register("UpdatePost", UpdatePostSchema);
 }

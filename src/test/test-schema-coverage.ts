@@ -5,7 +5,6 @@
 
 import assert from "assert";
 import { z } from "zod";
-import type ERest from "../lib";
 import IAPIDoc from "../lib/extend/docs";
 import schemaDocs from "../lib/plugin/generate_markdown/schema";
 import lib from "./lib";
@@ -3294,7 +3293,7 @@ describe("Schema Coverage Tests", () => {
     it("should test _parseType function with type that does not exist in typeManager", () => {
       // 创建一个mock的typeManager，让has方法返回false
       const mockTypeManager = {
-        has: (type: string) => false,
+        has: () => false,
       };
 
       const docData = {
@@ -3662,7 +3661,7 @@ describe("Schema Coverage Tests", () => {
 
     it("should cover _parseType with type that does not exist in typeManager", () => {
       const docData = {
-        typeManager: { has: (type: string) => false },
+        typeManager: { has: () => false },
         types: {
           TestType: {
             name: "TestType",
@@ -3683,7 +3682,7 @@ describe("Schema Coverage Tests", () => {
 
     it("should cover _parseType with empty type string", () => {
       const docData = {
-        typeManager: { has: (type: string) => false },
+        typeManager: { has: () => false },
         types: {
           TestType: {
             name: "TestType",
@@ -3703,7 +3702,7 @@ describe("Schema Coverage Tests", () => {
 
     it("should cover _parseType with array type", () => {
       const docData = {
-        typeManager: { has: (type: string) => false },
+        typeManager: { has: () => false },
         types: {
           TestType: {
             name: "TestType",
@@ -3994,7 +3993,7 @@ describe("Schema Coverage Tests", () => {
     it("should cover _parseType function with empty type string", () => {
       const docData = {
         typeManager: {
-          has: (type: string) => false,
+          has: () => false,
         },
         types: {
           TestType: {
@@ -4017,7 +4016,7 @@ describe("Schema Coverage Tests", () => {
     it("should cover _parseType function with null type", () => {
       const docData = {
         typeManager: {
-          has: (type: string) => false,
+          has: () => false,
         },
         types: {
           TestType: {
@@ -4039,7 +4038,7 @@ describe("Schema Coverage Tests", () => {
     it("should cover _parseType function with undefined type", () => {
       const docData = {
         typeManager: {
-          has: (type: string) => false,
+          has: () => false,
         },
         types: {
           TestType: {
@@ -4061,7 +4060,7 @@ describe("Schema Coverage Tests", () => {
     it("should cover _parseType function link generation branch", () => {
       const docData = {
         typeManager: {
-          has: (type: string) => false, // 返回false，触发链接生成分支
+          has: () => false, // 返回false，触发链接生成分支
         },
         types: {
           TestType: {
@@ -4084,7 +4083,7 @@ describe("Schema Coverage Tests", () => {
     it("should cover _parseType function with array type link generation", () => {
       const docData = {
         typeManager: {
-          has: (type: string) => false,
+          has: () => false,
         },
         types: {
           TestType: {

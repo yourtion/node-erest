@@ -1,4 +1,3 @@
-import { resolve } from "node:path";
 import express from "express";
 import { vol } from "memfs";
 import { vi } from "vitest";

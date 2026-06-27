@@ -15,7 +15,6 @@ import {
   responseChecker as responseCheckerFn,
   schemaChecker as schemaCheckerFn,
 } from "../lib/params";
-import { iSchemaFixtures, schemaErrorPatterns, schemaTestData } from "./fixtures/schema-fixtures";
 import { build, TYPES } from "./helper";
 import lib from "./lib";
 import {
@@ -23,10 +22,7 @@ import {
   assertParamValidationError,
   assertSchemaValidation,
   assertSchemaValidationError,
-  assertZodValidation,
 } from "./utils/assertion-helpers";
-import { createTestERestInstance } from "./utils/test-setup";
-import { commonTypes, typeTestData, zodSchemas } from "./utils/type-helpers";
 
 // Create test instance
 const apiService = lib();

@@ -10,8 +10,8 @@
 
 /** 已签发 token -> 用户 id 的映射（示例用，非生产鉴权） */
 const TOKENS = new Map([
-  ['user-token', { id: 1, role: 'user' }],
-  ['admin-token', { id: 2, role: 'admin' }],
+  ["user-token", { id: 1, role: "user" }],
+  ["admin-token", { id: 2, role: "admin" }],
 ]);
 
 export function createStore() {
@@ -23,15 +23,15 @@ export function createStore() {
   const posts = new Map();
 
   // 种子数据
-  const alice = { id: nextUserId++, name: 'Alice', email: 'alice@ex.com', role: 'admin' };
-  const bob = { id: nextUserId++, name: 'Bob', email: 'bob@ex.com', role: 'user' };
+  const alice = { id: nextUserId++, name: "Alice", email: "alice@ex.com", role: "admin" };
+  const bob = { id: nextUserId++, name: "Bob", email: "bob@ex.com", role: "user" };
   users.set(alice.id, alice);
   users.set(bob.id, bob);
   const post1 = {
     id: nextPostId++,
-    slug: 'hello-erest',
-    title: 'Hello ERest',
-    content: 'erest 让 API 开发更简单',
+    slug: "hello-erest",
+    title: "Hello ERest",
+    content: "erest 让 API 开发更简单",
     authorId: alice.id,
     published: true,
   };
@@ -78,13 +78,13 @@ export function createStore() {
      */
     updatePost(id, patch) {
       const p = posts.get(id);
-      if (!p) throw Object.assign(new Error('post not found'), { status: 404 });
+      if (!p) throw Object.assign(new Error("post not found"), { status: 404 });
       Object.assign(p, patch);
       return p;
     },
     /** @param {number} id */
     deletePost(id) {
-      if (!posts.delete(id)) throw Object.assign(new Error('post not found'), { status: 404 });
+      if (!posts.delete(id)) throw Object.assign(new Error("post not found"), { status: 404 });
     },
 
     // —— 统计（mock 用）——
@@ -109,15 +109,15 @@ export function createStore() {
       posts.clear();
       nextUserId = 1;
       nextPostId = 1;
-      const a = { id: nextUserId++, name: 'Alice', email: 'alice@ex.com', role: 'admin' };
-      const b = { id: nextUserId++, name: 'Bob', email: 'bob@ex.com', role: 'user' };
+      const a = { id: nextUserId++, name: "Alice", email: "alice@ex.com", role: "admin" };
+      const b = { id: nextUserId++, name: "Bob", email: "bob@ex.com", role: "user" };
       users.set(a.id, a);
       users.set(b.id, b);
       const p = {
         id: nextPostId++,
-        slug: 'hello-erest',
-        title: 'Hello ERest',
-        content: 'erest 让 API 开发更简单',
+        slug: "hello-erest",
+        title: "Hello ERest",
+        content: "erest 让 API 开发更简单",
         authorId: a.id,
         published: true,
       };

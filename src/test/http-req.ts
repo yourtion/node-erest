@@ -53,7 +53,8 @@ export function httpReq(app: unknown) {
         state.body = data;
         return chain;
       },
-      /** 执行请求 */
+      /** 执行请求（chain 对象作为 thenable，支持 await） */
+      // eslint-disable-next-line unicorn/no-thenable -- 测试助手链式对象需实现 thenable 协议以支持 await
       then: async (onFulfilled: (res: HttpResponse) => unknown, onRejected?: (err: unknown) => unknown) => {
         try {
           await ensureReady();

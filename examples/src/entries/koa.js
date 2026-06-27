@@ -6,13 +6,13 @@
  *
  * 运行：npm install && npm run start:koa
  */
-import Koa from 'koa';
-import bodyParser from 'koa-bodyparser';
-import KoaRouter from 'koa-router';
-import ERest from 'erest';
-import { API_INFO, GROUPS, registerApi } from '../api.js';
-import { createStore } from '../store.js';
-import { authBefore, adminBefore, logMiddleware, timingBefore } from '../hooks.js';
+import Koa from "koa";
+import bodyParser from "koa-bodyparser";
+import KoaRouter from "koa-router";
+import ERest from "erest";
+import { API_INFO, GROUPS, registerApi } from "../api.js";
+import { createStore } from "../store.js";
+import { authBefore, adminBefore, logMiddleware, timingBefore } from "../hooks.js";
 
 const app = new Koa();
 app.use(bodyParser());
@@ -38,8 +38,8 @@ registerApi(api, store, {
 });
 
 // forceGroup 绑定
-api.bind({ framework: 'koa', app, router: KoaRouter });
+api.bind({ framework: "koa", app, router: KoaRouter });
 
 app.listen(3100, () => {
-  console.log('erest Koa 入口：http://localhost:3100');
+  console.log("erest Koa 入口：http://localhost:3100");
 });

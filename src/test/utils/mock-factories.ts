@@ -5,12 +5,14 @@
 
 import { vi } from "vitest";
 
+import type { Context } from "../../lib/adapters/types.js";
+
 /**
  * Create a mock hook function with specified name.
  * 标准化签名 (ctx, next)：记录执行顺序到 ctx.state.order，写 ctx.state["$name"]。
  */
 export function createMockHook(name: string, value: unknown = 1) {
-  const mockFn = vi.fn((ctx: any, next: () => void) => {
+  const mockFn = vi.fn((ctx: Context, next: () => void) => {
     ctx.state.order = ctx.state.order || [];
     ctx.state.order.push(name);
     ctx.state[`$${name}`] = value;

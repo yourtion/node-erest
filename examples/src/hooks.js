@@ -14,7 +14,7 @@
  * 因此鉴权/日志/计时三套逻辑只需写**一份**，被 Express / Koa / @leizm/web 三个入口复用。
  * 业务规则（校验 token、判断角色）集中在 resolveUser / requireAdmin，无框架差异。
  */
-import { authRequired, forbidden } from './errors.js';
+import { authRequired, forbidden } from "./errors.js";
 
 /**
  * 创建鉴权业务逻辑（框架无关）。
@@ -35,7 +35,7 @@ export function resolveUser({ token }, store) {
  * @throws {ERestError} 非管理员抛 FORBIDDEN
  */
 export function requireAdmin(user) {
-  if (user.role !== 'admin') throw forbidden('需要管理员权限');
+  if (user.role !== "admin") throw forbidden("需要管理员权限");
   return user;
 }
 
@@ -50,7 +50,7 @@ export function requireAdmin(user) {
  */
 export function authBefore(store) {
   return (ctx, next) => {
-    const user = resolveUser({ token: ctx.headers['x-admin-token'] }, store);
+    const user = resolveUser({ token: ctx.headers["x-admin-token"] }, store);
     ctx.state.currentUser = user;
     return next();
   };
@@ -62,7 +62,7 @@ export function authBefore(store) {
 export function adminBefore() {
   return (ctx, next) => {
     const user = ctx.state.currentUser;
-    if (!user || user.role !== 'admin') throw forbidden('需要管理员权限');
+    if (!user || user.role !== "admin") throw forbidden("需要管理员权限");
     return next();
   };
 }
@@ -73,7 +73,7 @@ export function adminBefore() {
 export function logMiddleware() {
   return (ctx, next) => {
     const user = ctx.state.currentUser;
-    console.log(`[${ctx.method}] ${ctx.path} user=${user?.id ?? '-'}`);
+    console.log(`[${ctx.method}] ${ctx.path} user=${user?.id ?? "-"}`);
     return next();
   };
 }

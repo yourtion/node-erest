@@ -6,7 +6,7 @@
 import { strict as assert } from "node:assert";
 import { pathToRegexp } from "path-to-regexp";
 import { type ZodTypeAny, z } from "zod";
-import type { Context, Middleware, Reply } from "./adapters/types.js";
+import type { Middleware, Reply } from "./adapters/types.js";
 import { api as debug } from "./debug.js";
 import type ERest from "./index.js";
 import type { ISchemaType, SchemaType } from "./params.js";

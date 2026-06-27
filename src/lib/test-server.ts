@@ -27,7 +27,12 @@ export interface TestTarget {
 
 /** 是否为 http.Server（已具备 listen/address） */
 function isHttpServer(obj: unknown): obj is Server {
-  return typeof obj === "object" && obj !== null && typeof (obj as Server).listen === "function" && typeof (obj as Server).address === "function";
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    typeof (obj as Server).listen === "function" &&
+    typeof (obj as Server).address === "function"
+  );
 }
 
 /** 是否为 Express 应用（有 listen + handle/dispatch，且非原生 http.Server） */
