@@ -109,3 +109,36 @@ api.requiredOneOf(["email", "phone"]); // email/phone 至少一个
 
 > 这些访问器标记 `@internal`，仅供 adapter/docs/test 内部使用，非公开 API。
 
+## Stage 3 — 可观测性 Hook + AI 友好
+
+### 1. 生命周期 Hook
+
+`new ERest({ hooks })` 支持注册同步观察者，不参与控制流：
+
+```typescript
+const api = new ERest({
+  groups: { user: "用户" },
+  hooks: {
+    onRequest: (ctx) => { /* 注入 traceId、开始计时 */ },
+    onValidate: (ctx, result) => { /* 记录校验耗时 */ },
+    onError: (ctx, err) => { /* 结构化错误日志（保留 ERestError code） */ },
+    onResponse: (ctx) => { /* 结束计时、状态码 */ },
+  },
+});
+```
+
+- 无订阅者时 `bind()` 装配的 dispatch 裁剪掉 hook 调用，**热路径零开销**。
+- hook 异常被吞掉（观察者语义，不影响主流程）。
+
+### 2. AGENTS.md 架构导航
+
+新增 `AGENTS.md`，面向修改者（人与 AI）：目录树、"改 X 去 Y"决策树、约定、常见任务套路。
+
+### 3. erest-gen codegen
+
+独立子包 `erest-gen`，从 Zod schema 生成 handler 骨架：
+
+```bash
+npx erest-gen handler --from ./schemas/user.ts --group user --out ./handlers/user.ts
+```
+
