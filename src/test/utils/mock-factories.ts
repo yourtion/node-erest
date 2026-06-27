@@ -142,10 +142,6 @@ export function createMockZodSchema(parseResult: unknown = { success: true, data
       throw new Error("Validation failed");
     }),
     safeParse: vi.fn(() => parseResult),
-    _def: {
-      typeName: "ZodObject",
-      shape: () => ({}),
-    },
   };
 }
 

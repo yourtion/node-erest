@@ -287,9 +287,9 @@ describe("Zod Documentation Generation Tests", () => {
     });
 
     test("should handle invalid Zod schemas gracefully", () => {
-      // 模拟无效的schema
+      // 模拟无效的 schema（非 ZodType）
       (app as any).typeRegistry.set("InvalidType", null);
-      (app as any).schemaRegistry.set("InvalidSchema", { _def: null });
+      (app as any).schemaRegistry.set("InvalidSchema", null);
 
       const docData = docInstance.buildDocData();
 
