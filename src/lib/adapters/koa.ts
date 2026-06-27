@@ -30,6 +30,16 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
         body: ctx.body as Record<string, unknown> | undefined,
         headers: ctx.headers as Record<string, unknown> | undefined,
       });
+      // requiredOneOf 检查（多选一必填）
+      const requiredOneOf = api.options.requiredOneOf;
+      if (requiredOneOf && requiredOneOf.length > 0) {
+        const flat = { ...layered.params, ...layered.query, ...layered.body, ...layered.headers };
+        for (const names of requiredOneOf) {
+          if (!names.some((n) => typeof flat[n] !== "undefined")) {
+            throw erest.privateInfo.error.missingParameter(`one of ${names.join(", ")} is required`);
+          }
+        }
+      }
       ctx.$validated = layered;
       ctx.$params = { ...layered.params, ...layered.query, ...layered.body, ...layered.headers };
       ctx.$pathParams = layered.params;
