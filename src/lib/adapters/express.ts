@@ -5,6 +5,7 @@
 
 import type API from "../api.js";
 import type ERest from "../index.js";
+import type { LifecycleHooks } from "../hooks.js";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "./types.js";
 import { compose } from "./utils.js";
 
@@ -48,16 +49,27 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
       ctx.$query = layered.query;
       ctx.$body = layered.body;
       ctx.$headers = layered.headers;
+      // Stage 3：onValidate hook（校验后触发，观察者）
+      const onValidate = erest.getHooks()?.onValidate;
+      if (onValidate) {
+        try {
+          onValidate(ctx, layered);
+        } catch {
+          /* ignore */
+        }
+      }
       return next();
     };
     return checker as unknown as T;
   }
 
-  bindRoute(router: unknown, api: API<T>, handlers: T[]): void {
+  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: LifecycleHooks): void {
     const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
     const method = api.options.method as string;
     // 包装为单个 Express 中间件：构造标准 Context + compose 标准化 handler 链
     const dispatch = compose(handlers as unknown as Middleware[]);
+    // Stage 3：零开销裁剪——无 hooks 时装配不含 hook 调用的 dispatch
+    const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
     const nativeMiddleware = (req: Record<string, unknown>, res: unknown, next: (err?: unknown) => void) => {
       const reply: Reply = createExpressReply(res);
       const ctx: Context = {
@@ -70,11 +82,35 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
         state: {},
         reply,
       };
-      // 把 ctx 挂到 req，供遗留的 $params/$reply 读取（向后兼容 registerTyped wrapper）
       req.$ctx = ctx;
-      dispatch(ctx)
-        .then(() => next())
-        .catch((err) => next(err));
+      if (hasHook && hooks) {
+        try {
+          hooks.onRequest?.(ctx);
+        } catch {
+          /* hook 是观察者，异常不影响主流程 */
+        }
+        dispatch(ctx)
+          .then(() => {
+            try {
+              hooks.onResponse?.(ctx);
+            } catch {
+              /* ignore */
+            }
+            next();
+          })
+          .catch((err) => {
+            try {
+              hooks.onError?.(ctx, err);
+            } catch {
+              /* ignore */
+            }
+            next(err);
+          });
+      } else {
+        dispatch(ctx)
+          .then(() => next())
+          .catch((err) => next(err));
+      }
     };
     routerTyped[method].bind(router)(api.options.path, nativeMiddleware);
   }

@@ -5,6 +5,7 @@
 
 import type API from "../api.js";
 import type ERest from "../index.js";
+import type { LifecycleHooks } from "../hooks.js";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "./types.js";
 import { compose } from "./utils.js";
 
@@ -46,15 +47,25 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
       ctx.$query = layered.query;
       ctx.$body = layered.body;
       ctx.$headers = layered.headers;
+      // Stage 3：onValidate hook
+      const onValidate = erest.getHooks()?.onValidate;
+      if (onValidate) {
+        try {
+          onValidate(ctx, layered);
+        } catch {
+          /* ignore */
+        }
+      }
       return next();
     };
     return checker as unknown as T;
   }
 
-  bindRoute(router: unknown, api: API<T>, handlers: T[]): void {
+  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: LifecycleHooks): void {
     const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
     const method = (api.options.method as string).toLowerCase();
     const dispatch = compose(handlers as unknown as Middleware[]);
+    const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
     const nativeMiddleware = async (
       ctx: Record<string, unknown> & { request: Record<string, unknown> },
       next: () => Promise<void>
@@ -71,7 +82,30 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
         reply,
       };
       (ctx as { $ctx?: Context }).$ctx = stdCtx;
-      await dispatch(stdCtx);
+      if (hasHook && hooks) {
+        try {
+          hooks.onRequest?.(stdCtx);
+        } catch {
+          /* ignore */
+        }
+        try {
+          await dispatch(stdCtx);
+          try {
+            hooks.onResponse?.(stdCtx);
+          } catch {
+            /* ignore */
+          }
+        } catch (err) {
+          try {
+            hooks.onError?.(stdCtx, err as Error);
+          } catch {
+            /* ignore */
+          }
+          throw err;
+        }
+      } else {
+        await dispatch(stdCtx);
+      }
       await next();
     };
     if (typeof routerTyped[method] === "function") {

@@ -5,6 +5,7 @@
 
 import type API from "../api.js";
 import type ERest from "../index.js";
+import type { LifecycleHooks } from "../hooks.js";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "./types.js";
 import { compose } from "./utils.js";
 
@@ -46,15 +47,25 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
       ctx.$query = layered.query;
       ctx.$body = layered.body;
       ctx.$headers = layered.headers;
+      // Stage 3：onValidate hook
+      const onValidate = erest.getHooks()?.onValidate;
+      if (onValidate) {
+        try {
+          onValidate(ctx, layered);
+        } catch {
+          /* ignore */
+        }
+      }
       return next();
     };
     return checker as unknown as T;
   }
 
-  bindRoute(router: unknown, api: API<T>, handlers: T[]): void {
+  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: LifecycleHooks): void {
     const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
     const method = api.options.method as string;
     const dispatch = compose(handlers as unknown as Middleware[]);
+    const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
     // 单参数中间件（length=1），避免被 @leizm/web 误判为错误处理中间件
     const nativeMiddleware = (
       ctx: Record<string, unknown> & { request: Record<string, unknown>; next: () => void }
@@ -72,12 +83,32 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
         reply,
       };
       (request as { $ctx?: Context }).$ctx = stdCtx;
-      // dispatch 是 compose 出来的 Promise。成功后调 ctx.next() 继续框架链；
-      // 失败时直接写错误响应（@leizm/web 的 ctx.next 不接受 err 参数，
-      // 且 nativeMiddleware 同步返回无法被错误中间件捕获，故直接 response.status/json）。
+      if (hasHook && hooks) {
+        try {
+          hooks.onRequest?.(stdCtx);
+        } catch {
+          /* ignore */
+        }
+      }
       return dispatch(stdCtx)
-        .then(() => ctx.next())
+        .then(() => {
+          if (hasHook && hooks) {
+            try {
+              hooks.onResponse?.(stdCtx);
+            } catch {
+              /* ignore */
+            }
+          }
+          ctx.next();
+        })
         .catch((err: unknown) => {
+          if (hasHook && hooks) {
+            try {
+              hooks.onError?.(stdCtx, err as Error);
+            } catch {
+              /* ignore */
+            }
+          }
           const e = err as { statusCode?: number; status?: number; message?: string };
           const code = e?.statusCode || e?.status || 500;
           const leiRes = (ctx.response ?? {}) as { status?: (c: number) => unknown; json?: (b: unknown) => void };

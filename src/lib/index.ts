@@ -576,7 +576,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
           groupInfo: groupInfo as IAdapterGroupInfo<T>,
         });
 
-        adapter.bindRoute(route, schema, handlers);
+        adapter.bindRoute(route, schema, handlers, this.hooks);
       }
 
       for (const [key, groupRouter] of routes.entries()) {
@@ -603,7 +603,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
           checker,
         });
 
-        adapter.bindRoute(router, schema, handlers);
+        adapter.bindRoute(router, schema, handlers, this.hooks);
       }
     }
   }

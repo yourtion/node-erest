@@ -38,7 +38,7 @@ export interface FrameworkAdapter<T = unknown> {
    * @param api API schema
    * @param handlers Handler chain
    */
-  bindRoute(router: unknown, api: API<T>, handlers: T[]): void;
+  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: import("../hooks.js").LifecycleHooks): void;
 
   /**
    * Create a new group router with optional prefix
