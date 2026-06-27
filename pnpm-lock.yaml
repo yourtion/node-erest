@@ -107,6 +107,12 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.0.15)(@vitest/ui@3.2.4)(yaml@2.9.0)
 
+  packages/erest-gen:
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.8.3
+
 packages:
 
   '@ampproject/remapping@2.3.0':

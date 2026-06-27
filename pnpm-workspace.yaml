@@ -1,3 +1,5 @@
 packages:
   # 端到端示例工程（迷你博客业务域，三框架入口）
   - 'examples'
+  # codegen CLI 子包（从 Zod schema 生成 handler 骨架等）
+  - 'packages/erest-gen'
