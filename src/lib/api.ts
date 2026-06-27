@@ -404,7 +404,7 @@ export default class API<T = DEFAULT_HANDLER> {
 
     assert(this.options.group, `请为 API ${this.key} 选择一个分组`);
     assert(
-      this.options.group && this.options.group in parent.privateInfo.groups,
+      this.options.group && this.options.group in parent.getInternalGroups(),
       `请先配置 ${this.options.group} 分组`
     );
 
@@ -419,8 +419,8 @@ export default class API<T = DEFAULT_HANDLER> {
     // 预编译校验闭包（Stage 1：热路径零分配）
     this.options.compiled = compileValidate(
       {
-        missingParameter: (m) => parent.privateInfo.error.missingParameter(m),
-        invalidParameter: (m) => parent.privateInfo.error.invalidParameter(m),
+        missingParameter: (m) => parent.getError().missingParameter(m),
+        invalidParameter: (m) => parent.getError().invalidParameter(m),
       },
       {
         paramsSchema: this.options.paramsSchema,
@@ -430,8 +430,9 @@ export default class API<T = DEFAULT_HANDLER> {
       }
     );
 
-    if (this.options.mock && parent.privateInfo.mockHandler && !this.options.handler) {
-      this.options.handler = parent.privateInfo.mockHandler(this.options.mock);
+    const mockHandler = parent.getMockHandler();
+    if (this.options.mock && mockHandler && !this.options.handler) {
+      this.options.handler = mockHandler(this.options.mock);
     }
 
     this.inited = true;

@@ -140,10 +140,10 @@ export default class IAPIDoc {
 
   constructor(erestIns: ERest<unknown>) {
     this.erest = erestIns;
-    const { info, groups, docsOptions } = this.erest.privateInfo;
-    this.info = info;
-    this.groups = groups;
-    this.docsOptions = docsOptions;
+    const view = this.erest.getDocsView();
+    this.info = view.info;
+    this.groups = view.groups;
+    this.docsOptions = view.docsOptions;
   }
 
   /** 使缓存失效（当 API/类型/Schema 变化时调用） */

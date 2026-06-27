@@ -36,7 +36,7 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
         const flat = { ...layered.params, ...layered.query, ...layered.body, ...layered.headers };
         for (const names of requiredOneOf) {
           if (!names.some((n) => typeof flat[n] !== "undefined")) {
-            throw erest.privateInfo.error.missingParameter(`one of ${names.join(", ")} is required`);
+            throw erest.getError().missingParameter(`one of ${names.join(", ")} is required`);
           }
         }
       }

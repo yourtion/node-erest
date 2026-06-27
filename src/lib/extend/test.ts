@@ -43,7 +43,7 @@ export default class IAPITest {
 
   constructor(erestIns: ERest<unknown>, path: string) {
     this.erest = erestIns;
-    const { info } = this.erest.privateInfo;
+    const { info } = this.erest.getTestView();
     this.info = info;
     this.testPath = path;
   }
@@ -51,7 +51,7 @@ export default class IAPITest {
   /** 归一化 app 为测试目标（lazy，首次请求时触发） */
   private getTarget(): TestTarget {
     if (this.target) return this.target;
-    const app = this.erest.privateInfo.app;
+    const app = this.erest.getTestView().app;
     assert(app, "请先调用 initTest(app) 设置 app 实例");
     this.target = normalizeTestTarget(app);
     return this.target;
@@ -100,7 +100,7 @@ export default class IAPITest {
 
   /** 创建测试会话（cookie 持久化，复用同一个 TestAgent 上下文） */
   public session(): ITestSession {
-    assert(this.erest.privateInfo.app, "请先调用 initTest(app) 设置 app 实例");
+    assert(this.erest.getTestView().app, "请先调用 initTest(app) 设置 app 实例");
 
     const cookieSession: IFetchSession = {
       getCookieHeader: this.getCookieHeader,
@@ -158,7 +158,7 @@ export default class IAPITest {
         throw new Error(`尝试请求未注册的API：${method} ${path}`);
       }
       const a = new TestAgent(method, path, s.key, getCallerSourceLine(this.testPath), this.erest);
-      assert(this.erest.privateInfo.app, "请先调用 initTest(app) 设置 app 实例");
+      assert(this.erest.getTestView().app, "请先调用 initTest(app) 设置 app 实例");
       a.bindRequest(this.getBaseUrl, this.ready);
       return a.agent();
     };

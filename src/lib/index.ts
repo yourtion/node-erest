@@ -162,18 +162,38 @@ export default class ERest<T = DEFAULT_HANDLER> {
     leizmweb: FrameworkAdapter<T>;
   };
 
-  /**
-   * 获取私有变量信息
-   */
-  get privateInfo() {
+  /** @internal 错误工厂（adapter/params/api 用，替代 privateInfo 反射） */
+  getError() {
+    return this.error;
+  }
+
+  /** @internal 分组表（api.init 校验分组存在性用） */
+  getInternalGroups() {
+    return this.groups;
+  }
+
+  /** @internal mock handler（api.init 用） */
+  getMockHandler() {
+    return this.mockHandler;
+  }
+
+  /** @internal 文档生成器受控快照 */
+  getDocsView() {
     return {
-      app: this.app,
       info: this.info,
       groups: this.groups,
       groupInfo: this.groupInfo,
       docsOptions: this.docsOptions,
-      error: this.error,
-      mockHandler: this.mockHandler,
+      apis: this.apiInfo.$apis,
+      schema: this.schema,
+    };
+  }
+
+  /** @internal 测试系统受控快照 */
+  getTestView() {
+    return {
+      info: this.info,
+      app: this.app,
     };
   }
 

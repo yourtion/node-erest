@@ -9,7 +9,7 @@ describe("ERest - 基础测试", () => {
   const apiService = lib();
 
   test("ERest - 信息初始化", () => {
-    const libInfo = apiService.privateInfo.info;
+    const libInfo = apiService.getTestView().info;
     expect(libInfo.title).toBe(INFO.title);
     expect(libInfo.description).toBe(INFO.description);
     expect(libInfo.version).toBe(INFO.version);
@@ -21,7 +21,7 @@ describe("ERest - 基础测试", () => {
     describe("Constructor and Initialization", () => {
       test("should create ERest instance with default options", () => {
         const erest = new ERest({});
-        expect(erest.privateInfo.info).toEqual({});
+        expect(erest.getTestView().info).toEqual({});
         expect(erest.api.$apis.size).toBe(0);
       });
 
@@ -48,11 +48,11 @@ describe("ERest - 基础测试", () => {
         };
 
         const erest = new ERest(customOptions);
-        expect(erest.privateInfo.info.title).toBe("Test API");
-        expect(erest.privateInfo.info.description).toBe("Test Description");
-        expect(erest.privateInfo.groups.v1).toBe("Version 1");
-        expect(erest.privateInfo.groups.user).toBe("User Management");
-        expect(erest.privateInfo.groupInfo.user.prefix).toBe("/users");
+        expect(erest.getTestView().info.title).toBe("Test API");
+        expect(erest.getTestView().info.description).toBe("Test Description");
+        expect(erest.getDocsView().groups.v1).toBe("Version 1");
+        expect(erest.getDocsView().groups.user).toBe("User Management");
+        expect(erest.getDocsView().groupInfo.user.prefix).toBe("/users");
       });
 
       test("should handle custom error functions", () => {
@@ -66,9 +66,9 @@ describe("ERest - 基础测试", () => {
           internalError: customInternalError,
         });
 
-        expect(erest.privateInfo.error.missingParameter("test").message).toBe("Custom missing: test");
-        expect(erest.privateInfo.error.invalidParameter("test").message).toBe("Custom invalid: test");
-        expect(erest.privateInfo.error.internalError("test").message).toBe("Custom internal: test");
+        expect(erest.getError().missingParameter("test").message).toBe("Custom missing: test");
+        expect(erest.getError().invalidParameter("test").message).toBe("Custom invalid: test");
+        expect(erest.getError().internalError("test").message).toBe("Custom internal: test");
       });
     });
 
@@ -199,17 +199,17 @@ describe("ERest - 基础测试", () => {
 
         erest.group("test").middleware(middleware1, middleware2).before(beforeHook);
 
-        expect(erest.privateInfo.groupInfo.test.middleware).toContain(middleware1);
-        expect(erest.privateInfo.groupInfo.test.middleware).toContain(middleware2);
-        expect(erest.privateInfo.groupInfo.test.before).toContain(beforeHook);
+        expect(erest.getDocsView().groupInfo.test.middleware).toContain(middleware1);
+        expect(erest.getDocsView().groupInfo.test.middleware).toContain(middleware2);
+        expect(erest.getDocsView().groupInfo.test.before).toContain(beforeHook);
       });
 
       test("should create group with dynamic info", () => {
         const erest = new ERest({ forceGroup: true });
 
         erest.group("dynamic", { name: "Dynamic Group", prefix: "/dyn" });
-        expect(erest.privateInfo.groups.dynamic).toBe("Dynamic Group");
-        expect(erest.privateInfo.groupInfo.dynamic.prefix).toBe("/dyn");
+        expect(erest.getDocsView().groups.dynamic).toBe("Dynamic Group");
+        expect(erest.getDocsView().groupInfo.dynamic.prefix).toBe("/dyn");
       });
     });
 
@@ -270,7 +270,7 @@ describe("ERest - 基础测试", () => {
         const mockHandler = (data: unknown) => () => data;
 
         erest.setMockHandler(mockHandler);
-        expect(erest.privateInfo.mockHandler).toBe(mockHandler);
+        expect(erest.getMockHandler()).toBe(mockHandler);
       });
 
       test("should build swagger documentation", () => {
@@ -354,7 +354,7 @@ describe("ERest - 基础测试", () => {
         }).not.toThrow();
 
         // Test that the group was created
-        expect(erest.privateInfo.groups.defined).toBe("Defined Group");
+        expect(erest.getDocsView().groups.defined).toBe("Defined Group");
       });
     });
 
@@ -374,7 +374,7 @@ describe("ERest - 基础测试", () => {
   });
 
   test("ERest - 分组信息", () => {
-    expect(apiService.privateInfo.groups).toEqual(GROUPS);
+    expect(apiService.getDocsView().groups).toEqual(GROUPS);
   });
 
   test("ERest - 注册文件输出函数", () => {
