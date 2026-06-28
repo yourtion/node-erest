@@ -24,7 +24,7 @@
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
     "koa-router": "^13.1.0",
-    "zod": "^4.0.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "vitest": "^3.0.0"
