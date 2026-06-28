@@ -1,6 +1,6 @@
 # erest 架构导航（给 AI 与新人）
 
-> 本文档面向**修改 erest 代码**的开发者（人与 AI）。面向使用者的内容见 README.md。
+> 面向**修改 erest 代码**的开发者（人与 AI）的架构地图与红线。面向使用者的内容见 README.md。
 > 最后更新：v3.0 重构完成后（Stage 1-3）。
 
 ## 一图看懂
@@ -59,72 +59,4 @@ packages/             # v3.0：框架适配器实现独立子包
 5. **breaking change 登记 MIGRATION.md** —— 公开 API 变动同步更新迁移指南。
 6. **`_def` 读取集中** —— Zod 内部结构（`_def.type`/`_def.typeName`/`_def.shape`）只在 `plugin/zod-meta.ts` 读取，且必须通过 `getZodTypeName`/`getZodShape`/`getZodInner`/`extractDocFields` 工具函数（双轨兼容 Zod 3 与 Zod 4）。其他文件禁止直接读 `_def`。
 
-## 常见任务套路
-
-### 新增一个 API（推荐 registerTyped，类型安全）
-
-```typescript
-apiService.api
-  .post("/users")
-  .group("user")
-  .registerTyped(
-    {
-      body: z.object({ name: z.string(), age: z.number().int() }),
-      response: z.object({ id: z.string() }),
-    },
-    (req, reply) => {
-      // req.body.name: string，req.body.age: number（编译期推导）
-      return { id: "u1" };
-    }
-  );
-```
-
-### 新增一个 API（链式 register，ctx 风格）
-
-```typescript
-apiService.api
-  .get("/users/:id")
-  .group("user")
-  .params(z.object({ id: z.string() }))
-  .register((ctx) => {
-    ctx.reply.json({ id: ctx.$params.id });
-  });
-```
-
-### 绑定到框架
-
-```typescript
-// Express（需先 pnpm add erest-express）
-import { ExpressAdapter } from "erest-express";
-apiService.bind({ adapter: new ExpressAdapter(), router });
-
-// Koa forceGroup 模式（需先 pnpm add erest-koa）
-import { KoaAdapter } from "erest-koa";
-apiService.bind({ adapter: new KoaAdapter(), app, router: KoaRouter });
-```
-
-### 加生命周期 hook
-
-```typescript
-const api = new ERest({
-  groups: { user: "用户" },
-  hooks: {
-    onRequest: (ctx) => { /* 注入 traceId */ },
-    onError: (ctx, err) => { /* 结构化错误日志 */ },
-  },
-});
-```
-
-### 注册自定义 Zod 类型（文档 $ref 用）
-
-```typescript
-apiService.schema.register("UserId", z.string().regex(/^u_\w+$/));
-// 文档生成时可用 response: "UserId" 引用
-```
-
-## 测试
-
-- `pnpm run test:lib` —— 核心库测试（ISLIB=1 源码模式）
-- `pnpm --filter erest-example test` —— examples 端到端
-- `pnpm run bench` —— 校验热路径基准（compiled.validate）
-- `pnpm run check` —— oxlint + oxfmt（必须 0 error）
+> API 用法（registerTyped/bind/hooks/schema.register 等）与测试/构建命令见 README.md，此处不再重复。
