@@ -322,8 +322,8 @@ describe("Router Configuration", () => {
     // Setup API with hooks
     api.get("/test").before(hooks.beforHook).middlewares(hooks.middleware).register(handler);
 
-    // Recommended: use bind() with framework type
-    apiService.bind({ framework: "express", router });
+    // Recommended: use bind() with adapter instance
+    apiService.bind({ adapter: new ExpressAdapter(), router });
 
     // Deprecated: apiService.bindRouter(router, apiService.checkerExpress);
 

@@ -51,7 +51,7 @@ const api = createPostApi(apiService.api, "/users", "Create User")
 ```typescript
 // Test router binding (recommended)
 const router = express.Router();
-apiService.bind({ framework: "express", router });
+apiService.bind({ adapter: new ExpressAdapter(), router });
 
 // Legacy method (deprecated)
 // apiService.bindRouter(router, apiService.checkerExpress);

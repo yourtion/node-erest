@@ -14,21 +14,25 @@ src/lib/
 ├── hooks.ts          # 生命周期 hook 类型（onRequest/onValidate/onError/onResponse）
 ├── debug.ts          # debug 模块封装
 ├── utils.ts          # 通用工具（路径/schemaKey 等）
-├── adapters/         # 框架适配器
+├── adapters/         # 框架适配器（v3.0：仅保留接口与工具，实现已拆到子包）
 │   ├── types.ts      # FrameworkAdapter/Context/Reply/Middleware 接口
 │   ├── utils.ts      # compose（洋葱式）+ buildHandlerChain
-│   ├── express.ts    # Express adapter
-│   ├── koa.ts        # Koa adapter
-│   └── leizmweb.ts   # @leizm/web adapter
+│   └── index.ts      # 仅 re-export types + compose/buildHandlerChain
 ├── extend/
 │   ├── docs.ts       # 文档协调器（调度各生成插件）
 │   └── test.ts       # 测试引擎（fetch 驱动）
 └── plugin/           # 文档/SDK 生成插件
-    ├── zod-meta.ts   # ★ Zod→文档元信息统一提取（extractDocFields 等）
+    ├── zod-meta.ts   # ★ Zod→文档元信息统一提取（extractDocFields 等，兼容 Zod 3/4）
     ├── generate_swagger/   # OpenAPI/Swagger
     ├── generate_markdown/  # Markdown
     ├── generate_postman/   # Postman Collection
     └── generate_axios/     # Axios SDK
+
+packages/             # v3.0：框架适配器实现独立子包
+├── erest-express/    # ExpressAdapter（Express 4）
+├── erest-koa/        # KoaAdapter（Koa 3）
+├── erest-leizmweb/   # LeizmWebAdapter（@leizm/web 2）
+└── erest-gen/        # codegen CLI（从 Zod schema 生成 handler 骨架）
 ```
 
 ## 改 X 去 Y（决策树）
@@ -36,13 +40,15 @@ src/lib/
 | 要改的东西 | 去哪里 |
 |-----------|--------|
 | 参数校验逻辑 | `params.ts` 的 `compileValidate`（bind 阶段预编译） |
-| 加新框架适配 | `adapters/<fw>.ts`，实现 `FrameworkAdapter` 接口（见 `types.ts`） |
+| 加新框架适配 | 新建子包 `packages/erest-<fw>/src/index.ts`，实现 `FrameworkAdapter` 接口（见 `adapters/types.ts`） |
+| 改某框架适配实现 | `packages/erest-{express,koa,leizmweb}/src/index.ts`（`makeParamsChecker`/`bindRoute`/`createGroupRouter`/`attachGroupRouter`） |
 | 改文档生成 | `plugin/<format>/` + `plugin/zod-meta.ts`（统一 Zod 提取） |
-| 加生命周期 hook | `hooks.ts` 定义 + `adapters/*.ts` 的 dispatch/checker 注入 |
+| 加生命周期 hook | `hooks.ts` 定义 + 各子包 `src/index.ts` 的 dispatch/checker 注入 |
 | 改类型推导 | `api.ts` 的 `registerTyped` 泛型层 |
-| 改错误处理 | `error.ts` + `adapters/*.ts` 的 catch |
-| 改路由绑定 | `index.ts` 的 `bind()` + `adapters/*.ts` 的 `bindRoute` |
+| 改错误处理 | `error.ts` + 各子包 `src/index.ts` 的 catch |
+| 改路由绑定 | `index.ts` 的 `bind()` + 各子包 `src/index.ts` 的 `bindRoute` |
 | 加新的 schema 类型别名 | `params.ts` 的 `zodTypeMap` |
+| 改 Zod 内部结构读取 | `plugin/zod-meta.ts`（`_def.type`/`_def.typeName` 双轨兼容，禁止其他文件读 `_def`） |
 
 ## 必须遵守的约定
 
@@ -51,7 +57,7 @@ src/lib/
 3. **不反射读内部状态** —— adapter/docs/test 通过受控访问器（`getError()`/`getDocsView()`/`getTestView()`/`getHooks()`）获取所需数据，禁止 `privateInfo` 式反射。
 4. **hook 是观察者** —— 同步、不参与控制流、异常被吞掉。无订阅者时 dispatch 裁剪掉 hook 调用（零开销）。
 5. **breaking change 登记 MIGRATION.md** —— 公开 API 变动同步更新迁移指南。
-6. **`_def` 读取集中** —— Zod 内部结构（`_def.typeName`/`_def.shape`）只在 `plugin/zod-meta.ts` 读取，其他文件用 `extractDocFields`/`getZodShape` 等工具函数。
+6. **`_def` 读取集中** —— Zod 内部结构（`_def.type`/`_def.typeName`/`_def.shape`）只在 `plugin/zod-meta.ts` 读取，且必须通过 `getZodTypeName`/`getZodShape`/`getZodInner`/`extractDocFields` 工具函数（双轨兼容 Zod 3 与 Zod 4）。其他文件禁止直接读 `_def`。
 
 ## 常见任务套路
 
@@ -88,11 +94,13 @@ apiService.api
 ### 绑定到框架
 
 ```typescript
-// Express
-apiService.bind({ framework: "express", router });
+// Express（需先 pnpm add erest-express）
+import { ExpressAdapter } from "erest-express";
+apiService.bind({ adapter: new ExpressAdapter(), router });
 
-// Koa（forceGroup 模式）
-apiService.bind({ framework: "koa", app, router: KoaRouter });
+// Koa forceGroup 模式（需先 pnpm add erest-koa）
+import { KoaAdapter } from "erest-koa";
+apiService.bind({ adapter: new KoaAdapter(), app, router: KoaRouter });
 ```
 
 ### 加生命周期 hook

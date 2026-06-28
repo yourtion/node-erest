@@ -22,11 +22,20 @@
 
 ## 安装
 
+核心包 + 所用框架的 adapter 子包：
+
 ```bash
-npm install erest
+# Express
+npm install erest erest-express express
+
+# Koa（还需 koa-router / koa-bodyparser）
+npm install erest erest-koa koa koa-router koa-bodyparser
+
+# @leizm/web
+npm install erest erest-leizmweb @leizm/web
 ```
 
-ERest 本身框架无关，需同时安装所选 Web 框架及其路由。例如使用 Koa 时还需安装 `koa-router` 和 `koa-bodyparser`。
+ERest 核心框架无关，三框架适配器作为独立子包（`erest-express` / `erest-koa` / `erest-leizmweb`）按需安装。
 
 ## 快速开始
 
@@ -97,17 +106,18 @@ api.api
 
 ## 框架接入
 
-`bind()` 支持两种模式：
+`bind()` 接收一个 adapter 实例（由对应框架的子包提供），支持两种模式：
 
 | 模式 | 适用场景 | 调用方式 |
 |------|----------|----------|
-| 非 forceGroup | API 直接挂载到指定 router，路径即定义的 path | `bind({ framework, router })` |
-| forceGroup | 按分组自动挂载到 app，每个分组有独立前缀 | `bind({ framework, app, router: RouterCtor })` |
+| 非 forceGroup | API 直接挂载到指定 router，路径即定义的 path | `bind({ adapter, router })` |
+| forceGroup | 按分组自动挂载到 app，每个分组有独立前缀 | `bind({ adapter, app, router: RouterCtor })` |
 
 ### Express
 
 ```typescript
 import express from 'express';
+import { ExpressAdapter } from 'erest-express';
 // import { api } from './api';  // 上文定义的 ERest 实例
 
 const app = express();
@@ -117,7 +127,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', router);
 
 // 将 ERest 的所有 API 绑定到 Express router
-api.bind({ framework: 'express', router });
+api.bind({ adapter: new ExpressAdapter(), router });
 
 // 错误处理中间件（绑定路由之后再加载）
 router.use((err, _req, res, _next) => {
@@ -141,7 +151,7 @@ const api = new ERest({
   },
 });
 
-api.bind({ framework: 'express', app, router: express.Router });
+api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
 app.listen(3000);
 ```
 
@@ -157,6 +167,7 @@ npm install koa koa-router koa-bodyparser
 import Koa from 'koa';
 import KoaRouter from 'koa-router';
 import bodyParser from 'koa-bodyparser';
+import { KoaAdapter } from 'erest-koa';
 // import { api } from './api';
 
 const app = new Koa();
@@ -176,7 +187,7 @@ app.use(async (ctx, next) => {
 
 // 3. 创建路由并绑定 ERest
 const router = new KoaRouter();
-api.bind({ framework: 'koa', router });
+api.bind({ adapter: new KoaAdapter(), router });
 
 // 4. Koa 的 handler 签名为 async (ctx) => void
 //    校验后的参数注入到 ctx.$params
@@ -211,7 +222,7 @@ const api = new ERest({
   },
 });
 
-api.bind({ framework: 'koa', app, router: KoaRouter });
+api.bind({ adapter: new KoaAdapter(), app, router: KoaRouter });
 app.listen(3000);
 // v1 分组的路由挂载到 /v1/*，user 分组挂载到 /user/*
 ```
@@ -222,6 +233,7 @@ app.listen(3000);
 
 ```typescript
 import { Application, Router, component } from '@leizm/web';
+import { LeizmWebAdapter } from 'erest-leizmweb';
 // import { api } from './api';
 
 const app = new Application();
@@ -232,7 +244,7 @@ app.use('/', component.bodyParser.urlencoded());
 
 // 2. 创建路由并绑定 ERest
 const router = new Router();
-api.bind({ framework: 'leizmweb', router });
+api.bind({ adapter: new LeizmWebAdapter(), router });
 app.use('/', router);
 
 // 3. @leizm/web 的 handler 签名为 (ctx) => void
@@ -266,7 +278,7 @@ const api = new ERest({
   },
 });
 
-api.bind({ framework: 'leizmweb', app, router: Router });
+api.bind({ adapter: new LeizmWebAdapter(), app, router: Router });
 app.server.listen(3000);
 ```
 
@@ -441,20 +453,22 @@ throw ERestError.invalidParam('age', 'Integer', 'abc');
 
 ### 可用适配器
 
-| 框架 | 类型值 | 适配器类 |
-|------|--------|----------|
-| Express | `'express'` | `ExpressAdapter` |
-| Koa | `'koa'` | `KoaAdapter` |
-| @leizm/web | `'leizmweb'` | `LeizmWebAdapter` |
+三框架适配器作为独立子包提供，自定义适配器实现 `FrameworkAdapter` 接口（从 `erest` 导入）即可：
+
+| 子包 | 适配器类 | 适用框架 |
+|------|----------|---------|
+| `erest-express` | `ExpressAdapter` | Express 4 |
+| `erest-koa` | `KoaAdapter` | Koa 3 |
+| `erest-leizmweb` | `LeizmWebAdapter` | @leizm/web 2 |
 
 #### 已废弃方法
 
-以下方法已废弃，请使用 `bind()` 替代：
+以下方法已废弃，请使用 `bind({ adapter, ... })` 替代：
 
-- `bindRouter(router, checker)` → `bind({ framework: 'express', router })`
-- `bindRouterToApp(app, Router, checker)` → `bind({ framework: 'express', app, router: Router })`
-- `bindKoaRouterToApp(app, KoaRouter, checker)` → `bind({ framework: 'koa', app, router: KoaRouter })`
-- `checkerExpress` / `checkerKoa` / `checkerLeiWeb` → 内置于适配器中
+- `bindRouter(router, checker)` → `bind({ adapter: new ExpressAdapter(), router })`
+- `bindRouterToApp(app, Router, checker)` → `bind({ adapter: new ExpressAdapter(), app, router: Router })`
+- `bindKoaRouterToApp(app, KoaRouter, checker)` → `bind({ adapter: new KoaAdapter(), app, router: KoaRouter })`
+- `checkerExpress` / `checkerKoa` / `checkerLeiWeb` → 内置于各适配器中
 
 ## 示例
 
