@@ -7,6 +7,13 @@ package-lock.json
 dist/
 docs/
 examples/docs/out/
+# 根级 TS 配置的编译产物（vitest.bench.config.ts 等，误 tsc 时会生成同名 .js/.d.ts）
+/*.js
+/*.d.ts
+!vitest.config.ts
+# 子包 src 下的散落编译产物（tsc rootDir 未限时会落入 src）
+packages/*/src/*.js
+packages/*/src/*.d.ts
 
 # 测试覆盖率
 coverage/
