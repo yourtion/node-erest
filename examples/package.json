@@ -20,7 +20,7 @@
     "@erest/express": "workspace:*",
     "@erest/koa": "workspace:*",
     "@erest/leizmweb": "workspace:*",
-    "express": "^4.21.0",
+    "express": "^5.2.1",
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
     "koa-router": "^13.1.0",
