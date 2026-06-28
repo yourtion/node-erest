@@ -76,23 +76,36 @@ api.requiredOneOf(["email", "phone"]); // email/phone 至少一个
 
 ### 1. bind() 成为唯一绑定入口
 
-以下方法已移除，统一用 `bind({ framework, app, router })`：
+### 1. bind() 成为唯一绑定入口（插件化 adapter）
+
+核心包不再内置三框架适配器实现，改为独立子包提供。`bind()` 接收 `adapter` 实例（插件形式）：
 
 ```diff
 - apiService.bindRouter(router, apiService.checkerExpress)
-+ apiService.bind({ framework: "express", router })
++ import { ExpressAdapter } from "erest-express";
++ apiService.bind({ adapter: new ExpressAdapter(), router })
 
 - apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress)  // forceGroup
-+ apiService.bind({ framework: "express", app, router: express.Router })
++ apiService.bind({ adapter: new ExpressAdapter(), app, router: express.Router })
 
 - apiService.bindKoaRouterToApp(app, KoaRouter, apiService.checkerKoa)
-+ apiService.bind({ framework: "koa", app, router: KoaRouter })
++ import { KoaAdapter } from "erest-koa";
++ apiService.bind({ adapter: new KoaAdapter(), app, router: KoaRouter })
 
 - apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb)
-+ apiService.bind({ framework: "leizmweb", app, router: Router })
++ import { LeizmWebAdapter } from "erest-leizmweb";
++ apiService.bind({ adapter: new LeizmWebAdapter(), app, router: Router })
 ```
 
-`checkerExpress` / `checkerKoa` / `checkerLeiWeb` 属性同步移除。
+| 子包 | 安装 | 适用框架 |
+|------|------|---------|
+| `erest-express` | `pnpm add erest erest-express express` | Express 4 |
+| `erest-koa` | `pnpm add erest erest-koa koa koa-router` | Koa 3 |
+| `erest-leizmweb` | `pnpm add erest erest-leizmweb @leizm/web` | @leizm/web 2 |
+
+自定义/第三方适配器：实现 `FrameworkAdapter` 接口（从 `erest` 导入），`name` 为任意字符串。
+
+`checkerExpress` / `checkerKoa` / `checkerLeiWeb` 属性与内置 `framework` 字符串分发同步移除。
 
 ### 2. privateInfo 移除
 
