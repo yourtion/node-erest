@@ -21,7 +21,12 @@
   "peerDependencies": {
     "erest": "workspace:^",
     "koa": "^3.0.0",
-    "koa-router": "^13.0.0"
+    "koa-router": "^13.0.0",
+    "@koa/router": "^13.0.0"
+  },
+  "peerDependenciesMeta": {
+    "koa-router": { "optional": true },
+    "@koa/router": { "optional": true }
   },
   "devDependencies": {
     "erest": "workspace:*",

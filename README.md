@@ -28,10 +28,10 @@
 # Express
 npm install erest @erest/express express
 
-# Koa（还需 koa-router / koa-bodyparser）
-npm install erest @erest/koa koa koa-router koa-bodyparser
-# 注：koa-router 的活跃维护已迁移到 @koa/router（API 完全兼容，可直接替换）：
-# npm install erest @erest/koa koa @koa/router koa-bodyparser
+# Koa（推荐 @koa/router；也兼容 koa-router）
+npm install erest @erest/koa koa @koa/router koa-bodyparser
+# 注：koa-router 已停止维护并标记 deprecated，建议用 @koa/router（API 完全兼容，零改动替换）。
+# erest 的 peer dep 同时接受二者，装哪个都不会有 missing peer warning。
 
 # @leizm/web
 npm install erest @erest/leizmweb @leizm/web
@@ -192,15 +192,15 @@ app.listen(3000);
 
 ### Koa
 
-需额外安装 `koa-router` 和 `koa-bodyparser`：
+需额外安装路由库（推荐 `@koa/router`，也兼容已停维护的 `koa-router`）和 `koa-bodyparser`：
 
 ```bash
-npm install koa koa-router koa-bodyparser
+npm install koa @koa/router koa-bodyparser
 ```
 
 ```typescript
 import Koa from 'koa';
-import KoaRouter from 'koa-router';
+import KoaRouter from '@koa/router'; // 或 from 'koa-router'（API 完全一致）
 import bodyParser from 'koa-bodyparser';
 import { KoaAdapter } from '@erest/koa';
 // import { api } from './api';

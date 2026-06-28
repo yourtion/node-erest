@@ -213,5 +213,29 @@ erest 抛出的校验错误，请改用 **app 级**错误中间件兜底。
 - README 补充 @leizm/web `component.bodyParser.urlencoded({ extended: true })`（P12，消除
   body-parser deprecated 警告）。
 - README 补充 `basePath` 仅用于文档生成、不作为路由前缀的说明（P6）。
-- README 补充 `koa-router` → `@koa/router` 可作为 API 兼容替代的说明（P11）。
+
+### 7. Koa 路由库兼容（P11）
+
+`koa-router` 整包已停止维护并标记 deprecated（npm 安装时 warning：「Please use @koa/router
+instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router **完全一致**（实测
+`@koa/router@15 + koa@3.2 + erest` 全功能正常，含 forceGroup 的 `new Router({prefix})` 构造）。
+
+`@erest/koa` 的 peer dep 从 `koa-router@^13.0.0` 扩展为**同时声明两者**并标记 optional：
+
+```jsonc
+{
+  "peerDependencies": {
+    "koa-router": "^13.0.0",  // 旧，optional
+    "@koa/router": "^13.0.0"  // 新，推荐，optional
+  },
+  "peerDependenciesMeta": {
+    "koa-router": { "optional": true },
+    "@koa/router": { "optional": true }
+  }
+}
+```
+
+用户装 `koa-router` 或 `@koa/router` 任一即可，均无 missing peer warning。新项目建议直接用
+`@koa/router`。erest 仓库内部测试仍用 koa-router（开发环境 deprecated warning 无害），不影响
+发布的 peer 声明。
 
