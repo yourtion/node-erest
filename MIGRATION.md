@@ -28,6 +28,11 @@
 | `{ type: "Date" }` | `z.coerce.date()` |
 
 > Query string 中的值是字符串，若希望自动转数字/日期，用 `z.coerce.number()` / `z.coerce.date()`。
+>
+> 上表为**语义近似**对照。`zodTypeMap` 的实际实现（见 `params.ts`）为兼容 query 字符串，
+> `Integer`/`Number`/`Boolean` 等用 `z.union` + `transform`（接受字符串并自动转换），
+> 且不再处理旧 ISchemaType 的 `params: { min, max }` 等选项——需在 Zod schema 里显式写
+> `.min()` / `.max()`。文档生成时仍可用这些别名名（`erest.type.register`）。
 
 ### 2. required() 移除
 
@@ -74,8 +79,6 @@ api.requiredOneOf(["email", "phone"]); // email/phone 至少一个
 
 拆解 ERest 上帝类，删除 deprecated 方法，修复封装边界。
 
-### 1. bind() 成为唯一绑定入口
-
 ### 1. bind() 成为唯一绑定入口（插件化 adapter）
 
 核心包不再内置三框架适配器实现，改为独立子包提供。`bind()` 接收 `adapter` 实例（插件形式）：
@@ -119,6 +122,13 @@ api.requiredOneOf(["email", "phone"]); // email/phone 至少一个
 | `.info` | `.getTestView().info` |
 | `.app` | `.getTestView().app` |
 | `.mockHandler` | `.getMockHandler()` |
+
+Stage 3 新增的 `@internal` 访问器（非 privateInfo 替代，供 hook 装配用）：
+
+| 访问器 | 用途 |
+|--------|------|
+| `.getHooks()` | 获取生命周期 hooks 配置（adapter 装配 dispatch 时读） |
+| `.hasHooks()` | hooks 是否非空（零开销裁剪判断） |
 
 > 这些访问器标记 `@internal`，仅供 adapter/docs/test 内部使用，非公开 API。
 

@@ -1,7 +1,7 @@
 {
   "name": "erest",
   "version": "3.0.0",
-  "description": "Easy to build api server depend on @leizm/web and express.",
+  "description": "Framework-agnostic REST API framework with Zod validation, auto docs & test scaffolding. Express/Koa/@leizm/web adapters as separate packages.",
   "type": "module",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
@@ -25,7 +25,8 @@
     "bench": "export ISLIB=1 && vitest bench --config vitest.bench.config.ts",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
     "format": "oxfmt --write src examples/src examples/test",
-    "check": "oxlint src examples/src examples/test && oxfmt --check src examples/src examples/test",    "clean": "rm -rf dist",
+    "check": "oxlint src examples/src examples/test && oxfmt --check src examples/src examples/test",
+    "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
     "build:packages": "pnpm --filter erest-express --filter erest-koa --filter erest-leizmweb --filter erest-gen build",
     "prepublishOnly": "npm run format && npm run test:cov && npm test",
@@ -38,9 +39,14 @@
   "keywords": [
     "rest",
     "api",
+    "api-doc",
     "express",
+    "koa",
     "@leizm/web",
-    "api-doc"
+    "zod",
+    "typescript",
+    "swagger",
+    "postman"
   ],
   "author": "Yourtion Guo <yourtion@gmail.com>",
   "license": "MIT",

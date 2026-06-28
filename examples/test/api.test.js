@@ -35,7 +35,7 @@ beforeAll(() => {
 
   api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
 
-  // 错误处理中间件（initTest 用 supertest，需要错误以响应体返回）
+  // 错误处理中间件（initTest 用 fetch 驱动测试，需要错误以 JSON 响应体返回）
   app.use((err, _req, res, _next) => {
     res.status(err.statusCode || err.status || 400).json({ error: err.message });
   });
@@ -75,9 +75,18 @@ describe("post 组（需登录）", () => {
     expect(err).toBeInstanceOf(Error);
   });
 
-  it("带 user-token 时 GET /posts/posts 成功", async () => {
-    const ret = await api.test.get("/posts/posts").headers({ "X-Admin-Token": "user-token" }).success();
+  it("带 user-token 时 GET /posts/posts 成功（requiredOneOf：传 status）", async () => {
+    const ret = await api.test
+      .get("/posts/posts")
+      .headers({ "X-Admin-Token": "user-token" })
+      .query({ status: "published" })
+      .success();
     expect(ret.posts).toBeInstanceOf(Array);
+  });
+
+  it("GET /posts/posts 未传 slug/status 时失败（requiredOneOf 校验）", async () => {
+    const err = await api.test.get("/posts/posts").headers({ "X-Admin-Token": "user-token" }).error();
+    expect(err).toBeInstanceOf(Error);
   });
 
   it("带 user-token 时 POST /posts/posts 创建文章", async () => {

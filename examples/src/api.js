@@ -41,7 +41,7 @@ export const GROUPS = {
 /**
  * 注册全部 API（handler 声明一次，三框架复用）。
  *
- * @param {import('erest').ERestInstance<unknown>} api erest 实例
+ * @param {import('erest').ERest<unknown>} api erest 实例
  * @param {ReturnType<typeof import('./store.js').createStore>} store 数据存储
  * @param {{
  *   authBefore: Function;
@@ -85,15 +85,30 @@ export function registerApi(api, store, hooks) {
   // ==================== post 组（需登录）====================
   const post = api.group("post").before(hooks.authBefore);
 
-  // GET /posts —— 当前用户可见全部文章
+  // GET /posts —— 当前用户可见全部文章（requiredOneOf 演示：slug/status 二选一过滤）
   post
     .get("/posts")
     .title("文章列表（需登录）")
-    .registerTyped({ headers: TokenHeaderSchema }, (req, reply) => {
-      const user = store.authenticate(req.headers["x-admin-token"]);
-      if (!user) throw authRequired();
-      reply.json({ posts: store.listPosts(), user });
-    });
+    .registerTyped(
+      {
+        headers: TokenHeaderSchema,
+        query: z.object({
+          slug: z.string().optional().describe("按 slug 精确搜索"),
+          status: z.enum(["draft", "published"]).optional().describe("按状态过滤"),
+        }),
+      },
+      (req, reply) => {
+        const user = store.authenticate(req.headers["x-admin-token"]);
+        if (!user) throw authRequired();
+        let posts = store.listPosts();
+        // query 字段是 optional，按存在性过滤
+        if (req.query.slug) posts = posts.filter((p) => p.slug === req.query.slug);
+        if (req.query.status) posts = posts.filter((p) => p.status === req.query.status);
+        reply.json({ posts, user });
+      }
+    )
+    // 多选一必填：slug 与 status 至少传一个（Zod 之上的便利方法，无完美等价）
+    .requiredOneOf(["slug", "status"]);
 
   // POST /posts —— 创建文章（body 类型由 CreatePostSchema 推导）
   post

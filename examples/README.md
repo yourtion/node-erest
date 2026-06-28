@@ -11,11 +11,12 @@
 | 组级 `before()` 钩子 | `src/hooks.js` | post/admin 组的鉴权（拒绝未授权请求），框架无关 |
 | 组级 `middleware()` | `src/hooks.js` | admin 组的请求日志，框架无关 |
 | 全局 `beforeHooks` | `src/hooks.js` | 计时 hook，框架无关 |
-| 自定义错误注册 `errors.register` | `src/errors.js` | 注册 AUTH_REQUIRED / FORBIDDEN |
+| 自定义错误注册 `errors.register` | `src/errors.js` | 注册 PERMISSION_DENIED / NOT_FOUND（与运行时 code 对应） |
 | `ERestError` 工厂 | `src/errors.js` | `ERestError` 静态构造（带 code/statusCode） |
 | 自定义 type 注册 | `src/types.js` | 注册 `Slug` 类型（`z.string().regex(...)`） |
 | 自定义 schema 注册 | `src/types.js` | 注册 `CreatePost` / `UpdatePost` |
-| `define()` 声明式定义 | `src/entries/*.js` | 各入口注册一个 define 路由（handler 框架无关） |
+| `define()` 声明式定义 | `src/api.js` | 声明式注册 `DELETE /admin/users/:id`（handler 框架无关，三入口复用） |
+| `requiredOneOf` 多选一必填 | `src/api.js` | `GET /posts` 的 slug/status 至少传一个 |
 | `mock()` | `docs/generate.js` | 无 handler 时由 setMockHandler 生成 mock 响应 |
 | `response()` schema | `src/api.js` | 用户列表 API 声明响应 schema |
 | 分层参数 | `src/api.js` | `PUT /posts/:id` 的 path id 与 body 互不覆盖 |
@@ -132,6 +133,6 @@ adapter 层。
 
 ## TypeScript 集成（NodeNext）
 
-erest 同时发布 ESM 与 CJS 产物，`module: nodenext` + `verbatimModuleSyntax` 下
-`import ERest from 'erest'` 直接可用（构造器与类型均正确），无需任何 workaround。
-`types/erest.d.ts` 仅作为类型补充示例保留，通常不需要引入。
+erest 3.0 起为 **ESM-only**（仅发布 ESM 产物，无 CJS）。在 `module: nodenext` +
+`verbatimModuleSyntax` 下，`import ERest from 'erest'` 直接可用（构造器与类型均正确），
+无需任何 workaround。CommonJS 工程请用动态 `import()` 加载（详见根 README 的 ESM 集成章节）。

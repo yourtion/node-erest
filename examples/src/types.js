@@ -1,8 +1,8 @@
 /**
  * 自定义类型与 Schema 注册（演示 api.type / api.schema 能力）。
  *
- * - api.type.register：注册可复用的 Zod 类型，供 ISchemaType Record 风格引用（按名字）。
- * - api.schema.register + createSchema：注册可复用的对象 Schema，handler 校验时复用。
+ * - api.type.register：注册可复用的 Zod 类型，供文档生成按名字引用。
+ * - api.schema.register：注册可复用的对象 Schema，文档生成时作为独立 Schema 出现。
  * - 这里同时导出原生 Zod schema，供 registerTyped 直接使用（类型推导）。
  */
 import { z } from "zod";
@@ -25,11 +25,11 @@ export const UpdatePostSchema = z.object({
 });
 
 /**
- * 在 erest 实例上注册自定义类型/Schema（供 ISchemaType Record 与文档生成使用）。
- * @param {import('erest').ERestInstance<unknown>} api
+ * 在 erest 实例上注册自定义类型/Schema（供文档生成引用）。
+ * @param {import('erest').ERest<unknown>} api
  */
 export function registerTypes(api) {
-  // 注册自定义类型 Slug（可在 ISchemaType Record 中按 'Slug' 引用）
+  // 注册自定义类型 Slug（文档生成时可用 'Slug' 名字引用）
   api.type.register("Slug", SlugSchema);
 
   // 注册可复用 Schema（文档生成时会出现）

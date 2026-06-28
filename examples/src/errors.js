@@ -9,21 +9,27 @@ import { ERestError } from "erest";
 
 /**
  * 在 erest 实例上注册业务错误。
- * @param {import('erest').ERestInstance<unknown>} api
+ *
+ * 注意：`api.errors.register` 注册的错误码（如 PERMISSION_DENIED/NOT_FOUND）
+ * **仅用于错误文档（errors.md）展示**，与运行时 `ERestError` 抛出的 `code`
+ * 是同一套词表。下方运行时工厂函数抛出的 ERestError code 应与此处注册名一致，
+ * 这样文档与实际抛错才能对应。
+ *
+ * @param {import('erest').ERest<unknown>} api
  */
 export function registerErrors(api) {
-  // 注册业务错误（仅用于文档展示；名称必须为大写字母与下划线）
-  api.errors.register("AUTH_REQUIRED", {
+  // 注册业务错误（仅用于文档展示；名称必须为大写字母与下划线，与运行时 ERestError code 对应）
+  api.errors.register("PERMISSION_DENIED", {
     code: -2001,
-    description: "需要登录",
+    description: "需要登录或权限不足",
     status: 401,
     isShow: true,
     isLog: false,
   });
-  api.errors.register("FORBIDDEN", {
+  api.errors.register("NOT_FOUND", {
     code: -2002,
-    description: "权限不足",
-    status: 403,
+    description: "资源不存在",
+    status: 404,
     isShow: true,
     isLog: true,
   });
