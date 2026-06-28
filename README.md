@@ -30,6 +30,8 @@ npm install erest @erest/express express
 
 # Koa（还需 koa-router / koa-bodyparser）
 npm install erest @erest/koa koa koa-router koa-bodyparser
+# 注：koa-router 的活跃维护已迁移到 @koa/router（API 完全兼容，可直接替换）：
+# npm install erest @erest/koa koa @koa/router koa-bodyparser
 
 # @leizm/web
 npm install erest @erest/leizmweb @leizm/web
@@ -37,13 +39,37 @@ npm install erest @erest/leizmweb @leizm/web
 
 ERest 核心框架无关，三框架适配器作为独立子包（`@erest/express` / `@erest/koa` / `@erest/leizmweb`）按需安装。
 
+> **TypeScript 工程**：erest 是 ESM-only（`type: "module"`）。若用 TypeScript，请确保安装
+> `@types/node`（erest 的 `peerDependencies` 声明了 `@types/node`），并使用如下 `tsconfig.json`
+> 关键项（注意：**不要**设置 `baseUrl`，它在 `module: NodeNext` 下已废弃且会触发 TS5101 警告）：
+>
+> ```jsonc
+> {
+>   "compilerOptions": {
+>     "module": "NodeNext",
+>     "moduleResolution": "NodeNext",
+>     "target": "es2022",
+>     "lib": ["es2022"],          // Node 类型经 @types/node 注入，无需加 "dom"
+>     "strict": true,
+>     "esModuleInterop": true,
+>     "types": ["node"]           // 显式包含 Node 全局类型（console/Buffer 等）
+>   }
+> }
+> ```
+>
+> 编译/运行 TypeScript 用本地安装的 `typescript`（`npx tsc` 在未装 typescript 时会解析到 npm
+> 上一个废弃的同名包）。推荐：`npm install -D typescript @types/node`，再 `npx tsc` 或
+> `node --import tsx src/index.ts`。
+
 ## 快速开始
 
 ERest 通过统一的 `bind()` 方法接入任意框架。API 定义方式与框架无关，接入方式按框架区分。
 
 ### 定义 API
 
-无论使用哪个框架，API 的定义方式完全一致：
+无论使用哪个框架，API 的定义方式完全一致。推荐使用 `registerTyped`——它基于 Zod schema
+自动推导参数类型，handler 签名为**框架无关的 `(req, reply)`**，同一份 handler 可被
+Express / Koa / @leizm/web 复用：
 
 ```typescript
 import ERest, { z } from 'erest';
@@ -52,8 +78,10 @@ const api = new ERest({
   info: {
     title: 'My API',
     description: 'A powerful API built with ERest',
-    version: '1.0.0',
+    version: '1.0.0', // 字符串：语义版本号，用于文档生成
     host: 'http://localhost:3000',
+    // basePath 仅用于文档生成（swagger/postman 的 URL 拼接），不作为路由前缀。
+    // 路由前缀由各框架的 mount 决定，详见下文「框架接入」。
     basePath: '/api',
   },
   groups: {
@@ -62,29 +90,23 @@ const api = new ERest({
   },
 });
 
-// GET /api/users/:id —— 路径参数 + query 参数
+// GET /users/:id —— path + query 参数（req.params / req.query 类型由 schema 推导）
 api.api
   .get('/users/:id')
   .group('user')
   .title('获取用户信息')
-  .params(
-    z.object({
-      id: z.string().describe('用户ID'),
-    })
-  )
-  .query(
-    z.object({
-      include: z.string().optional().describe('包含的关联数据'),
-    })
-  )
-  .register(async (req, res) => {
-    const { id } = req.params;
-    const { include } = req.query;
-    const user = await getUserById(id, include);
-    res.json({ success: true, data: user });
-  });
+  .registerTyped(
+    {
+      params: z.object({ id: z.string().describe('用户ID') }),
+      query: z.object({ include: z.string().optional().describe('包含的关联数据') }),
+    },
+    async (req, reply) => {
+      const user = await getUserById(req.params.id, req.query.include);
+      reply.json({ success: true, data: user });
+    },
+  );
 
-// POST /api/users —— 请求体校验（req.body 自动获得类型）
+// POST /users —— 请求体校验（req.body 类型由 schema 推导，无需 as 断言）
 const CreateUserSchema = z.object({
   name: z.string().min(1).max(50),
   email: z.string().email(),
@@ -95,12 +117,16 @@ api.api
   .post('/users')
   .group('user')
   .title('创建用户')
-  .body(CreateUserSchema)
-  .register(async (req, res) => {
+  .registerTyped({ body: CreateUserSchema }, async (req, reply) => {
     const user = await createUser(req.body);
-    res.json({ success: true, data: user });
+    reply.status(201).json({ success: true, data: user });
   });
 ```
+
+> **handler 签名说明**：`registerTyped` 的 handler 是 `(req, reply)`，其中
+> `req.params/query/body/headers` 是分层校验后的参数，`reply.json()/status()/send()`
+> 是统一的响应接口。**不要**用 Express 的 `(req, res)` 或 Koa 的 `ctx.body = ...` 写法——
+> 详见 [register 与 registerTyped 的区别](#类型安全的-handlerregistertyped)。
 
 根据所选框架，参考下文对应的接入方式。
 
@@ -124,18 +150,23 @@ const app = express();
 const router = express.Router();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/api', router);
+app.use('/api', router); // 路由前缀由 Express mount 决定（与 erest 的 basePath 无关）
 
 // 将 ERest 的所有 API 绑定到 Express router
 api.bind({ adapter: new ExpressAdapter(), router });
 
-// 错误处理中间件（绑定路由之后再加载）
-router.use((err, _req, res, _next) => {
-  res.status(400).json({ message: err.message });
+// 错误处理中间件：必须挂在 app 级别（不是 router 级别）。
+// Express 5 改变了子 router 内部抛出错误的传播语义——router 级错误中间件
+// 可能捕获不到 erest 抛出的校验错误，因此推荐用 app 级兜底。
+app.use((err, _req, res, _next) => {
+  res.status(err.statusCode || 400).json({ message: err.message });
 });
 
 app.listen(3000);
 ```
+
+> **Express 版本**：`@erest/express` 同时支持 Express 4（`express@^4`）和 Express 5（`express@^5`）。
+> 二者均经测试通过，5 为当前推荐版本。Express 5 下请使用 **app 级**错误中间件（见上）。
 
 forceGroup 模式下，`router` 参数传入 `express.Router` 构造函数：
 
@@ -147,11 +178,15 @@ const api = new ERest({
   forceGroup: true,
   groups: {
     user: { name: '用户管理', prefix: '/users' },
-    post: { name: '文章管理' },   // 未指定 prefix 时按分组名自动生成
+    post: { name: '文章管理' },   // 未指定 prefix 时按分组名自动生成（驼峰转下划线小写：post→/post）
   },
 });
 
 api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
+// forceGroup 下错误中间件同样建议挂 app 级
+app.use((err, _req, res, _next) => {
+  res.status(err.statusCode || 400).json({ message: err.message });
+});
 app.listen(3000);
 ```
 
@@ -180,7 +215,7 @@ app.use(async (ctx, next) => {
   try {
     await next();
   } catch (err) {
-    ctx.status = err.status || 500;
+    ctx.status = err.statusCode || err.status || 400;
     ctx.body = { message: err.message };
   }
 });
@@ -189,22 +224,21 @@ app.use(async (ctx, next) => {
 const router = new KoaRouter();
 api.bind({ adapter: new KoaAdapter(), router });
 
-// 4. Koa 的 handler 签名为 async (ctx) => void
-//    校验后的参数注入到 ctx.$params
 app.use(router.routes()).use(router.allowedMethods());
 
 app.listen(3000);
 ```
 
-Koa 中通过 `ctx.$params` 访问校验后的参数：
+> **handler 签名**：erest 在 Koa 下同样使用**标准化 `(ctx, next)`** 签名——`ctx` 是 erest
+> 的内部上下文（有 `reply`/`$params`/`$validated` 等），**不是** Koa 原生 ctx，没有 `.body` setter。
+> 返回响应请用 `ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, reply)`）：
 
 ```typescript
 api.api
   .post('/users')
   .group('user')
-  .body(z.object({ name: z.string() }))
-  .register(async (ctx) => {
-    ctx.body = { name: ctx.$params.name };
+  .registerTyped({ body: z.object({ name: z.string() }) }, (req, reply) => {
+    reply.json({ name: req.body.name });
   });
 ```
 
@@ -229,7 +263,7 @@ app.listen(3000);
 
 ### @leizm/web
 
-@leizm/web 内置 `component.bodyParser` 中间件用于解析请求体。
+@leizm/web 内置 `component.bodyParser` 中间件用于解析请求体（基于 body-parser）。
 
 ```typescript
 import { Application, Router, component } from '@leizm/web';
@@ -239,28 +273,28 @@ import { LeizmWebAdapter } from '@erest/leizmweb';
 const app = new Application();
 
 // 1. body 解析（内置中间件，基于 body-parser）
+//    urlencoded 必须传 { extended: true }，否则触发 body-parser deprecated 警告
 app.use('/', component.bodyParser.json());
-app.use('/', component.bodyParser.urlencoded());
+app.use('/', component.bodyParser.urlencoded({ extended: true }));
 
 // 2. 创建路由并绑定 ERest
 const router = new Router();
 api.bind({ adapter: new LeizmWebAdapter(), router });
 app.use('/', router);
 
-// 3. @leizm/web 的 handler 签名为 (ctx) => void
-//    校验后的参数注入到 ctx.request.$params
 app.server.listen(3000);
 ```
 
-@leizm/web 中通过 `ctx.request.$params` 访问校验后的参数，通过 `ctx.response.json()` 返回 JSON：
+> **handler 签名**：erest 在 @leizm/web 下同样使用**标准化 `(ctx, next)`** 签名——`ctx` 是 erest
+> 的内部上下文（有 `reply`/`$params`/`$validated` 等），**不是** @leizm/web 原生 ctx，没有 `.response`。
+> 返回响应请用 `ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, reply)`）：
 
 ```typescript
 api.api
   .post('/users')
   .group('user')
-  .body(z.object({ name: z.string() }))
-  .register((ctx) => {
-    ctx.response.json({ name: ctx.request.$params.name });
+  .registerTyped({ body: z.object({ name: z.string() }) }, (req, reply) => {
+    reply.json({ name: req.body.name });
   });
 ```
 
@@ -284,27 +318,57 @@ app.server.listen(3000);
 
 ## 自动文档生成
 
-根据已定义的 API 自动生成多种格式的文档和 SDK：
+根据已定义的 API 自动生成多种格式的文档和 SDK。有两种触发方式：
+
+**方式一：构造 ERest 时声明文档开关**（推荐）。在 `docs` 配置里指定要生成的格式，
+然后调用 `api.genDocs(savePath)`——默认在**进程退出时**写盘（`onExit=true`）：
 
 ```typescript
-api.docs.generateDocs({
-  swagger: './docs/swagger.json',
-  markdown: './docs/api.md',
-  postman: './docs/postman.json',
-  axios: './sdk/api-client.js',
+const api = new ERest({
+  info: { /* ... */ },
+  groups: { /* ... */ },
+  docs: {
+    swagger: true,   // 生成 swagger.json
+    postman: true,   // 生成 postman.json
+    axios: true,     // 生成 jssdk.js（基于 axios）
+    // markdown 输出细化开关（见下表）：
+    wiki: true,      // 生成 Home.md + 各分组 .md（默认开启）
+    index: true,     // 生成 index.md
+    all: true,       // 生成汇总文件 API文档-<title>.md
+  },
 });
+
+// 注册 API 后调用：默认 onExit=true，在 process exit 时写文件
+api.genDocs('./docs/');
+// 如需立即写盘（不等待退出）：api.genDocs('./docs/', false);
 ```
 
-| 格式 | 说明 |
-|------|------|
-| `swagger` | OpenAPI / Swagger JSON，可导入 Apifox、Swagger UI |
-| `postman` | Postman Collection JSON，可直接导入 Postman |
-| `markdown` | 人类可读的 Markdown API 文档 |
-| `axios` | 基于 axios 的前端 SDK，可直接 `import` 使用 |
+> 注：`swagger`/`postman`/`axios` 这类开关既可填 `true`（用默认文件名），也可填字符串指定文件名；
+> `markdown` 是总开关（控制是否加载 markdown 插件），其具体产物文件由 `wiki`/`index`/`all` 决定。
+
+**方式二：运行时挂插件**。用 `api.addDocPlugin(name, plugin)` 注册自定义生成器，
+再调用 `api.genDocs('./docs/')` 触发。
+
+| 配置键 | 默认 | 说明 |
+|--------|------|------|
+| `markdown` | `true` | 是否加载 markdown 插件（总开关，不决定具体文件名） |
+| `wiki` | `"./"` | markdown 插件写 `Home.md` + 每个分组的 `.md`（默认开启） |
+| `index` | `false` | markdown 插件写 `index.md` 目录页 |
+| `all` | `false` | markdown 插件写汇总文件 `API文档-<title>.md` |
+| `swagger` | `false` | 生成 `swagger.json`（OpenAPI，可导入 Apifox / Swagger UI） |
+| `postman` | `false` | 生成 `postman.json`（Postman Collection） |
+| `axios` | `false` | 生成 `jssdk.js`（基于 axios 的前端 SDK） |
+| `json` | `false` | 生成 `doc.json`（完整文档数据快照） |
+
+> **注意**：`genDocs()` 默认 `onExit=true`（注册 `process.on('exit', ...)`），调用后立即查看
+> 输出目录会是空的——文件在进程退出时才写入。测试或需要立即产出的场景传第二个参数 `false`。
 
 ## 测试脚手架
 
 内置测试工具，可像调用本地方法一样测试 API：
+
+> `.input(data)` 对 **GET/DELETE** 把 `data` 转为 query string，对 **POST/PUT/PATCH** 作为 JSON body。
+> 用 `.query(data)` / `.json(data)` 可显式指定来源。
 
 ```typescript
 // initTest 接收 http.Server 或框架的 app/server/callback
@@ -351,45 +415,55 @@ api.api
       // req.body 类型由 CreateUserSchema 自动推导：{ name: string; email: string; age: number }
       // 无需任何 `as` 类型断言
       const user = createUser(req.body);
-      // reply 框架无关：内部封装 Express res / Koa ctx.body / @leizm/web ctx.response
+      // reply 框架无关：内部封装各框架的原生响应写法（Express res / Koa ctx / @leizm/web ctx）
       reply.status(201).json({ success: true, id: user.id });
     },
   );
 ```
 
-> `registerTyped` 的校验由 adapter 的 checker 完成（参数注入到 `$validated`、响应接口注入到
-> `$reply`），handler 内不重复 parse。若提供 `response` schema 且 handler 有返回值，返回值会经
-> schema 校验（适合只读/纯计算型 handler，此时可不调用 `reply`）。
+> `registerTyped` 的校验由 adapter 的 checker 完成（参数注入到 `ctx.$validated`，handler 包装层
+> 从中读取并组装成 `req`），handler 内不重复 parse。若提供 `response` schema 且 handler 有返回值，
+> 返回值会经 schema 校验（适合只读/纯计算型 handler，此时可不调用 `reply`）。
+
+### `register` / `define` 与 `registerTyped` 的区别
+
+| API | handler 签名 | 适用场景 |
+|-----|-------------|----------|
+| `registerTyped(schemas, fn)` | `(req, reply)` | **推荐**。编译期类型安全，校验自动完成，框架无关 |
+| `register(fn)` / `define({handler})` | `(ctx, next)` | 标准化 Koa 风格签名。`ctx` 有 `$params`/`$validated`/`reply`/`state` 等，需自己读 ctx（无类型推导）。适合需要 `next` 控制流或 `ctx.state` 跨中间件传数据的场景 |
+
+无论哪种 API，**响应都通过 `reply` 写入**——不要用框架原生的 `res.json()` / `ctx.body =` / `ctx.response.json()`。
 
 ## 参数读取：`$params` 与分层访问器
 
-adapter 的 checker 把校验后的参数注入到请求对象上，handler 通过它们读取：
+adapter 的 checker 把校验后的参数注入到 erest 的标准化 `ctx` 上，handler 通过它们读取。
+注意：**所有框架下的 handler 收到的都是同一个标准化 `ctx`**（不是 Express req / Koa ctx）：
 
-| 访问器 | 框架位置 | 含义 |
-|--------|----------|------|
-| `$params` | `req.$params` / `ctx.$params` / `ctx.request.$params` | 扁平合并（params+query+body+headers），向后兼容 |
-| `$validated` | 同上 | 分层聚合对象 `{ params, query, body, headers }` |
-| `$pathParams` `$query` `$body` `$headers` | 同上 | 按来源分层，**互不覆盖** |
+| 访问器 | 位置 | 含义 |
+|--------|------|------|
+| `$params` | `ctx.$params` | 扁平合并（params+query+body+headers），便捷读取 |
+| `$validated` | `ctx.$validated` | 分层聚合对象 `{ params, query, body, headers }` |
+| `$pathParams` `$query` `$body` `$headers` | `ctx.$pathParams` 等 | 按来源分层，**互不覆盖** |
 
 > `registerTyped` 已通过 `req.params/query/body` 提供分层读取，**无需**再访问 `$validated`。
-> 下面的分层访问器主要供 `register()` 的 handler 使用（其入参是框架 ctx，无统一 req）。
+> 下面的分层访问器主要供 `register()` 的 handler 使用（其入参是标准化 `ctx`，无统一 req）。
 
 **何时用分层访问器**：当路径参数与请求体存在同名字段时，扁平 `$params` 会发生静默覆盖
 （后合并的来源覆盖前者）。例如 `PUT /users/:id` 同时定义了 path 的 `id` 与 body 的 `id`：
 
 ```typescript
-// @leizm/web 下用分层访问器避免同名覆盖
+// 用分层访问器避免同名覆盖（三框架通用，ctx 为 erest 标准化上下文）
 api.api
   .put('/users/:id')
   .group('user')
   .params(z.object({ id: z.coerce.number() }))
   .body(z.object({ id: z.string(), name: z.string() }))
   .register((ctx) => {
-    // 扁平 $params.id 被 body.id 覆盖（"body-id"），不推荐
-    const pathId = ctx.request.$pathParams.id; // 42 —— 保留路径来源
-    const bodyId = ctx.request.$body.id;       // "body-id" —— 保留请求体来源
-    const name = ctx.request.$body.name;
-    ctx.response.json({ pathId, bodyId, name });
+    // 扁平 ctx.$params.id 被 body.id 覆盖（"body-id"），不推荐
+    const pathId = ctx.$pathParams.id; // 42 —— 保留路径来源
+    const bodyId = ctx.$body.id;       // "body-id" —— 保留请求体来源
+    const name = ctx.$body.name;
+    ctx.reply.json({ pathId, bodyId, name }); // 响应统一走 ctx.reply
   });
 ```
 
@@ -431,7 +505,8 @@ const api = new ERest({
 api.group('admin').before(authMiddleware).middleware(logMiddleware);
 
 api.group('admin').get('/dashboard').register((ctx) => {
-  // 执行顺序：authMiddleware -> logMiddleware -> apiParamsChecker -> handler
+  // 执行顺序：globalBefore -> authMiddleware(before) -> checker -> logMiddleware -> handler
+  ctx.reply.json({ ok: true });
 });
 ```
 

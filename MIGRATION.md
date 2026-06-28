@@ -165,3 +165,53 @@ const api = new ERest({
 npx erest-gen handler --from ./schemas/user.ts --group user --out ./handlers/user.ts
 ```
 
+---
+
+## 3.0.1 — 文档与发布修复
+
+3.0.1 是 **3.0 的补丁版本**，无运行时 breaking change，修复发布缺陷与文档错误：
+
+### 1. 发布包 peerDependencies 的 workspace 协议泄漏（P1，阻塞）
+
+3.0.0 发布到 npm 的子包（`@erest/express|koa|leizmweb`）的 `peerDependencies.erest` 带着未替换的
+`"workspace:^"`，导致 `npm install` 报 `EUNSUPPORTEDPROTOCOL`（pnpm publish 不替换 peerDependencies
+里的 workspace 协议）。3.0.1 新增 `scripts/publish.mjs` 发布脚本：发布前把所有子包
+package.json 里的 workspace 协议替换为实际版本号，publish 后还原。发布命令改为
+`npm run publish:all`。
+
+### 2. README handler 签名修正（P2/P7）
+
+3.0.0 的 README 在 Express / Koa / @leizm/web 三处接入示例中使用了错误的 handler 签名
+（Express 风格 `(req, res)`、Koa `ctx.body = ...`、@leizm/web `ctx.response.json()`）。
+实际所有框架下 `register`/`define` 的 handler 均为标准化 `(ctx, next)`，`ctx` 是 erest 内部
+上下文（有 `reply`/`$params`/`$validated`），响应统一走 `ctx.reply.json()`。
+3.0.1 README 全面改为**主推 `registerTyped`（`(req, reply)` 框架无关签名）**，并补充
+`register` 与 `registerTyped` 的区别表。
+
+### 3. 文档生成方法名修正（P3）
+
+README 原写的 `api.docs.generateDocs({...})` 方法不存在。正确入口是构造 ERest 时的
+`docs` 配置开关 + `api.genDocs(savePath)`。`genDocs()` 默认 `onExit=true`（进程退出时写盘），
+需立即产出传 `genDocs('./docs/', false)`。
+
+### 4. `version` 字段类型修正（P4）
+
+`IApiOptionInfo.version` 从 `Date` 改为 `string`（语义版本号字符串，如 `"1.0.0"`）。
+此前类型定义与所有示例（README / examples）均用字符串不一致，导致 TS 编译报错。
+
+### 5. Express 5 兼容（P5）
+
+`@erest/express` 的 peer dep 从 `express@^4.0.0` 扩展为 `^4.0.0 || ^5.0.0`，Express 5 设为
+推荐版本。已验证 Express 5 下 GET/POST/参数校验/错误传递均正常。
+**注意**：Express 5 改变了子 router 内部错误的传播语义，router 级错误中间件可能捕获不到
+erest 抛出的校验错误，请改用 **app 级**错误中间件兜底。
+
+### 6. 其他文档/配置修正
+
+- `tsconfig.json` 移除 `baseUrl`（NodeNext 下已废弃，触发 TS5101 警告）。
+- README 补充 `@types/node` 安装说明与 `tsconfig.json` 示例（P9）。
+- README 补充 @leizm/web `component.bodyParser.urlencoded({ extended: true })`（P12，消除
+  body-parser deprecated 警告）。
+- README 补充 `basePath` 仅用于文档生成、不作为路由前缀的说明（P6）。
+- README 补充 `koa-router` → `@koa/router` 可作为 API 兼容替代的说明（P11）。
+
