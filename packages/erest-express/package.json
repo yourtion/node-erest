@@ -1,5 +1,5 @@
 {
-  "name": "erest-express",
+  "name": "@erest/express",
   "version": "3.0.0",
   "description": "Express adapter for erest",
   "type": "module",
@@ -10,6 +10,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",

@@ -8,7 +8,7 @@
  */
 import express from "express";
 import ERest from "erest";
-import { ExpressAdapter } from "erest-express";
+import { ExpressAdapter } from "@erest/express";
 import { API_INFO, GROUPS, registerApi } from "../api.js";
 import { createStore } from "../store.js";
 import { authBefore, adminBefore, logMiddleware, timingBefore } from "../hooks.js";
@@ -28,7 +28,7 @@ registerApi(api, store, {
   timingBefore: timingBefore(),
 });
 
-// forceGroup 绑定：按分组前缀自动挂载到 app（adapter 由 erest-express 子包提供）
+// forceGroup 绑定：按分组前缀自动挂载到 app（adapter 由 @erest/express 子包提供）
 api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
 
 // 错误处理中间件（绑定路由之后）；ERestError 用 statusCode，默认 400

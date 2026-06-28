@@ -85,26 +85,26 @@ api.requiredOneOf(["email", "phone"]); // email/phone 至少一个
 
 ```diff
 - apiService.bindRouter(router, apiService.checkerExpress)
-+ import { ExpressAdapter } from "erest-express";
++ import { ExpressAdapter } from "@erest/express";
 + apiService.bind({ adapter: new ExpressAdapter(), router })
 
 - apiService.bindRouterToApp(app, express.Router, apiService.checkerExpress)  // forceGroup
 + apiService.bind({ adapter: new ExpressAdapter(), app, router: express.Router })
 
 - apiService.bindKoaRouterToApp(app, KoaRouter, apiService.checkerKoa)
-+ import { KoaAdapter } from "erest-koa";
++ import { KoaAdapter } from "@erest/koa";
 + apiService.bind({ adapter: new KoaAdapter(), app, router: KoaRouter })
 
 - apiService.bindRouterToApp(app, Router, apiService.checkerLeiWeb)
-+ import { LeizmWebAdapter } from "erest-leizmweb";
++ import { LeizmWebAdapter } from "@erest/leizmweb";
 + apiService.bind({ adapter: new LeizmWebAdapter(), app, router: Router })
 ```
 
 | 子包 | 安装 | 适用框架 |
 |------|------|---------|
-| `erest-express` | `pnpm add erest erest-express express` | Express 4 |
-| `erest-koa` | `pnpm add erest erest-koa koa koa-router` | Koa 3 |
-| `erest-leizmweb` | `pnpm add erest erest-leizmweb @leizm/web` | @leizm/web 2 |
+| `@erest/express` | `pnpm add erest @erest/express express` | Express 4 |
+| `@erest/koa` | `pnpm add erest @erest/koa koa koa-router` | Koa 3 |
+| `@erest/leizmweb` | `pnpm add erest @erest/leizmweb @leizm/web` | @leizm/web 2 |
 
 自定义/第三方适配器：实现 `FrameworkAdapter` 接口（从 `erest` 导入），`name` 为任意字符串。
 
@@ -159,7 +159,7 @@ const api = new ERest({
 
 ### 3. erest-gen codegen
 
-独立子包 `erest-gen`，从 Zod schema 生成 handler 骨架：
+独立子包 `@erest/gen`（CLI 命令名 `erest-gen`），从 Zod schema 生成 handler 骨架：
 
 ```bash
 npx erest-gen handler --from ./schemas/user.ts --group user --out ./handlers/user.ts

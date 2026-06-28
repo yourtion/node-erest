@@ -8,7 +8,7 @@
  */
 import { Application, Router, component } from "@leizm/web";
 import ERest from "erest";
-import { LeizmWebAdapter } from "erest-leizmweb";
+import { LeizmWebAdapter } from "@erest/leizmweb";
 import { API_INFO, GROUPS, registerApi } from "../api.js";
 import { createStore } from "../store.js";
 import { authBefore, adminBefore, logMiddleware, timingBefore } from "../hooks.js";

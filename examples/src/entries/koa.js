@@ -10,7 +10,7 @@ import Koa from "koa";
 import bodyParser from "koa-bodyparser";
 import KoaRouter from "koa-router";
 import ERest from "erest";
-import { KoaAdapter } from "erest-koa";
+import { KoaAdapter } from "@erest/koa";
 import { API_INFO, GROUPS, registerApi } from "../api.js";
 import { createStore } from "../store.js";
 import { authBefore, adminBefore, logMiddleware, timingBefore } from "../hooks.js";

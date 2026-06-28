@@ -513,7 +513,7 @@ class ERest<T = DEFAULT_HANDLER> {
    * @param options 绑定选项
    */
   public bind(options: {
-    /** 框架适配器实例（由 erest-express / erest-koa / erest-leizmweb 子包提供，或用户自定义） */
+    /** 框架适配器实例（由 @erest/express / @erest/koa / @erest/leizmweb 子包提供，或用户自定义） */
     adapter: FrameworkAdapter<T>;
     /** 应用实例 */
     app?: unknown;

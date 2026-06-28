@@ -28,7 +28,7 @@
     "check": "oxlint src examples/src examples/test && oxfmt --check src examples/src examples/test",
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
-    "build:packages": "pnpm --filter erest-express --filter erest-koa --filter erest-leizmweb --filter erest-gen build",
+    "build:packages": "pnpm --filter @erest/express --filter @erest/koa --filter @erest/leizmweb --filter @erest/gen build",
     "prepublishOnly": "npm run format && npm run test:cov && npm test",
     "postpublish": "npm run tag && git push && git push --tags"
   },

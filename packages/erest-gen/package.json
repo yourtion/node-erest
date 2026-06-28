@@ -1,5 +1,5 @@
 {
-  "name": "erest-gen",
+  "name": "@erest/gen",
   "version": "0.1.0",
   "description": "erest codegen CLI：从 Zod schema 生成 handler 骨架等（实验性，独立于 erest 主版本演进）",
   "type": "module",
@@ -11,6 +11,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"

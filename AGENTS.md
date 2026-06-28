@@ -28,11 +28,11 @@ src/lib/
     ├── generate_postman/   # Postman Collection
     └── generate_axios/     # Axios SDK
 
-packages/             # v3.0：框架适配器实现独立子包
-├── erest-express/    # ExpressAdapter（Express 4）
-├── erest-koa/        # KoaAdapter（Koa 3）
-├── erest-leizmweb/   # LeizmWebAdapter（@leizm/web 2）
-└── erest-gen/        # codegen CLI（从 Zod schema 生成 handler 骨架）
+packages/             # v3.0：框架适配器实现独立子包（npm scope @erest/*，目录名仍为 erest-*）
+├── erest-express/    # @erest/express — ExpressAdapter（Express 4）
+├── erest-koa/        # @erest/koa — KoaAdapter（Koa 3）
+├── erest-leizmweb/   # @erest/leizmweb — LeizmWebAdapter（@leizm/web 2）
+└── erest-gen/        # @erest/gen — codegen CLI（命令名 erest-gen）
 ```
 
 ## 改 X 去 Y（决策树）

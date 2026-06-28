@@ -9,7 +9,7 @@
 import express from "express";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import ERest from "erest";
-import { ExpressAdapter } from "erest-express";
+import { ExpressAdapter } from "@erest/express";
 import { API_INFO, GROUPS, registerApi } from "../src/api.js";
 import { createStore } from "../src/store.js";
 import { authBefore, adminBefore, logMiddleware, timingBefore } from "../src/hooks.js";

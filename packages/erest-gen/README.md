@@ -1,11 +1,13 @@
-# erest-gen
+# @erest/gen
 
 erest codegen CLI：从 Zod schema 生成 handler 骨架等。
+
+> npm 包名为 `@erest/gen`，安装后通过 `erest-gen` 命令调用。
 
 ## 安装
 
 ```bash
-pnpm add -D erest-gen
+pnpm add -D @erest/gen
 ```
 
 ## 用法

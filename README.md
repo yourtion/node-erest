@@ -26,16 +26,16 @@
 
 ```bash
 # Express
-npm install erest erest-express express
+npm install erest @erest/express express
 
 # Koa（还需 koa-router / koa-bodyparser）
-npm install erest erest-koa koa koa-router koa-bodyparser
+npm install erest @erest/koa koa koa-router koa-bodyparser
 
 # @leizm/web
-npm install erest erest-leizmweb @leizm/web
+npm install erest @erest/leizmweb @leizm/web
 ```
 
-ERest 核心框架无关，三框架适配器作为独立子包（`erest-express` / `erest-koa` / `erest-leizmweb`）按需安装。
+ERest 核心框架无关，三框架适配器作为独立子包（`@erest/express` / `@erest/koa` / `@erest/leizmweb`）按需安装。
 
 ## 快速开始
 
@@ -117,7 +117,7 @@ api.api
 
 ```typescript
 import express from 'express';
-import { ExpressAdapter } from 'erest-express';
+import { ExpressAdapter } from '@erest/express';
 // import { api } from './api';  // 上文定义的 ERest 实例
 
 const app = express();
@@ -167,7 +167,7 @@ npm install koa koa-router koa-bodyparser
 import Koa from 'koa';
 import KoaRouter from 'koa-router';
 import bodyParser from 'koa-bodyparser';
-import { KoaAdapter } from 'erest-koa';
+import { KoaAdapter } from '@erest/koa';
 // import { api } from './api';
 
 const app = new Koa();
@@ -233,7 +233,7 @@ app.listen(3000);
 
 ```typescript
 import { Application, Router, component } from '@leizm/web';
-import { LeizmWebAdapter } from 'erest-leizmweb';
+import { LeizmWebAdapter } from '@erest/leizmweb';
 // import { api } from './api';
 
 const app = new Application();
@@ -457,9 +457,9 @@ throw ERestError.invalidParam('age', 'Integer', 'abc');
 
 | 子包 | 适配器类 | 适用框架 |
 |------|----------|---------|
-| `erest-express` | `ExpressAdapter` | Express 4 |
-| `erest-koa` | `KoaAdapter` | Koa 3 |
-| `erest-leizmweb` | `LeizmWebAdapter` | @leizm/web 2 |
+| `@erest/express` | `ExpressAdapter` | Express 4 |
+| `@erest/koa` | `KoaAdapter` | Koa 3 |
+| `@erest/leizmweb` | `LeizmWebAdapter` | @leizm/web 2 |
 
 #### 已废弃方法
 
