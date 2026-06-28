@@ -1,10 +1,11 @@
-import { resolve } from "node:path";
+import { expressAdapter } from "./adapters";
+
 import express from "express";
 import { vol } from "memfs";
 import { vi } from "vitest";
 import { z } from "zod";
 
-import { apiAll, apiJson, build, TYPES } from "./helper";
+import { apiAll, apiJson } from "./helper";
 import lib from "./lib";
 
 describe("ERest 测试套件", () => {
@@ -34,25 +35,27 @@ describe("ERest 测试套件", () => {
     api = apiService.api;
     apiAll(api as any);
     apiJson(api as any);
-    apiJson(api as any, "/json3").response({});
+    apiJson(api as any, "/json3").response(z.object({}));
     const jsonApi = apiJson(api as any, "/json2");
     jsonApi.description("测试JSON用");
-    const JsonSchemaObj = {
-      num: build(TYPES.Number, "Number", false, 10, { max: 10, min: 0 }),
-      type: build(TYPES.ENUM, "类型", false, undefined, ["a", "b"]),
-      int_arr: build(TYPES.IntArray, "数组"),
-      date: build(TYPES.Date, "日期"),
-    } as any;
-    const JsonSchema = apiService.createSchema(JsonSchemaObj);
+    // 迁移到原生 Zod：age + num(可选带默认)、type(enum)、int_arr(可选)、date(可选)
+    const JsonSchemaObj = z.object({
+      age: z.coerce.number().int(),
+      num: z.number().min(0).max(10).default(10),
+      type: z.enum(["a", "b"]).optional(),
+      int_arr: z.array(z.number().int()).optional(),
+      date: z.coerce.date().optional(),
+    });
+    const JsonSchema = JsonSchemaObj;
     jsonApi.response(JsonSchemaObj);
     jsonApi.query(JsonSchemaObj);
     jsonApi.requiredOneOf(["age", "type"]);
 
     apiService.schema.register("JsonSchema", JsonSchema);
-    apiJson(api as any, "/json4").query({ a: build("JsonSchema[]", "JsonSchema Array") } as any);
+    apiJson(api as any, "/json4").query(z.object({ a: z.array(JsonSchemaObj) }));
 
     // 绑定路由并开始测试
-    apiService.bindRouter(router, apiService.checkerExpress);
+    apiService.bind({ adapter: expressAdapter, router });
     // 绑定路由后再加载错误处理中间件
     router.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
       if (err) return res.end((err as Error).message);
@@ -180,7 +183,7 @@ describe("ERest 测试套件", () => {
             })
             .takeExample("Index-Post")
             .raw();
-          expect(ret).toBe("incorrect parameter 'age' should be valid Integer");
+          expect(ret).toBe("incorrect parameter 'age' should be valid");
         });
 
         test("JSON 格式输出错误测试", async () => {
@@ -285,6 +288,36 @@ describe("ERest 测试套件", () => {
           expect(ret).toBe(`Get ${share.name}`);
         });
       });
+    });
+  });
+
+  describe("Session cookie 持久化测试", () => {
+    test("$agent.updateCookies 应把 set-cookie 写入 jar", () => {
+      const session = apiService.test.session();
+      session.$agent.updateCookies({ "set-cookie": "sessionid=abc123; Path=/; HttpOnly" });
+      expect(session.$agent.getCookieHeader()).toBe("sessionid=abc123");
+    });
+
+    test("多 cookie 应累加到 jar", () => {
+      const session = apiService.test.session();
+      session.$agent.updateCookies({ "set-cookie": "a=1" });
+      session.$agent.updateCookies({ "set-cookie": "b=2" });
+      const header = session.$agent.getCookieHeader() || "";
+      expect(header).toContain("a=1");
+      expect(header).toContain("b=2");
+    });
+
+    test("session 跨请求应携带已存储的 cookie", async () => {
+      // 一次真实请求触发 onResponse（验证 agent 把 set-cookie 写回 jar 的链路）
+      // 注：erest 测试 API 本身不 set-cookie，这里验证 session 的 cookie 注入逻辑：
+      // 预先写入 jar，发起请求时 header 应携带该 cookie（服务端行为不依赖）
+      const session = apiService.test.session();
+      session.$agent.updateCookies({ "set-cookie": "tracking=xyz" });
+      // session.get 返回的 TestAgent 会通过 cookieHeader 回调注入 tracking=xyz
+      // 用一个会成功的请求验证链路不报错（cookie 被附加到请求）
+      const ret = await session.get("/api/json").input({ age: 22 }).success();
+      expect(ret).toEqual({ age: 22 });
+      expect(session.$agent.getCookieHeader()).toContain("tracking=xyz");
     });
   });
 

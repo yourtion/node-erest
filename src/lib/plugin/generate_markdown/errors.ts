@@ -1,6 +1,6 @@
-import type { IDocData } from "../../extend/docs";
-import type { IError } from "../../manager";
-import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils";
+import type { IDocData } from "../../extend/docs.js";
+import type { IError } from "../../manager/index.js";
+import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils.js";
 
 function errorString(item: IError) {
   return fieldString([

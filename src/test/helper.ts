@@ -1,7 +1,13 @@
-import type { IApiInfo } from "../lib";
+import { z } from "zod";
+import type { Context, Middleware } from "../lib/adapters/types.js";
+import type { IApiInfo } from "../lib/index.js";
 
 /**
  * 辅助函数
+ *
+ * Stage 1 过渡期：同时保留原生 Zod fixture（apiGet/apiPost 等，给 test-test.ts）
+ * 与旧 ISchemaType 构造器（build/TYPES，给 test-router/test-lib/test-params，
+ * 这些文件中断言 ISchemaType 结构的测试将在 Task 6/7 随 ISchemaType 删除而移除）。
  */
 
 /** 删除对象中的 undefined */
@@ -23,7 +29,7 @@ export function nodeVersion() {
   return (v && Number(v[1])) || 0;
 }
 
-/** 类型枚举 */
+/** @deprecated 类型枚举（ISchemaType，仅过渡期 test-router/test-lib/test-params 使用） */
 export const TYPES = Object.freeze({
   Boolean: "Boolean",
   Date: "Date",
@@ -52,22 +58,20 @@ export const TYPES = Object.freeze({
   NullableInteger: "NullableInteger",
 });
 
-/**
- * 参数构造
- *
- * @param {String} type 参数类型
- * @param comment 参数说明
- * @param required 是否必填
- * @param defaultValue 默认值
- */
+/** @deprecated ISchemaType 参数构造器（过渡期） */
 export function build(type: string, comment: string, required?: boolean, defaultValue?: unknown, params?: unknown) {
   return removeUndefined({ type, comment, required, default: defaultValue, params }) as unknown;
 }
 
-/** 名字 */
+/** @deprecated 旧 ISchemaType 参数（过渡期） */
 export const nameParams = build(TYPES.String, "Your name", true);
-/** 年龄 */
+/** @deprecated 旧 ISchemaType 参数（过渡期） */
 export const ageParams = build(TYPES.Integer, "Your age", false);
+
+/** 名字（必填字符串，Zod） */
+export const nameSchema = z.string();
+/** 年龄（可选整数，Zod） */
+export const ageSchema = z.coerce.number().int().optional();
 
 /** `GET /`（返回："Hello, API Framework Index"） */
 export function apiGet(api: IApiInfo<unknown>) {
@@ -75,8 +79,8 @@ export function apiGet(api: IApiInfo<unknown>) {
     .get("/")
     .group("Index")
     .title("Get")
-    .register(function get(_req: unknown, res: unknown) {
-      res.end("Hello, API Framework Index");
+    .register(function get(ctx: Context) {
+      ctx.reply.send("Hello, API Framework Index");
     });
 }
 
@@ -85,10 +89,10 @@ export function apiGet2(api: IApiInfo<unknown>) {
   return api
     .get("/index")
     .group("Index")
-    .query({ name: nameParams })
+    .query(z.object({ name: nameSchema }))
     .title("Get2")
-    .register(function get2(req: unknown, res: unknown) {
-      res.end(`Get ${req.$params.name}`);
+    .register(function get2(ctx: Context) {
+      ctx.reply.send(`Get ${ctx.$params.name}`);
     });
 }
 
@@ -97,12 +101,11 @@ export function apiPost(api: IApiInfo<unknown>) {
   return api
     .post("/index")
     .group("Index")
-    .query({ name: nameParams })
-    .body({ age: ageParams })
+    .query(z.object({ name: nameSchema }))
+    .body(z.object({ age: z.number().int() }))
     .title("Post")
-    .required(["name", "age"])
-    .register(function post(req: unknown, res: unknown) {
-      res.end(`Post ${req.$params.name}:${req.$params.age}`);
+    .register(function post(ctx: Context) {
+      ctx.reply.send(`Post ${ctx.$params.name}:${ctx.$params.age}`);
     });
 }
 
@@ -112,9 +115,9 @@ export function apiPut(api: IApiInfo<unknown>) {
     .put("/index")
     .group("Index")
     .title("Put")
-    .body({ age: ageParams })
-    .register(function put(req: unknown, res: unknown) {
-      res.end(`Put ${req.$params.age}`);
+    .body(z.object({ age: z.number().int() }))
+    .register(function put(ctx: Context) {
+      ctx.reply.send(`Put ${ctx.$params.age}`);
     });
 }
 
@@ -123,10 +126,10 @@ export function apiDelete(api: IApiInfo<unknown>) {
   return api
     .delete("/index/:name")
     .group("Index")
-    .params({ name: nameParams })
+    .params(z.object({ name: nameSchema }))
     .title("Delete")
-    .register(function del(req: unknown, res: unknown) {
-      res.end(`Delete ${req.$params.name}`);
+    .register(function del(ctx: Context) {
+      ctx.reply.send(`Delete ${ctx.$params.name}`);
     });
 }
 
@@ -136,30 +139,30 @@ export function apiPatch(api: IApiInfo<unknown>) {
     .patch("/index")
     .group("Index")
     .title("Patch")
-    .register(function patch(_req: unknown, res: unknown) {
-      res.end(`Patch`);
+    .register(function patch(ctx: Context) {
+      ctx.reply.send(`Patch`);
     });
 }
 
 /**
  * 生成 json 返回
  *
- * - 默认返回 `{ success: true, result: req.$params, headers: req.headers }`
+ * - 默认返回 `{ success: true, result: ctx.$params, headers: ctx.headers }`
  * - 当没有 age 或者 age<18 时返回 `{ success: false }`
  */
 export function apiJson(api: IApiInfo<unknown>, path = "/json") {
-  function json(req: unknown, res: unknown) {
-    if (!req.$params.age || req.$params.age < 18) {
-      return res.json({ success: false });
+  function json(ctx: Context) {
+    if (!ctx.$params.age || ctx.$params.age < 18) {
+      return ctx.reply.json({ success: false });
     }
-    return res.json({ success: true, result: req.$params, headers: req.headers });
+    return ctx.reply.json({ success: true, result: ctx.$params, headers: ctx.headers });
   }
   return api.define({
     method: "get",
     path,
     group: "Index",
     title: "JSON",
-    query: { age: ageParams },
+    query: z.object({ age: z.coerce.number().int() }),
     handler: json,
   });
 }
@@ -175,12 +178,12 @@ export function apiAll(api: IApiInfo<unknown>) {
   apiHeader(api);
 }
 
-/** 生成 Express 的 hook */
+/** 生成标准化 hook（签名 (ctx, next)，写 ctx.state["$name"]） */
 export function hook(name: string, value: unknown = 1) {
-  return renameFunction(name, (req: unknown, _res: unknown, next: unknown) => {
-    req[`$${name}`] = value;
-    next();
-  });
+  return renameFunction(name, ((ctx: Context, next: () => Promise<void> | void) => {
+    ctx.state[`$${name}`] = value;
+    return next();
+  }) as Middleware);
 }
 
 /** `GET /header`（返回："Get ${header.name}"） */
@@ -188,9 +191,9 @@ export function apiHeader(api: IApiInfo<unknown>) {
   return api
     .get("/header")
     .group("Index")
-    .headers({ name: nameParams })
+    .headers(z.object({ name: nameSchema }))
     .title("Header")
-    .register((req: unknown, res: unknown) => {
-      res.end(`Get ${req.$params.name}`);
+    .register((ctx: Context) => {
+      ctx.reply.send(`Get ${ctx.$params.name}`);
     });
 }

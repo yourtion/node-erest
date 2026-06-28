@@ -5,13 +5,18 @@
 
 import { vi } from "vitest";
 
+import type { Context } from "../../lib/adapters/types.js";
+
 /**
- * Create a mock hook function with specified name
+ * Create a mock hook function with specified name.
+ * 标准化签名 (ctx, next)：记录执行顺序到 ctx.state.order，写 ctx.state["$name"]。
  */
 export function createMockHook(name: string, value: unknown = 1) {
-  const mockFn = vi.fn((req: unknown, _res: unknown, next: () => void) => {
-    req[`$${name}`] = value;
-    next();
+  const mockFn = vi.fn((ctx: Context, next: () => void) => {
+    ctx.state.order = ctx.state.order || [];
+    ctx.state.order.push(name);
+    ctx.state[`$${name}`] = value;
+    return next();
   });
 
   // Set function name for testing
@@ -137,10 +142,6 @@ export function createMockZodSchema(parseResult: unknown = { success: true, data
       throw new Error("Validation failed");
     }),
     safeParse: vi.fn(() => parseResult),
-    _def: {
-      typeName: "ZodObject",
-      shape: () => ({}),
-    },
   };
 }
 

@@ -1,0 +1,3 @@
+node_modules/
+# 文档生成产物（npm run docs 生成）
+docs/out/

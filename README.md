@@ -1,13 +1,15 @@
 [![NPM version](https://img.shields.io/npm/v/erest.svg?style=flat-square)](https://npmjs.org/package/erest)
+[![Test](https://github.com/yourtion/node-erest/actions/workflows/test.yml/badge.svg)](https://github.com/yourtion/node-erest/actions/workflows/test.yml)
 [![codecov](https://codecov.io/github/yourtion/node-erest/graph/badge.svg?token=HRY0R63I95)](https://codecov.io/github/yourtion/node-erest)
-[![node version](https://img.shields.io/badge/node.js-%3E=_18-green.svg?style=flat-square)](http://nodejs.org/download/)
+[![node version](https://img.shields.io/badge/node.js-%3E=_20-green.svg?style=flat-square)](http://nodejs.org/download/)
 [![npm download](https://img.shields.io/npm/dm/erest.svg?style=flat-square)](https://npmjs.org/package/erest)
 [![npm license](https://img.shields.io/npm/l/erest.svg)](https://npmjs.org/package/erest)
-[![DeepScan grade](https://deepscan.io/api/projects/2707/branches/19046/badge/grade.svg)](https://deepscan.io/dashboard#view=project&pid=2707&bid=19046)
 
 # ERest
 
 基于 TypeScript 的 API 框架，支持自动文档生成、类型安全校验与测试脚手架。兼容 Express、Koa、@leizm/web 等主流框架。
+
+📖 **API 文档**：<https://yourtion.github.io/node-erest/>（master 推送后由 CI 自动构建部署）
 
 ## 特性
 
@@ -18,22 +20,22 @@
 - 多框架支持：Express、Koa、@leizm/web
 - 自动生成基于 axios 的客户端 SDK
 
-## 技术栈
-
-- 语言：TypeScript 5.8+
-- 运行时：Node.js 18+
-- 校验库：Zod 4.0+
-- 支持框架：Express 4.x、Koa 3.x、@leizm/web 2.x
-- 构建工具：Vite、Biome
-- 测试框架：Vitest
-
 ## 安装
 
+核心包 + 所用框架的 adapter 子包：
+
 ```bash
-npm install erest
+# Express
+npm install erest @erest/express express
+
+# Koa（还需 koa-router / koa-bodyparser）
+npm install erest @erest/koa koa koa-router koa-bodyparser
+
+# @leizm/web
+npm install erest @erest/leizmweb @leizm/web
 ```
 
-ERest 本身框架无关，需同时安装所选 Web 框架及其路由。例如使用 Koa 时还需安装 `koa-router` 和 `koa-bodyparser`。
+ERest 核心框架无关，三框架适配器作为独立子包（`@erest/express` / `@erest/koa` / `@erest/leizmweb`）按需安装。
 
 ## 快速开始
 
@@ -104,17 +106,18 @@ api.api
 
 ## 框架接入
 
-`bind()` 支持两种模式：
+`bind()` 接收一个 adapter 实例（由对应框架的子包提供），支持两种模式：
 
 | 模式 | 适用场景 | 调用方式 |
 |------|----------|----------|
-| 非 forceGroup | API 直接挂载到指定 router，路径即定义的 path | `bind({ framework, router })` |
-| forceGroup | 按分组自动挂载到 app，每个分组有独立前缀 | `bind({ framework, app, router: RouterCtor })` |
+| 非 forceGroup | API 直接挂载到指定 router，路径即定义的 path | `bind({ adapter, router })` |
+| forceGroup | 按分组自动挂载到 app，每个分组有独立前缀 | `bind({ adapter, app, router: RouterCtor })` |
 
 ### Express
 
 ```typescript
 import express from 'express';
+import { ExpressAdapter } from '@erest/express';
 // import { api } from './api';  // 上文定义的 ERest 实例
 
 const app = express();
@@ -124,7 +127,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', router);
 
 // 将 ERest 的所有 API 绑定到 Express router
-api.bind({ framework: 'express', router });
+api.bind({ adapter: new ExpressAdapter(), router });
 
 // 错误处理中间件（绑定路由之后再加载）
 router.use((err, _req, res, _next) => {
@@ -148,7 +151,7 @@ const api = new ERest({
   },
 });
 
-api.bind({ framework: 'express', app, router: express.Router });
+api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
 app.listen(3000);
 ```
 
@@ -164,6 +167,7 @@ npm install koa koa-router koa-bodyparser
 import Koa from 'koa';
 import KoaRouter from 'koa-router';
 import bodyParser from 'koa-bodyparser';
+import { KoaAdapter } from '@erest/koa';
 // import { api } from './api';
 
 const app = new Koa();
@@ -183,7 +187,7 @@ app.use(async (ctx, next) => {
 
 // 3. 创建路由并绑定 ERest
 const router = new KoaRouter();
-api.bind({ framework: 'koa', router });
+api.bind({ adapter: new KoaAdapter(), router });
 
 // 4. Koa 的 handler 签名为 async (ctx) => void
 //    校验后的参数注入到 ctx.$params
@@ -218,7 +222,7 @@ const api = new ERest({
   },
 });
 
-api.bind({ framework: 'koa', app, router: KoaRouter });
+api.bind({ adapter: new KoaAdapter(), app, router: KoaRouter });
 app.listen(3000);
 // v1 分组的路由挂载到 /v1/*，user 分组挂载到 /user/*
 ```
@@ -229,6 +233,7 @@ app.listen(3000);
 
 ```typescript
 import { Application, Router, component } from '@leizm/web';
+import { LeizmWebAdapter } from '@erest/leizmweb';
 // import { api } from './api';
 
 const app = new Application();
@@ -239,7 +244,7 @@ app.use('/', component.bodyParser.urlencoded());
 
 // 2. 创建路由并绑定 ERest
 const router = new Router();
-api.bind({ framework: 'leizmweb', router });
+api.bind({ adapter: new LeizmWebAdapter(), router });
 app.use('/', router);
 
 // 3. @leizm/web 的 handler 签名为 (ctx) => void
@@ -273,7 +278,7 @@ const api = new ERest({
   },
 });
 
-api.bind({ framework: 'leizmweb', app, router: Router });
+api.bind({ adapter: new LeizmWebAdapter(), app, router: Router });
 app.server.listen(3000);
 ```
 
@@ -320,6 +325,96 @@ it('应拒绝未成年用户', async () => {
 });
 ```
 
+## 类型安全的 Handler：`registerTyped`
+
+`register()` 的 handler 入参无类型，需要手动断言。`registerTyped()` 基于 Zod schema 自动推导
+`req.params` / `req.query` / `req.body` / `req.headers` 的类型，**编译期类型安全、运行时由
+checker 统一校验**，且对 Express / Koa / @leizm/web 三个框架都有效。
+
+handler 签名为 `(req, reply)`——**与框架无关**：`req` 是分层校验后的参数，`reply` 是统一的响应接口
+（`reply.json()` / `reply.status()`）。因此**同一份 handler 可被三个框架复用**，无需关心 ctx/res 差异。
+
+```typescript
+const CreateUserSchema = z.object({
+  name: z.string().min(1).max(50),
+  email: z.string().email(),
+  age: z.number().int().min(18),
+});
+
+api.api
+  .post('/users')
+  .group('user')
+  .title('创建用户')
+  .registerTyped(
+    { body: CreateUserSchema },
+    (req, reply) => {
+      // req.body 类型由 CreateUserSchema 自动推导：{ name: string; email: string; age: number }
+      // 无需任何 `as` 类型断言
+      const user = createUser(req.body);
+      // reply 框架无关：内部封装 Express res / Koa ctx.body / @leizm/web ctx.response
+      reply.status(201).json({ success: true, id: user.id });
+    },
+  );
+```
+
+> `registerTyped` 的校验由 adapter 的 checker 完成（参数注入到 `$validated`、响应接口注入到
+> `$reply`），handler 内不重复 parse。若提供 `response` schema 且 handler 有返回值，返回值会经
+> schema 校验（适合只读/纯计算型 handler，此时可不调用 `reply`）。
+
+## 参数读取：`$params` 与分层访问器
+
+adapter 的 checker 把校验后的参数注入到请求对象上，handler 通过它们读取：
+
+| 访问器 | 框架位置 | 含义 |
+|--------|----------|------|
+| `$params` | `req.$params` / `ctx.$params` / `ctx.request.$params` | 扁平合并（params+query+body+headers），向后兼容 |
+| `$validated` | 同上 | 分层聚合对象 `{ params, query, body, headers }` |
+| `$pathParams` `$query` `$body` `$headers` | 同上 | 按来源分层，**互不覆盖** |
+
+> `registerTyped` 已通过 `req.params/query/body` 提供分层读取，**无需**再访问 `$validated`。
+> 下面的分层访问器主要供 `register()` 的 handler 使用（其入参是框架 ctx，无统一 req）。
+
+**何时用分层访问器**：当路径参数与请求体存在同名字段时，扁平 `$params` 会发生静默覆盖
+（后合并的来源覆盖前者）。例如 `PUT /users/:id` 同时定义了 path 的 `id` 与 body 的 `id`：
+
+```typescript
+// @leizm/web 下用分层访问器避免同名覆盖
+api.api
+  .put('/users/:id')
+  .group('user')
+  .params(z.object({ id: z.coerce.number() }))
+  .body(z.object({ id: z.string(), name: z.string() }))
+  .register((ctx) => {
+    // 扁平 $params.id 被 body.id 覆盖（"body-id"），不推荐
+    const pathId = ctx.request.$pathParams.id; // 42 —— 保留路径来源
+    const bodyId = ctx.request.$body.id;       // "body-id" —— 保留请求体来源
+    const name = ctx.request.$body.name;
+    ctx.response.json({ pathId, bodyId, name });
+  });
+```
+
+若仅需聚合读取、无同名冲突，`$params`（扁平）与 `$validated`（分层）均可。
+
+## ESM 集成
+
+> **BREAKING（3.0）**：erest 3.0 起为 **ESM-only**，仅发布 ESM 产物。`require('erest')` 的 CommonJS
+> 工程需迁移为 ESM（`import`），或改用动态 `import()` 加载。这是 3.0 major 的破坏性变更。
+
+```typescript
+// ESM 工程（package.json "type": "module"，或 .mjs 文件）：直接 import
+import ERest, { z } from 'erest';
+const api = new ERest({ groups: { user: '用户管理' } });
+```
+
+```javascript
+// CommonJS 工程：用动态 import() 加载（顶层 require 不再支持）
+const { default: ERest } = await import('erest');
+const api = new ERest({ groups: { user: '用户管理' } });
+```
+
+erest 3.0 仅发布一套 ESM 产物（`dist/lib`）。在 `module: nodenext` + `verbatimModuleSyntax` 的
+最严格 ESM 工程下，`import ERest from 'erest'` 既有正确运行时（可直接 `new`）又有正确类型推导。
+
 ## 高级用法
 
 ### 分组与中间件
@@ -358,20 +453,47 @@ throw ERestError.invalidParam('age', 'Integer', 'abc');
 
 ### 可用适配器
 
-| 框架 | 类型值 | 适配器类 |
-|------|--------|----------|
-| Express | `'express'` | `ExpressAdapter` |
-| Koa | `'koa'` | `KoaAdapter` |
-| @leizm/web | `'leizmweb'` | `LeizmWebAdapter` |
+三框架适配器作为独立子包提供，自定义适配器实现 `FrameworkAdapter` 接口（从 `erest` 导入）即可：
+
+| 子包 | 适配器类 | 适用框架 |
+|------|----------|---------|
+| `@erest/express` | `ExpressAdapter` | Express 4 |
+| `@erest/koa` | `KoaAdapter` | Koa 3 |
+| `@erest/leizmweb` | `LeizmWebAdapter` | @leizm/web 2 |
 
 #### 已废弃方法
 
-以下方法已废弃，请使用 `bind()` 替代：
+以下方法已废弃，请使用 `bind({ adapter, ... })` 替代：
 
-- `bindRouter(router, checker)` → `bind({ framework: 'express', router })`
-- `bindRouterToApp(app, Router, checker)` → `bind({ framework: 'express', app, router: Router })`
-- `bindKoaRouterToApp(app, KoaRouter, checker)` → `bind({ framework: 'koa', app, router: KoaRouter })`
-- `checkerExpress` / `checkerKoa` / `checkerLeiWeb` → 内置于适配器中
+- `bindRouter(router, checker)` → `bind({ adapter: new ExpressAdapter(), router })`
+- `bindRouterToApp(app, Router, checker)` → `bind({ adapter: new ExpressAdapter(), app, router: Router })`
+- `bindKoaRouterToApp(app, KoaRouter, checker)` → `bind({ adapter: new KoaAdapter(), app, router: KoaRouter })`
+- `checkerExpress` / `checkerKoa` / `checkerLeiWeb` → 内置于各适配器中
+
+## 示例
+
+`examples/` 是一个**迷你博客业务域**的完整最佳实践样板，串联 erest 全部核心能力：
+**一份 API 定义（`src/api.js`），三个框架入口**（`src/entries/`）。handler 用 `registerTyped`
+的 `(req, reply)` 签名声明一次，被 @leizm/web / Express / Koa 复用，仅 `bind()` 参数不同。
+
+examples 作为 pnpm workspace 子包，通过 `erest: workspace:*` 引用本地 erest，安装时自动 link。
+
+| 命令 | 说明 |
+|------|------|
+| `pnpm --filter erest-example start:{leizmweb,express,koa}` | 三框架入口（监听 3100） |
+| `pnpm --filter erest-example test` | vitest 测试套件（initTest + success/error/takeExample） |
+| `pnpm --filter erest-example docs` | 生成 swagger / postman / markdown / axios SDK |
+
+覆盖能力：forceGroup 分组、组级 before/middleware 钩子（鉴权/日志）、全局 beforeHooks、
+自定义错误注册、自定义 type/schema 注册、`define()` 声明式、`mock()`、`response()` schema、
+分层参数、文档生成、测试集成。详见 `examples/README.md`。
+
+## API 文档
+
+线上文档站（typedoc 产物）由 CI 自动构建部署：
+
+- 在线：<https://yourtion.github.io/node-erest/>
+- 本地预览：`pnpm install && pnpm run doc`，产物在 `docs/`（已 gitignore，不进版本库）
 
 ## License
 

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { type ZodType, z } from "zod";
-import type ERest from "../lib";
-import IAPIDoc from "../lib/extend/docs";
+import { z } from "zod";
+import IAPIDoc, { type IDocGeneratePlugin } from "../lib/extend/docs";
 import schemaDocs from "../lib/plugin/generate_markdown/schema";
 import { buildSwagger } from "../lib/plugin/generate_swagger";
 import lib from "./lib";
@@ -288,9 +287,9 @@ describe("Zod Documentation Generation Tests", () => {
     });
 
     test("should handle invalid Zod schemas gracefully", () => {
-      // 模拟无效的schema
+      // 模拟无效的 schema（非 ZodType）
       (app as any).typeRegistry.set("InvalidType", null);
-      (app as any).schemaRegistry.set("InvalidSchema", { _def: null });
+      (app as any).schemaRegistry.set("InvalidSchema", null);
 
       const docData = docInstance.buildDocData();
 
@@ -317,7 +316,7 @@ describe("Zod Documentation Generation Tests", () => {
   describe("Document Generation and Plugin System", () => {
     test("should register and execute plugins correctly", () => {
       let pluginExecuted = false;
-      const testPlugin = (data: any, dir: string, options: any, writer: any) => {
+      const testPlugin: IDocGeneratePlugin = (data, dir, options, writer) => {
         pluginExecuted = true;
         expect(data).toBeDefined();
         expect(dir).toBe("/test/dir");
@@ -368,7 +367,7 @@ describe("Zod Documentation Generation Tests", () => {
       const mockFormatOutput = vi.fn((output) => ({ formatted: output }));
       app.api.docOutputFormat = mockFormatOutput;
 
-      const docData = docInstance.buildDocData();
+      docInstance.buildDocData();
 
       // Since we don't have APIs with examples, this test verifies the function is set
       expect(app.api.docOutputFormat).toBe(mockFormatOutput);

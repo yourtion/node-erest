@@ -1,8 +1,8 @@
 import * as path from "node:path";
-import type { IDocOptions } from "../..";
-import { plugin as debug } from "../../debug";
-import type { IDocData, IDocWritter } from "../../extend/docs";
-import * as utils from "../../utils";
+import { plugin as debug } from "../../debug.js";
+import type { IDocData, IDocWritter } from "../../extend/docs.js";
+import type { IDocOptions } from "../../index.js";
+import * as utils from "../../utils.js";
 
 interface IPostManHeader {
   key: string;
@@ -92,11 +92,15 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
         mode: "urlencoded",
         urlencoded: [],
       };
-      for (const sKey in item.body as Record<string, unknown>) {
-        req.request.body.urlencoded?.push({
-          key: sKey,
-          description: (item.body as Record<string, { comment?: string }>)[sKey].comment,
-        });
+      // Stage 1：从预编译的 Zod bodySchema 提取字段名
+      const bodyShape = (item.bodySchema as { _def?: { shape?: Record<string, unknown> } })?._def?.shape;
+      if (bodyShape) {
+        for (const sKey of Object.keys(bodyShape)) {
+          req.request.body.urlencoded?.push({
+            key: sKey,
+            description: "",
+          });
+        }
       }
     }
 
@@ -112,7 +116,7 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
     postman.item.push({ name: gg.name, item: gg.items });
   }
 
-  const filename = utils.getPath("postman.json", options.swagger);
+  const filename = utils.getPath("postman.json", options.postman);
 
   writter(path.resolve(dir, filename), JSON.stringify(postman, null, "  "));
 }

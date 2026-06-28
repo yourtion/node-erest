@@ -5,41 +5,26 @@
 
 import { strict as assert } from "node:assert";
 import { ZodRawShape, ZodType, z } from "zod";
-import {
-  buildHandlerChain,
-  type CheckerFunction,
-  ExpressAdapter,
-  type FrameworkAdapter,
-  type FrameworkType,
-  type IAdapterGroupInfo,
-  KoaAdapter,
-  LeizmWebAdapter,
-} from "./adapters";
-import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api";
-import { core as debug } from "./debug";
-import { defaultErrors } from "./default";
-import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs";
-import IAPITest from "./extend/test";
-import { ErrorManager } from "./manager";
-import {
-  apiParamsCheck,
-  createZodSchema,
-  type ISchemaType,
-  paramsChecker,
-  responseChecker,
-  schemaChecker,
-  zodTypeMap,
-} from "./params";
-import * as utils from "./utils";
-import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils";
+import { buildHandlerChain, type FrameworkAdapter, type IAdapterGroupInfo } from "./adapters/index.js";
+import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api.js";
+import { core as debug } from "./debug.js";
+import { type LifecycleHooks, hasHooks } from "./hooks.js";
+import { defaultErrors } from "./default/index.js";
+import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs.js";
+import IAPITest from "./extend/test.js";
+import { ErrorManager } from "./manager/index.js";
+import { zodTypeMap } from "./params.js";
+import * as utils from "./utils.js";
+import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils.js";
 
-export * from "./adapters";
-export * from "./api";
-export * from "./error";
-export * from "./params";
+export * from "./adapters/index.js";
+export { type LifecycleHooks } from "./hooks.js";
+export * from "./api.js";
+export * from "./error.js";
+export * from "./params.js";
 export { z, ZodRawShape, ZodType };
 
-import { ERestError } from "./error";
+import { ERestError } from "./error.js";
 
 const missingParameter = (msg: string) =>
   new ERestError("MISSING_PARAM", `missing required parameter ${msg}`, { field: msg.replace(/'/g, "") });
@@ -97,6 +82,8 @@ export interface IApiOption {
   groups?: Record<string, string | IGroupInfoOpt>;
   forceGroup?: boolean;
   docs?: IDocOptions;
+  /** 生命周期 hook（Stage 3：可观测性，无订阅者零开销） */
+  hooks?: LifecycleHooks;
 }
 
 /** 文档生成信息 */
@@ -134,7 +121,7 @@ interface IGroupInfo<T> extends IGroupInfoOpt {
 /**
  * Easy rest api helper
  */
-export default class ERest<T = DEFAULT_HANDLER> {
+class ERest<T = DEFAULT_HANDLER> {
   public shareTestData?: unknown;
   public utils = utils;
 
@@ -155,6 +142,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
   private groups: Record<string, string>;
   private groupInfo: Record<string, IGroupInfo<T>>;
   private forceGroup: boolean;
+  private hooks?: LifecycleHooks;
   private registAPI: (
     method: SUPPORT_METHODS,
     path: string,
@@ -164,25 +152,48 @@ export default class ERest<T = DEFAULT_HANDLER> {
   private defineAPI: (options: APIDefine<T>, group?: string | undefined, prefix?: string | undefined) => API<T>;
   private mockHandler?: (data: unknown) => T;
 
-  /** Framework adapters */
-  private readonly adapters: {
-    express: FrameworkAdapter<T>;
-    koa: FrameworkAdapter<T>;
-    leizmweb: FrameworkAdapter<T>;
-  };
+  /** @internal 错误工厂（adapter/params/api 用，替代 privateInfo 反射） */
+  getError() {
+    return this.error;
+  }
 
-  /**
-   * 获取私有变量信息
-   */
-  get privateInfo() {
+  /** @internal 生命周期 hooks（adapter 装配 dispatch 时用） */
+  getHooks() {
+    return this.hooks;
+  }
+
+  /** @internal hooks 是否非空（零开销裁剪判断） */
+  hasHooks() {
+    return hasHooks(this.hooks);
+  }
+
+  /** @internal 分组表（api.init 校验分组存在性用） */
+  getInternalGroups() {
+    return this.groups;
+  }
+
+  /** @internal mock handler（api.init 用） */
+  getMockHandler() {
+    return this.mockHandler;
+  }
+
+  /** @internal 文档生成器受控快照 */
+  getDocsView() {
     return {
-      app: this.app,
       info: this.info,
       groups: this.groups,
       groupInfo: this.groupInfo,
       docsOptions: this.docsOptions,
-      error: this.error,
-      mockHandler: this.mockHandler,
+      apis: this.apiInfo.$apis,
+      schema: this.schema,
+    };
+  }
+
+  /** @internal 测试系统受控快照 */
+  getTestView() {
+    return {
+      info: this.info,
+      app: this.app,
     };
   }
 
@@ -252,7 +263,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
     get: (name: string) => ZodType | undefined;
     has: (name: string) => boolean;
     check: (name: string, value: unknown) => boolean;
-    createZodSchema: (schemaType: ISchemaType) => ZodType;
   } {
     return {
       register: (name: string, schema: ZodType) => {
@@ -276,26 +286,13 @@ export default class ERest<T = DEFAULT_HANDLER> {
           return false;
         }
       },
-      createZodSchema: (schemaType: ISchemaType) => {
-        return createZodSchema(schemaType);
-      },
     };
-  }
-
-  /**
-   * 创建 Schema 对象
-   */
-  createSchema(schemaObj: Record<string, ISchemaType>) {
-    const schemaFields: Record<string, ZodType> = {};
-    for (const [key, typeInfo] of Object.entries(schemaObj)) {
-      schemaFields[key] = createZodSchema(typeInfo);
-    }
-    return z.object(schemaFields);
   }
 
   constructor(options: IApiOption) {
     this.info = options.info || {};
     this.forceGroup = options.forceGroup || false;
+    this.hooks = options.hooks;
     // 设置内部错误报错信息
     this.error = {
       missingParameter: options.missingParameterError || missingParameter,
@@ -381,47 +378,11 @@ export default class ERest<T = DEFAULT_HANDLER> {
     // 错误管理
     this.errorManage = new ErrorManager();
     defaultErrors.call(this, this.errorManage);
-
-    // 初始化框架适配器
-    this.adapters = {
-      express: new ExpressAdapter<T>(),
-      koa: new KoaAdapter<T>(),
-      leizmweb: new LeizmWebAdapter<T>(),
-    };
-  }
-
-  /**
-   * 获取参数检查实例
-   */
-  public paramsChecker() {
-    return (name: string, value: unknown, schema: ISchemaType) =>
-      paramsChecker(this as ERest<unknown>, name, value, schema);
-  }
-
-  /**
-   * 获取Schema检查实例
-   */
-  public schemaChecker() {
-    return (data: unknown, schema: Record<string, ISchemaType>, requiredOneOf: string[] = []) =>
-      schemaChecker(this as ERest<unknown>, data as Record<string, unknown>, schema, requiredOneOf);
-  }
-
-  public responseChecker() {
-    return (data: unknown, schema: ISchemaType) =>
-      responseChecker(this as ERest<unknown>, data as Record<string, unknown>, schema);
-  }
-
-  /**
-   * 获取API参数检查实例
-   */
-  public apiParamsCheck() {
-    return (data: unknown, schema: Record<string, ISchemaType>) =>
-      apiParamsCheck(this as ERest<unknown>, data as API<unknown>, schema);
   }
 
   /**
    * 初始化测试系统
-   * @param app APP或者serve实例，用于init supertest
+   * @param app APP或者serve实例，用于初始化测试 HTTP 服务
    * @param testPath 测试文件路径
    * @param docPath 输出文件路径
    */
@@ -546,177 +507,20 @@ export default class ERest<T = DEFAULT_HANDLER> {
   }
 
   /**
-   * 创建 @leizm/web 框架的参数检查中间件
-   * 注意：此方法应通过 bindRouter 等方法传入，会自动绑定 this 上下文
-   * @deprecated 推荐使用 bind() 方法
-   */
-  public checkerLeiWeb: CheckerFunction<T> = (_erest: ERest<T>, schema: API<T>) => {
-    return this.adapters.leizmweb.makeParamsChecker(this, schema);
-  };
-
-  /**
-   * 创建 Express 框架的参数检查中间件
-   * 注意：此方法应通过 bindRouter 等方法传入，会自动绑定 this 上下文
-   * @deprecated 推荐使用 bind() 方法
-   */
-  public checkerExpress: CheckerFunction<T> = (_erest: ERest<T>, schema: API<T>) => {
-    return this.adapters.express.makeParamsChecker(this, schema);
-  };
-
-  /**
-   * 创建 Koa 框架的参数检查中间件
-   * 注意：此方法应通过 bindRouter 等方法传入，会自动绑定 this 上下文
-   * @deprecated 推荐使用 bind() 方法
-   */
-  public checkerKoa: CheckerFunction<T> = (_erest: ERest<T>, schema: API<T>) => {
-    return this.adapters.koa.makeParamsChecker(this, schema);
-  };
-
-  /**
-   * 绑定路由（非 forceGroup 模式）
-   * 加载顺序：beforeHooks -> apiCheckParams -> middlewares -> handler
-   *
-   * @param router 路由实例
-   * @param checker 参数检查函数
-   * @deprecated 推荐使用 bind() 方法
-   */
-  public bindRouter(router: unknown, checker: CheckerFunction<T>) {
-    if (this.forceGroup) {
-      throw this.error.internalError("使用了 forceGroup，请使用bindGroupToApp");
-    }
-    for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      debug("bind router: %s", key);
-      schema.init(this as ERest<unknown>);
-
-      if (typeof schema.options.handler !== "function") {
-        throw this.error.internalError(`API ${key} 没有注册处理函数`);
-      }
-
-      const handlers = buildHandlerChain({
-        beforeHooks: this.apiInfo.beforeHooks,
-        api: schema,
-        checker: checker(this, schema),
-      });
-
-      const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
-      routerTyped[schema.options.method as string].bind(router)(schema.options.path, ...handlers);
-    }
-  }
-
-  /**
-   * 绑定路由到 Koa 应用（forceGroup 模式）
-   *
-   * @param app Koa 应用实例
-   * @param KoaRouter koa-router 构造函数
-   * @param checker 参数检查函数
-   * @deprecated 推荐使用 bind() 方法
-   */
-  public bindKoaRouterToApp(app: unknown, KoaRouter: unknown, checker: CheckerFunction<T>) {
-    if (!this.forceGroup) {
-      throw this.error.internalError("没有开启 forceGroup，请使用 bindRouterToKoa");
-    }
-
-    const adapter = this.adapters.koa;
-    const routes = new Map<string, unknown>();
-
-    for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      schema.init(this as ERest<unknown>);
-
-      if (typeof schema.options.handler !== "function") {
-        throw this.error.internalError(`API ${key} 没有注册处理函数`);
-      }
-
-      const groupInfo = this.groupInfo[schema.options.group] || { before: [], middleware: [] };
-      const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
-      debug("bindGroupToKoaApp (api): %s - %s", key, prefix);
-
-      let route = routes.get(prefix);
-      if (!route) {
-        route = adapter.createGroupRouter(KoaRouter, prefix);
-        routes.set(prefix, route);
-      }
-
-      const handlers = buildHandlerChain({
-        beforeHooks: this.apiInfo.beforeHooks,
-        api: schema,
-        checker: checker(this, schema),
-        groupInfo: groupInfo as IAdapterGroupInfo<T>,
-      });
-
-      adapter.bindRoute(route, schema, handlers);
-    }
-
-    for (const [key, groupRouter] of routes.entries()) {
-      debug("bindGroupToKoaApp - applying router for prefix: %s", key);
-      adapter.attachGroupRouter(app, groupRouter, key);
-    }
-  }
-
-  /**
-   * 绑定路由到 Express 应用（forceGroup 模式）
-   *
-   * @param app Express 应用实例
-   * @param Router express.Router 构造函数
-   * @param checker 参数检查函数
-   * @deprecated 推荐使用 bind() 方法
-   */
-  public bindRouterToApp(app: unknown, Router: unknown, checker: CheckerFunction<T>) {
-    if (!this.forceGroup) {
-      throw this.error.internalError("没有开启 forceGroup，请使用bindRouter");
-    }
-
-    const adapter = this.adapters.express;
-    const routes = new Map<string, unknown>();
-
-    for (const [key, schema] of this.apiInfo.$apis.entries()) {
-      schema.init(this as ERest<unknown>);
-
-      if (typeof schema.options.handler !== "function") {
-        throw this.error.internalError(`API ${key} 没有注册处理函数`);
-      }
-
-      const groupInfo = this.groupInfo[schema.options.group] || { before: [], middleware: [] };
-      const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
-      debug("bindGroupToApp: %s - %s", key, prefix);
-
-      let route = routes.get(prefix);
-      if (!route) {
-        route = adapter.createGroupRouter(Router, prefix);
-        routes.set(prefix, route);
-      }
-
-      const handlers = buildHandlerChain({
-        beforeHooks: this.apiInfo.beforeHooks,
-        api: schema,
-        checker: checker(this, schema),
-        groupInfo: groupInfo as IAdapterGroupInfo<T>,
-      });
-
-      adapter.bindRoute(route, schema, handlers);
-    }
-
-    for (const [key, groupRouter] of routes.entries()) {
-      debug("bindGroupToApp - %s", key);
-      adapter.attachGroupRouter(app, groupRouter, key);
-    }
-  }
-
-  /**
    * 统一绑定 API 到应用（推荐使用）
    * 支持 Express、Koa 和 @leizm/web 框架
    *
    * @param options 绑定选项
    */
   public bind(options: {
-    /** 框架类型 */
-    framework: FrameworkType;
+    /** 框架适配器实例（由 @erest/express / @erest/koa / @erest/leizmweb 子包提供，或用户自定义） */
+    adapter: FrameworkAdapter<T>;
     /** 应用实例 */
     app?: unknown;
     /** 路由实例（非 forceGroup 模式）或路由构造函数（forceGroup 模式） */
     router?: unknown;
   }) {
-    const { framework, app, router } = options;
-    const adapter = this.adapters[framework];
+    const { adapter, app, router } = options;
 
     if (this.forceGroup) {
       if (!app || !router) {
@@ -734,7 +538,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
 
         const groupInfo = this.groupInfo[schema.options.group] || { before: [], middleware: [] };
         const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
-        debug("bind (%s): %s - %s", framework, key, prefix);
+        debug("bind (%s): %s - %s", adapter.name, key, prefix);
 
         let route = routes.get(prefix);
         if (!route) {
@@ -750,11 +554,11 @@ export default class ERest<T = DEFAULT_HANDLER> {
           groupInfo: groupInfo as IAdapterGroupInfo<T>,
         });
 
-        adapter.bindRoute(route, schema, handlers);
+        adapter.bindRoute(route, schema, handlers, this.hooks);
       }
 
       for (const [key, groupRouter] of routes.entries()) {
-        debug("bind (%s) - applying router for prefix: %s", framework, key);
+        debug("bind (%s) - applying router for prefix: %s", adapter.name, key);
         adapter.attachGroupRouter(app, groupRouter, key);
       }
     } else {
@@ -763,7 +567,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       }
 
       for (const [key, schema] of this.apiInfo.$apis.entries()) {
-        debug("bind (%s): %s", framework, key);
+        debug("bind (%s): %s", adapter.name, key);
         schema.init(this as ERest<unknown>);
 
         if (typeof schema.options.handler !== "function") {
@@ -777,8 +581,11 @@ export default class ERest<T = DEFAULT_HANDLER> {
           checker,
         });
 
-        adapter.bindRoute(router, schema, handlers);
+        adapter.bindRoute(router, schema, handlers, this.hooks);
       }
     }
   }
 }
+
+export default ERest;
+export { ERest };

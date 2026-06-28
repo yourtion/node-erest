@@ -1,0 +1,30 @@
+{
+  "name": "@erest/leizmweb",
+  "version": "3.0.0",
+  "description": "@leizm/web adapter for erest",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "peerDependencies": {
+    "erest": "workspace:^",
+    "@leizm/web": "^2.7.0"
+  },
+  "devDependencies": {
+    "erest": "workspace:*",
+    "@leizm/web": "^2.7.3",
+    "typescript": "^5.8.0"
+  }
+}

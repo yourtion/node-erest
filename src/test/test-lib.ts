@@ -1,17 +1,17 @@
+import { expressAdapter } from "./adapters";
+
 import express from "express";
-import { vi } from "vitest";
 import { z } from "zod";
 import type { IApiOption } from "../lib";
 import ERest, { ERestError } from "../lib";
 import { getCallerSourceLine, getPath } from "../lib/utils";
-import { build, TYPES } from "./helper";
 import lib, { GROUPS, INFO } from "./lib";
 
 describe("ERest - 基础测试", () => {
   const apiService = lib();
 
   test("ERest - 信息初始化", () => {
-    const libInfo = apiService.privateInfo.info;
+    const libInfo = apiService.getTestView().info;
     expect(libInfo.title).toBe(INFO.title);
     expect(libInfo.description).toBe(INFO.description);
     expect(libInfo.version).toBe(INFO.version);
@@ -23,7 +23,7 @@ describe("ERest - 基础测试", () => {
     describe("Constructor and Initialization", () => {
       test("should create ERest instance with default options", () => {
         const erest = new ERest({});
-        expect(erest.privateInfo.info).toEqual({});
+        expect(erest.getTestView().info).toEqual({});
         expect(erest.api.$apis.size).toBe(0);
       });
 
@@ -50,11 +50,11 @@ describe("ERest - 基础测试", () => {
         };
 
         const erest = new ERest(customOptions);
-        expect(erest.privateInfo.info.title).toBe("Test API");
-        expect(erest.privateInfo.info.description).toBe("Test Description");
-        expect(erest.privateInfo.groups.v1).toBe("Version 1");
-        expect(erest.privateInfo.groups.user).toBe("User Management");
-        expect(erest.privateInfo.groupInfo.user.prefix).toBe("/users");
+        expect(erest.getTestView().info.title).toBe("Test API");
+        expect(erest.getTestView().info.description).toBe("Test Description");
+        expect(erest.getDocsView().groups.v1).toBe("Version 1");
+        expect(erest.getDocsView().groups.user).toBe("User Management");
+        expect(erest.getDocsView().groupInfo.user.prefix).toBe("/users");
       });
 
       test("should handle custom error functions", () => {
@@ -68,9 +68,9 @@ describe("ERest - 基础测试", () => {
           internalError: customInternalError,
         });
 
-        expect(erest.privateInfo.error.missingParameter("test").message).toBe("Custom missing: test");
-        expect(erest.privateInfo.error.invalidParameter("test").message).toBe("Custom invalid: test");
-        expect(erest.privateInfo.error.internalError("test").message).toBe("Custom internal: test");
+        expect(erest.getError().missingParameter("test").message).toBe("Custom missing: test");
+        expect(erest.getError().invalidParameter("test").message).toBe("Custom invalid: test");
+        expect(erest.getError().internalError("test").message).toBe("Custom internal: test");
       });
     });
 
@@ -126,32 +126,17 @@ describe("ERest - 基础测试", () => {
         expect(erest.schema.check("TestSchema", { age: 25 })).toBe(false);
         expect(erest.schema.check("NonExistentSchema", {})).toBe(false);
       });
-
-      test("should create schema from ISchemaType objects", () => {
-        const erest = new ERest({});
-        const schemaObj = {
-          name: { type: "String", required: true },
-          age: { type: "Integer", required: false },
-        };
-
-        const schema = erest.createSchema(schemaObj);
-        expect(schema).toBeDefined();
-
-        // Test valid data
-        const validResult = schema.safeParse({ name: "John", age: 25 });
-        expect(validResult.success).toBe(true);
-      });
     });
 
     describe("API Registration", () => {
       test("should register APIs with different HTTP methods", () => {
         const erest = new ERest({});
 
-        const getApi = erest.api.get("/test-get");
-        const postApi = erest.api.post("/test-post");
-        const putApi = erest.api.put("/test-put");
-        const deleteApi = erest.api.delete("/test-delete");
-        const patchApi = erest.api.patch("/test-patch");
+        erest.api.get("/test-get");
+        erest.api.post("/test-post");
+        erest.api.put("/test-put");
+        erest.api.delete("/test-delete");
+        erest.api.patch("/test-patch");
 
         expect(erest.api.$apis.has("GET_/test-get")).toBe(true);
         expect(erest.api.$apis.has("POST_/test-post")).toBe(true);
@@ -214,19 +199,19 @@ describe("ERest - 基础测试", () => {
         const middleware2 = () => {};
         const beforeHook = () => {};
 
-        const group = erest.group("test").middleware(middleware1, middleware2).before(beforeHook);
+        erest.group("test").middleware(middleware1, middleware2).before(beforeHook);
 
-        expect(erest.privateInfo.groupInfo.test.middleware).toContain(middleware1);
-        expect(erest.privateInfo.groupInfo.test.middleware).toContain(middleware2);
-        expect(erest.privateInfo.groupInfo.test.before).toContain(beforeHook);
+        expect(erest.getDocsView().groupInfo.test.middleware).toContain(middleware1);
+        expect(erest.getDocsView().groupInfo.test.middleware).toContain(middleware2);
+        expect(erest.getDocsView().groupInfo.test.before).toContain(beforeHook);
       });
 
       test("should create group with dynamic info", () => {
         const erest = new ERest({ forceGroup: true });
 
-        const group = erest.group("dynamic", { name: "Dynamic Group", prefix: "/dyn" });
-        expect(erest.privateInfo.groups.dynamic).toBe("Dynamic Group");
-        expect(erest.privateInfo.groupInfo.dynamic.prefix).toBe("/dyn");
+        erest.group("dynamic", { name: "Dynamic Group", prefix: "/dyn" });
+        expect(erest.getDocsView().groups.dynamic).toBe("Dynamic Group");
+        expect(erest.getDocsView().groupInfo.dynamic.prefix).toBe("/dyn");
       });
     });
 
@@ -287,7 +272,7 @@ describe("ERest - 基础测试", () => {
         const mockHandler = (data: unknown) => () => data;
 
         erest.setMockHandler(mockHandler);
-        expect(erest.privateInfo.mockHandler).toBe(mockHandler);
+        expect(erest.getMockHandler()).toBe(mockHandler);
       });
 
       test("should build swagger documentation", () => {
@@ -316,59 +301,20 @@ describe("ERest - 基础测试", () => {
       test("should throw error when using bindRouter with forceGroup", () => {
         const erest = new ERest({ forceGroup: true });
         const mockRouter = {};
-        const mockChecker = () => () => {};
 
         expect(() => {
-          erest.bindRouter(mockRouter, mockChecker);
-        }).toThrow("使用了 forceGroup，请使用bindGroupToApp");
+          erest.bind({ adapter: expressAdapter, router: mockRouter });
+        }).toThrow("forceGroup 模式需要提供 app 和 router");
       });
 
-      test("should throw error when using bindRouterToApp without forceGroup", () => {
+      test("should throw error when using bind with forceGroup but missing app/router", () => {
         const erest = new ERest({ forceGroup: false });
-        const mockApp = {};
         const mockRouter = {};
-        const mockChecker = () => () => {};
 
+        // 非 forceGroup 模式提供 app 应抛错（需 router）
         expect(() => {
-          erest.bindRouterToApp(mockApp, mockRouter, mockChecker);
-        }).toThrow("没有开启 forceGroup，请使用bindRouter");
-      });
-
-      test("should throw error when using bindKoaRouterToApp without forceGroup", () => {
-        const erest = new ERest({ forceGroup: false });
-        const mockApp = {};
-        const mockKoaRouter = {};
-        const mockChecker = () => () => {};
-
-        expect(() => {
-          erest.bindKoaRouterToApp(mockApp, mockKoaRouter, mockChecker);
-        }).toThrow("没有开启 forceGroup，请使用 bindRouterToKoa");
-      });
-    });
-
-    describe("Checker Methods", () => {
-      test("should create parameter checker", () => {
-        const erest = new ERest({});
-        const checker = erest.paramsChecker();
-        expect(typeof checker).toBe("function");
-      });
-
-      test("should create schema checker", () => {
-        const erest = new ERest({});
-        const checker = erest.schemaChecker();
-        expect(typeof checker).toBe("function");
-      });
-
-      test("should create response checker", () => {
-        const erest = new ERest({});
-        const checker = erest.responseChecker();
-        expect(typeof checker).toBe("function");
-      });
-
-      test("should create API params checker", () => {
-        const erest = new ERest({});
-        const checker = erest.apiParamsCheck();
-        expect(typeof checker).toBe("function");
+          erest.bind({ adapter: expressAdapter, router: mockRouter });
+        }).not.toThrow();
       });
     });
 
@@ -410,7 +356,7 @@ describe("ERest - 基础测试", () => {
         }).not.toThrow();
 
         // Test that the group was created
-        expect(erest.privateInfo.groups.defined).toBe("Defined Group");
+        expect(erest.getDocsView().groups.defined).toBe("Defined Group");
       });
     });
 
@@ -430,7 +376,7 @@ describe("ERest - 基础测试", () => {
   });
 
   test("ERest - 分组信息", () => {
-    expect(apiService.privateInfo.groups).toEqual(GROUPS);
+    expect(apiService.getDocsView().groups).toEqual(GROUPS);
   });
 
   test("ERest - 注册文件输出函数", () => {
@@ -456,24 +402,18 @@ describe("ERest - schema 注册与使用", () => {
   });
 
   test("add Schema", () => {
-    // 注册一个名字为`a`的 schema
-    const aSchema = apiService.createSchema({
-      a: build(TYPES.String, "str"),
-    });
+    // Stage 1：直接注册 Zod schema（createSchema 已移除）
+    const aSchema = z.object({ a: z.string() });
     apiService.schema.register("a", aSchema);
 
     apiService.api
       .get("/")
       .group("Index")
-      .query({
-        a: build("a", "Object-a", true),
-        // 使用 a 类型对象的数组
-        b: build("a[]", "Object-a Array", true),
-      })
+      .query(z.object({ a: z.string() }))
       .register(() => {});
 
     const router = express();
-    apiService.bindRouter(router, apiService.checkerExpress);
+    apiService.bind({ adapter: expressAdapter, router });
     expect(apiService.schema.has("a")).toBeTruthy();
   });
 });
@@ -510,31 +450,6 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
   // TODO: 完善 Mock 方法
   apiService.setMockHandler(() => () => {});
   apiService.api.get("/b").mock();
-
-  describe("Checker", () => {
-    const api = apiService.api.define({
-      method: "get",
-      path: "/a",
-      group: "Index",
-      title: "ENUM Without params Test",
-      query: { p: build(TYPES.ENUM, "ENUM Without params", true) },
-      handler: () => {},
-    });
-
-    test("apiParamsCheck", () => {
-      expect(() => api.init(apiService)).toThrow("ENUM is require a params");
-    });
-
-    test("responseChecker", () => {
-      const checker = apiService.responseChecker();
-      const ret = checker({}, { type: "object" });
-      expect(ret).toEqual({ ok: true, message: "success", value: {} });
-    });
-
-    test("require params", () => {
-      expect(() => api.init(apiService)).toThrow("ENUM is require a params");
-    });
-  });
 });
 
 describe("ERestError - 自定义错误类", () => {

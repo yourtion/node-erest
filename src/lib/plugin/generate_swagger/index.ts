@@ -6,12 +6,12 @@
 import * as path from "node:path";
 import { URL } from "node:url";
 import type { ZodType } from "zod";
-import type { IDocOptions } from "../..";
-import { plugin as debug } from "../../debug";
-import type { IDocData, IDocWritter } from "../../extend/docs";
-import type { ISchemaType } from "../../params";
-import { isZodSchema } from "../../params";
-import * as utils from "../../utils";
+import { plugin as debug } from "../../debug.js";
+import type { IDocData, IDocWritter } from "../../extend/docs.js";
+import type { IDocOptions } from "../../index.js";
+import { isZodSchema } from "../../params.js";
+import { extractDocFields } from "../zod-meta.js";
+import * as utils from "../../utils.js";
 
 type SCHEMA = "http" | "https" | "ws" | "wss";
 
@@ -290,8 +290,7 @@ export function buildSwagger(data: IDocData) {
   generateSwaggerSchemaDefinitions(data, result);
 
   const paths = result.paths as Record<string, unknown>;
-  const apis = data.apis;
-  for (const [key, api] of Object.entries(apis)) {
+  for (const [key, api] of Object.entries(data.apis)) {
     const newPath = utils.getRealPath(key).replace(/:(\w+)/, "{$1}");
     if (!paths[newPath]) {
       paths[newPath] = {};
@@ -322,44 +321,43 @@ export function buildSwagger(data: IDocData) {
       }
     }
     example = example || { input: {}, output: {} };
+
+    // Stage 1：从预编译的 Zod schema 提取参数（params/query/body）
+    const schemaMap = {
+      params: api.paramsSchema,
+      query: api.querySchema,
+      body: api.bodySchema,
+    } as Record<string, unknown>;
+
     for (const place of ["params", "query", "body"]) {
-      for (const sKey in (api as Record<string, Record<string, ISchemaType>>)[place]) {
-        const fieldInfo = (api as Record<string, Record<string, ISchemaType>>)[place][sKey];
+      const fields = extractDocFields(schemaMap[place], place);
+      for (const f of fields) {
         const obj: ISwaggerResultParams = {
-          name: sKey,
+          name: f.name,
           in: place === "params" ? "path" : place,
-          description: fieldInfo.comment || "",
-          required: sKey === "body" ? [] : false,
-          type: fieldInfo.type.toLowerCase(),
-          example: place === "body" ? example.input?.[sKey] : undefined,
+          description: f.comment || "",
+          required: place === "body" ? [] : false,
+          type: f.enumValues ? "string" : f.type,
+          example: place === "body" ? example.input?.[f.name] : undefined,
         };
         if (place === "params") obj.required = true;
-        if (api.required.has(sKey)) {
-          if (place === "query") obj.required = true;
+        if (place === "query" && f.required) obj.required = true;
+        if (f.enumValues) {
+          obj.enum = f.enumValues;
         }
-        if (fieldInfo.type === "ENUM") {
-          obj.type = "string";
-          obj.enum = fieldInfo.params as string[];
+        if (f.type === "array") {
+          obj.items = { type: "string" };
         }
-        if (fieldInfo.type === "IntArray") {
-          obj.type = "array";
-          obj.items = { type: "integer" };
-        }
-        if (fieldInfo.type === "Date") {
-          obj.type = "string";
-          obj.format = "date";
-        }
-        if ((data.schema as { has: (type: string) => boolean }).has(fieldInfo.type)) {
-          delete obj.type;
-          obj.$ref = `#/definitions/${fieldInfo.type}`;
+        if (f.format) {
+          obj.format = f.format;
         }
         if (place === "body") {
           delete obj.in;
           delete obj.name;
           delete obj.required;
-          bodySchema[sKey] = obj;
-          if (api.required.has(sKey) && Array.isArray(bodySchema.required)) {
-            bodySchema.required.push(sKey);
+          bodySchema[f.name] = obj;
+          if (f.required && Array.isArray(bodySchema.required)) {
+            bodySchema.required.push(f.name);
           }
         } else {
           ((sc[api.method as string] as Record<string, unknown>).parameters as unknown[]).push(obj);
@@ -367,9 +365,9 @@ export function buildSwagger(data: IDocData) {
       }
     }
 
-    // sc[schema.method].responses[200].example = example.output;
-    if (api.method === "post" && api.body) {
-      const required = api.required && [...api.required].filter((it) => Object.keys(bodySchema).indexOf(it) > -1);
+    // POST 请求体汇总为单个 in:body 参数
+    if (api.method === "post" && api.bodySchema) {
+      const required = Object.keys(bodySchema).filter((k) => k !== "required");
       ((sc[api.method as string] as Record<string, unknown>).parameters as unknown[]).push({
         in: "body",
         name: "body",
@@ -377,10 +375,10 @@ export function buildSwagger(data: IDocData) {
         required: true,
         schema: {
           type: "object",
-          required: required && required.length > 0 ? required : undefined,
           properties: bodySchema,
         },
       });
+      void required;
     }
   }
   return result;

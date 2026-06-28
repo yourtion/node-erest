@@ -3,11 +3,11 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import type API from "../api";
-import type ERest from "../index";
+import type API from "../api.js";
+import type ERest from "../index.js";
 
-/** Supported framework types */
-export type FrameworkType = "express" | "koa" | "leizmweb";
+/** Known framework types (three built-in adapters); third-party adapters use arbitrary string names */
+export type FrameworkType = "express" | "koa" | "leizmweb" | (string & {});
 
 /** Group info interface for adapters */
 export interface IAdapterGroupInfo<T> {
@@ -19,11 +19,12 @@ export interface IAdapterGroupInfo<T> {
 
 /**
  * Framework adapter interface
- * Provides unified interface for different web frameworks
+ * Provides unified interface for different web frameworks (Express/Koa/@leizm/web built-in via subpackages;
+ * third-party adapters implement this interface with an arbitrary `name`)
  */
 export interface FrameworkAdapter<T = unknown> {
-  /** Framework identifier */
-  readonly name: FrameworkType;
+  /** Framework identifier (e.g. "express"/"koa"/"leizmweb", or a custom adapter name) */
+  readonly name: string;
 
   /**
    * Create a params checker middleware for the framework
@@ -38,7 +39,7 @@ export interface FrameworkAdapter<T = unknown> {
    * @param api API schema
    * @param handlers Handler chain
    */
-  bindRoute(router: unknown, api: API<T>, handlers: T[]): void;
+  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: import("../hooks.js").LifecycleHooks): void;
 
   /**
    * Create a new group router with optional prefix
@@ -60,3 +61,74 @@ export interface FrameworkAdapter<T = unknown> {
  * Checker function type - used by existing public API
  */
 export type CheckerFunction<T> = (erest: ERest<T>, schema: API<T>) => T;
+
+/**
+ * 框架无关的响应接口。
+ *
+ * 由各 adapter 注入到请求对象（`$reply`），让 registerTyped 的 handler 用统一的
+ * `reply.json()/status()` 写响应，从而与具体框架解耦——同一份 handler 可被
+ * Express / Koa / @leizm/web 三个框架复用。
+ */
+export interface Reply {
+  /** 设置 HTTP 状态码并返回自身，支持链式调用 */
+  status(code: number): Reply;
+  /** 以 JSON 写入响应体 */
+  json(body: unknown): void;
+  /** 以纯文本写入响应体 */
+  send(body: string): void;
+}
+
+/**
+ * 框架无关的请求上下文。
+ *
+ * 由各 adapter 在中间件链最前面构造并注入，让 before/middleware/handler 用统一的
+ * `(ctx, next)` 签名，无需关心框架原生 ctx/res 差异。同一份中间件可被
+ * Express / Koa / @leizm/web 三个框架复用。
+ *
+ * params/query/body 为框架原始请求数据（校验前的原始值，由 checker 校验后填入 $validated）。
+ */
+export interface Context {
+  /** 请求方法（GET/POST/...），大写 */
+  readonly method: string;
+  /** 请求路径（日志/计时用） */
+  readonly path: string;
+  /** 请求头（大小写不敏感读取；底层为框架原始 headers） */
+  readonly headers: Record<string, string>;
+  /** 路径参数（校验前原始值，如 { id: '42' }） */
+  readonly params: Record<string, unknown>;
+  /** query 参数（校验前原始值） */
+  readonly query: Record<string, unknown>;
+  /** 请求体（校验前原始值） */
+  readonly body: unknown;
+  /** 跨中间件传递数据的可读写状态（替代直接写 req/ctx.currentUser） */
+  readonly state: Record<string, unknown>;
+  /** 框架无关响应接口（复用 Reply；中间件可提前响应/终止） */
+  readonly reply: Reply;
+  /** 校验后分层参数（由 checker 注入；before/middleware 执行时尚未填充） */
+  $validated?: {
+    params: Record<string, unknown>;
+    query: Record<string, unknown>;
+    body: Record<string, unknown>;
+    headers: Record<string, unknown>;
+  };
+  /** 校验后扁平参数（params+query+body+headers 合并，由 checker 注入；便捷读取） */
+  $params?: Record<string, unknown>;
+  /** 校验后路径参数（分层快捷访问器，避免同名字段覆盖） */
+  $pathParams?: Record<string, unknown>;
+  /** 校验后 query 参数（分层快捷访问器） */
+  $query?: Record<string, unknown>;
+  /** 校验后请求体（分层快捷访问器） */
+  $body?: Record<string, unknown>;
+  /** 校验后请求头（分层快捷访问器） */
+  $headers?: Record<string, unknown>;
+}
+
+/**
+ * 标准化中间件/handler 签名。
+ *
+ * - `ctx`：框架无关请求上下文
+ * - `next`：调用链中下一个中间件；返回 Promise<void>。不调用 next 表示终止链。
+ *
+ * before / middleware / register / registerTyped / define 的 handler 均用此签名。
+ */
+export type Middleware = (ctx: Context, next: () => Promise<void> | void) => Promise<void> | void;

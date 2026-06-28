@@ -4,15 +4,15 @@
  */
 
 import * as path from "node:path";
-import type { IDocOptions } from "../..";
-import { plugin as debug } from "../../debug";
-import type { IDocData, IDocWritter } from "../../extend/docs";
-import * as utils from "../../utils";
-import apiDocs from "./apis";
-import errorDocs from "./errors";
-import schemaDocs from "./schema";
-import typeDocs from "./types";
-import { trimSpaces } from "./utils";
+import { plugin as debug } from "../../debug.js";
+import type { IDocData, IDocWritter } from "../../extend/docs.js";
+import type { IDocOptions } from "../../index.js";
+import * as utils from "../../utils.js";
+import apiDocs from "./apis.js";
+import errorDocs from "./errors.js";
+import schemaDocs from "./schema.js";
+import typeDocs from "./types.js";
+import { trimSpaces } from "./utils.js";
 
 function filePath(dir: string, name: string) {
   const filename = name === "Home" ? name : name.toLowerCase();
