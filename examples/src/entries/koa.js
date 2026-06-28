@@ -2,7 +2,7 @@
  * Koa 入口。
  *
  * 仅做框架装配：中间件链 + bind()。handler 在 src/api.js 声明一次，此处复用。
- * forceGroup 模式：bind({ framework, app, router: KoaRouter })。
+ * forceGroup 模式：bind({ adapter, app, router: KoaRouter })。
  *
  * 运行：npm install && npm run start:koa
  */

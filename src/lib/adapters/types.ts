@@ -6,8 +6,8 @@
 import type API from "../api.js";
 import type ERest from "../index.js";
 
-/** Supported framework types */
-export type FrameworkType = "express" | "koa" | "leizmweb";
+/** Known framework types (three built-in adapters); third-party adapters use arbitrary string names */
+export type FrameworkType = "express" | "koa" | "leizmweb" | (string & {});
 
 /** Group info interface for adapters */
 export interface IAdapterGroupInfo<T> {
@@ -19,11 +19,12 @@ export interface IAdapterGroupInfo<T> {
 
 /**
  * Framework adapter interface
- * Provides unified interface for different web frameworks
+ * Provides unified interface for different web frameworks (Express/Koa/@leizm/web built-in via subpackages;
+ * third-party adapters implement this interface with an arbitrary `name`)
  */
 export interface FrameworkAdapter<T = unknown> {
-  /** Framework identifier */
-  readonly name: FrameworkType;
+  /** Framework identifier (e.g. "express"/"koa"/"leizmweb", or a custom adapter name) */
+  readonly name: string;
 
   /**
    * Create a params checker middleware for the framework

@@ -18,7 +18,7 @@
   "scripts": {
     "doc": "typedoc --excludeExternals --out docs/ src/lib/",
     "dev": "export ISLIB=1 && vitest --watch",
-    "test": "npm run build && vitest run && pnpm --filter erest-example test",
+    "test": "npm run build && npm run build:packages && vitest run && pnpm --filter erest-example test",
     "test:lib": "export ISLIB=1 && vitest run",
     "test:cov": "export ISLIB=1 && vitest run --coverage",
     "test:examples": "pnpm --filter erest-example test",
@@ -27,6 +27,7 @@
     "format": "oxfmt --write src examples/src examples/test",
     "check": "oxlint src examples/src examples/test && oxfmt --check src examples/src examples/test",    "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
+    "build:packages": "pnpm --filter erest-express --filter erest-koa --filter erest-leizmweb --filter erest-gen build",
     "prepublishOnly": "npm run format && npm run test:cov && npm test",
     "postpublish": "npm run tag && git push && git push --tags"
   },
