@@ -38,6 +38,11 @@ jobs:
     - name: Build project
       run: pnpm run build
 
+    - name: Build adapter packages
+      # 子包 (@erest/express|koa|leizmweb|gen) 的 dist/ 已 gitignore，
+      # examples 测试通过 workspace 链接 import 它们，必须先构建才能解析入口。
+      run: pnpm run build:packages
+
     - name: Run tests with coverage
       run: pnpm run test:cov
 
