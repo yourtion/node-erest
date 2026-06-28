@@ -19,20 +19,16 @@
     "dev": "tsc --watch"
   },
   "peerDependencies": {
-    "erest": "^3.0.0",
+    "erest": "workspace:^",
     "koa": "^3.0.0",
-    "@koa/router": "^13.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@koa/router": { "optional": true },
-    "koa-router": { "optional": true }
+    "koa-router": "^13.0.0"
   },
   "devDependencies": {
     "erest": "workspace:*",
     "koa": "^3.0.0",
-    "@koa/router": "^13.1.0",
+    "koa-router": "^13.1.0",
     "@types/koa": "^2.15.0",
-    "@types/koa__router": "^12.0.4",
+    "@types/koa-router": "^7.4.8",
     "typescript": "^5.8.0"
   }
 }
