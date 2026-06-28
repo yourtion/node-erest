@@ -6,6 +6,8 @@
  * 以及 $reply 框架无关响应、分层访问器（标准化后 handler 接收标准 ctx）。
  */
 
+import { expressAdapter, koaAdapter, leizmwebAdapter } from "./adapters";
+
 import { Application, component, Router } from "@leizm/web";
 import express from "express";
 import Koa from "koa";
@@ -56,7 +58,7 @@ describe("registerTyped - Express 集成", () => {
       }
     );
 
-  apiService.bind({ framework: "express", router: app });
+  apiService.bind({ adapter: expressAdapter, router: app });
   app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     res.status(err.statusCode || 400).json({ message: err.message });
   });
@@ -101,7 +103,7 @@ describe("registerTyped / 分层访问器 - Koa 集成", () => {
       .registerTyped(schemas, (req, reply) => {
         reply.json({ id: req.params.id, name: req.body.name, age: req.body.age, include: req.query.include ?? null });
       });
-    apiService.bind({ framework: "koa", router });
+    apiService.bind({ adapter: koaAdapter, router });
     app.use(router.routes()).use(router.allowedMethods());
     const server = app.listen();
     const res = await request(server).put("/typed/7?include=full").send({ name: "Jerry", age: 33 });
@@ -118,7 +120,7 @@ describe("registerTyped / 分层访问器 - Koa 集成", () => {
       .put("/typed/:id")
       .group("Index")
       .registerTyped(schemas, () => ({}));
-    apiService.bind({ framework: "koa", router });
+    apiService.bind({ adapter: koaAdapter, router });
     app.use(router.routes()).use(router.allowedMethods());
     const server = app.listen();
     const res = await request(server).put("/typed/7").send({ name: "Jerry", age: "no" });
@@ -140,7 +142,7 @@ describe("registerTyped / 分层访问器 - Koa 集成", () => {
         const v = ctx.$validated;
         ctx.reply.json({ id: v.params.id, name: v.body.name });
       });
-    apiService.bind({ framework: "koa", router });
+    apiService.bind({ adapter: koaAdapter, router });
     app.use(router.routes()).use(router.allowedMethods());
     const server = app.listen();
     const res = await request(server).put("/v/9").send({ name: "Cara" });
@@ -164,7 +166,7 @@ describe("registerTyped / 分层访问器 - @leizm/web 集成", () => {
       .registerTyped(schemas, (req, reply) => {
         reply.json({ id: req.params.id, name: req.body.name, age: req.body.age });
       });
-    apiService.bind({ framework: "leizmweb", router });
+    apiService.bind({ adapter: leizmwebAdapter, router });
     app.use("/", router);
     const res = await request(app.server).put("/typed/99").send({ name: "Anna", age: 28 });
     app.server.close();
@@ -188,7 +190,7 @@ describe("registerTyped / 分层访问器 - @leizm/web 集成", () => {
         const v = ctx.$validated;
         ctx.reply.json({ id: v.params.id, q: v.query.q ?? null, name: v.body.name });
       });
-    apiService.bind({ framework: "leizmweb", router });
+    apiService.bind({ adapter: leizmwebAdapter, router });
     app.use("/", router);
     const res = await request(app.server).put("/v/5?q=hi").send({ name: "Bob" });
     app.server.close();
@@ -219,7 +221,7 @@ describe("registerTyped / 分层访问器 - @leizm/web 集成", () => {
           bodyName: ctx.$body.name,
         });
       });
-    apiService.bind({ framework: "leizmweb", router });
+    apiService.bind({ adapter: leizmwebAdapter, router });
     app.use("/", router);
     const res = await request(app.server).put("/dual/3").send({ name: "Dan" });
     app.server.close();
@@ -269,7 +271,7 @@ describe("$reply 框架无关响应（同一 handler 三框架复用）", () => 
     });
     const apiService = lib({ basePath: "" });
     makeRoutes(apiService as any, new Map());
-    apiService.bind({ framework: "express", router: app });
+    apiService.bind({ adapter: expressAdapter, router: app });
     const created = await request(app).post("/users").send({ name: "Tom", age: 20 });
     expect(created.status).toBe(201);
     expect(created.body).toEqual({ success: true, id: 1 });
@@ -294,7 +296,7 @@ describe("$reply 框架无关响应（同一 handler 三框架复用）", () => 
     const apiService = lib({ basePath: "" });
     const router = new KoaRouter();
     makeRoutes(apiService as any, new Map());
-    apiService.bind({ framework: "koa", router });
+    apiService.bind({ adapter: koaAdapter, router });
     koa.use(router.routes()).use(router.allowedMethods());
     const server = koa.listen();
     const created = await request(server).post("/users").send({ name: "Jerry", age: 33 });
@@ -312,7 +314,7 @@ describe("$reply 框架无关响应（同一 handler 三框架复用）", () => 
     const apiService = lib({ basePath: "" });
     const router = new Router();
     makeRoutes(apiService as any, new Map());
-    apiService.bind({ framework: "leizmweb", router });
+    apiService.bind({ adapter: leizmwebAdapter, router });
     app.use("/", router);
     const created = await request(app.server).post("/users").send({ name: "Anna", age: 28 });
     expect(created.status).toBe(201);
@@ -344,7 +346,7 @@ describe("分层快捷访问器避免同名覆盖", () => {
           name: ctx.$body.name,
         });
       });
-    apiService.bind({ framework: "express", router: app });
+    apiService.bind({ adapter: expressAdapter, router: app });
     const res = await request(app).put("/p/42").send({ id: "body-id", name: "Tom" });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ flatId: "body-id", pathId: 42, bodyId: "body-id", name: "Tom" });
@@ -377,7 +379,7 @@ describe("分层快捷访问器避免同名覆盖", () => {
           flatPresent: !!ctx.$params,
         });
       });
-    apiService.bind({ framework: "koa", router });
+    apiService.bind({ adapter: koaAdapter, router });
     koa.use(router.routes()).use(router.allowedMethods());
     const server = koa.listen();
     const res = await request(server).put("/p/3").send({ name: "Mia" });
@@ -408,7 +410,7 @@ describe("分层快捷访问器避免同名覆盖", () => {
           flatPresent: !!ctx.$params,
         });
       });
-    apiService.bind({ framework: "leizmweb", router });
+    apiService.bind({ adapter: leizmwebAdapter, router });
     app.use("/", router);
     const res = await request(app.server).put("/p/7?q=hi").send({ name: "Lee" });
     app.server.close();

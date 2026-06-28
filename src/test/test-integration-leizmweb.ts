@@ -9,6 +9,8 @@
  * 标准化改造后：handler 用标准签名 (ctx)，经 ctx.reply 写响应、ctx.$params 读校验后参数。
  */
 
+import { leizmwebAdapter } from "./adapters";
+
 import { Application, component, Router } from "@leizm/web";
 import { afterAll, describe, expect, it } from "vitest";
 import { z } from "zod";
@@ -48,7 +50,7 @@ describe("@leizm/web Integration - bind() 非 forceGroup 模式", () => {
       ctx.reply.json({ id: ctx.$params.id });
     });
 
-  apiService.bind({ framework: "leizmweb", router });
+  apiService.bind({ adapter: leizmwebAdapter, router });
   app.use("/", router);
 
   apiService.initTest(app.server);
@@ -110,7 +112,7 @@ describe("@leizm/web Integration - bind() forceGroup 模式", () => {
       ctx.reply.json({ group: "user info", name: ctx.$params.name });
     });
 
-  apiService.bind({ framework: "leizmweb", app, router: Router });
+  apiService.bind({ adapter: leizmwebAdapter, app, router: Router });
 
   apiService.initTest(app.server);
   afterAll(() => app.server.close());

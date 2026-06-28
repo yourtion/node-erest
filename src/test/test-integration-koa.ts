@@ -9,6 +9,8 @@
  * 标准化改造后：handler 用标准签名 (ctx)，经 ctx.reply 写响应、ctx.$params 读校验后参数。
  */
 
+import { koaAdapter } from "./adapters";
+
 import Koa from "koa";
 import bodyParser from "koa-bodyparser";
 import KoaRouter from "koa-router";
@@ -61,7 +63,7 @@ describe("Koa Integration - bind() 非 forceGroup 模式", () => {
       ctx.reply.json({ id: ctx.$params.id });
     });
 
-  apiService.bind({ framework: "koa", router });
+  apiService.bind({ adapter: koaAdapter, router });
   app.use(router.routes()).use(router.allowedMethods());
 
   const server = app.listen();
@@ -134,7 +136,7 @@ describe("Koa Integration - bind() forceGroup 模式", () => {
       ctx.reply.json({ group: "user info", name: ctx.$params.name });
     });
 
-  apiService.bind({ framework: "koa", app, router: KoaRouter });
+  apiService.bind({ adapter: koaAdapter, app, router: KoaRouter });
 
   const server = app.listen();
   afterAll(() => server.close());

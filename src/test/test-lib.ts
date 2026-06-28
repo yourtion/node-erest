@@ -1,3 +1,5 @@
+import { expressAdapter } from "./adapters";
+
 import express from "express";
 import { z } from "zod";
 import type { IApiOption } from "../lib";
@@ -301,7 +303,7 @@ describe("ERest - 基础测试", () => {
         const mockRouter = {};
 
         expect(() => {
-          erest.bind({ framework: "express" as const, router: mockRouter });
+          erest.bind({ adapter: expressAdapter, router: mockRouter });
         }).toThrow("forceGroup 模式需要提供 app 和 router");
       });
 
@@ -311,7 +313,7 @@ describe("ERest - 基础测试", () => {
 
         // 非 forceGroup 模式提供 app 应抛错（需 router）
         expect(() => {
-          erest.bind({ framework: "express" as const, router: mockRouter });
+          erest.bind({ adapter: expressAdapter, router: mockRouter });
         }).not.toThrow();
       });
     });
@@ -411,7 +413,7 @@ describe("ERest - schema 注册与使用", () => {
       .register(() => {});
 
     const router = express();
-    apiService.bind({ framework: "express", router });
+    apiService.bind({ adapter: expressAdapter, router });
     expect(apiService.schema.has("a")).toBeTruthy();
   });
 });

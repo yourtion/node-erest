@@ -4,6 +4,8 @@
  * Refactored to use shared utilities and improve readability
  */
 
+import { expressAdapter, koaAdapter, leizmwebAdapter } from "./adapters";
+
 import express from "express";
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
@@ -18,7 +20,7 @@ describe("Router - Basic Binding Functionality", () => {
       const apiService = createTestERestInstance();
       const router = express.Router();
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       expect(router.stack.length).toBe(0);
     });
@@ -33,7 +35,7 @@ describe("Router - Basic Binding Functionality", () => {
       // Create all CRUD APIs using helper
       createAllCrudApis(api);
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       // Should have multiple routes bound
       expect(router.stack.length).toBeGreaterThan(0);
@@ -47,7 +49,7 @@ describe("Router - Basic Binding Functionality", () => {
       createGetApi(api, "/test", "Test GET API");
       createPostApi(api, "/test", "Test POST API");
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       // Verify APIs are registered correctly
       assertApiRegistered(api, "get", "/test", "GET_/test");
@@ -72,7 +74,7 @@ describe("Router - Basic Binding Functionality", () => {
         })
       );
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       // Should throw error when trying to modify after binding
       assertThrowsWithMessage(() => getApi.title("Should Fail"), /已经完成初始化，不能再进行更改/);
@@ -117,7 +119,7 @@ describe("Router - Hook System Integration", () => {
           ctx.reply.json({ order: ctx.state.order });
         });
 
-      apiService.bind({ framework: "express", router: app });
+      apiService.bind({ adapter: expressAdapter, router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).end((err as Error).message);
       });
@@ -148,7 +150,7 @@ describe("Router - Hook System Integration", () => {
           ctx.reply.json({ order: ctx.state.order });
         });
 
-      apiService.bind({ framework: "express", router: app });
+      apiService.bind({ adapter: expressAdapter, router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).end((err as Error).message);
       });
@@ -179,7 +181,7 @@ describe("Router - Hook System Integration", () => {
           ctx.reply.json({ order: ctx.state.order });
         });
 
-      apiService.bind({ framework: "express", router: app });
+      apiService.bind({ adapter: expressAdapter, router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).end((err as Error).message);
       });
@@ -211,7 +213,7 @@ describe("Router - Hook System Integration", () => {
           ctx.reply.json({ order: ctx.state.order });
         });
 
-      apiService.bind({ framework: "express", router: app });
+      apiService.bind({ adapter: expressAdapter, router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).end((err as Error).message);
       });
@@ -248,7 +250,7 @@ describe("Router - Parameter Validation Integration", () => {
           ctx.reply.json({ message: "Query validation passed" });
         });
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       // Verify API is registered with query schema
       const apiInfo = api.$apis.get("GET_/query-validation");
@@ -277,7 +279,7 @@ describe("Router - Parameter Validation Integration", () => {
           ctx.reply.json({ message: "Body validation passed" });
         });
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       const apiInfo = api.$apis.get("POST_/body-validation");
       expect(apiInfo?.options.bodySchema).toBeDefined();
@@ -299,7 +301,7 @@ describe("Router - Parameter Validation Integration", () => {
           ctx.reply.json({ message: "Path validation passed" });
         });
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       const apiInfo = api.$apis.get("GET_/users/:id/posts/:postId");
       expect(apiInfo?.options.paramsSchema).toBeDefined();
@@ -326,7 +328,7 @@ describe("Router - Parameter Validation Integration", () => {
           ctx.reply.json({ message: "Header validation passed" });
         });
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       // Verify API is registered with header schema
       const apiInfo = api.$apis.get("GET_/header-validation");
@@ -357,7 +359,7 @@ describe("Router - Advanced Configuration", () => {
       };
 
       api.define(apiDefinition);
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       // Verify API is registered correctly
       const apiInfo = api.$apis.get("PATCH_/defined-api");
@@ -392,7 +394,7 @@ describe("Router - Advanced Configuration", () => {
           });
         });
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       // Verify response schema is configured
       const apiInfo = api.$apis.get("GET_/response-schema");
@@ -421,7 +423,7 @@ describe("Router - Advanced Configuration", () => {
           ctx.reply.json({ success: true, id: 123 });
         });
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       // Verify example is configured
       const apiInfo = api.$apis.get("POST_/example-api");
@@ -438,7 +440,7 @@ describe("Router - Error Handling and Edge Cases", () => {
 
       // bind 无 API 时不应抛错
       expect(() => {
-        apiService.bind({ framework: "express", router });
+        apiService.bind({ adapter: expressAdapter, router });
       }).not.toThrow();
     });
   });
@@ -454,7 +456,7 @@ describe("Router - Error Handling and Edge Cases", () => {
 
       // Binding router with incomplete APIs should throw an error
       expect(() => {
-        apiService.bind({ framework: "express", router });
+        apiService.bind({ adapter: expressAdapter, router });
       }).toThrow();
     });
 
@@ -494,7 +496,7 @@ describe("Router - Error Handling and Edge Cases", () => {
       }
 
       const startTime = Date.now();
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
       const endTime = Date.now();
 
       // Should bind all APIs
@@ -521,7 +523,7 @@ describe("Router - Unified bind() Method", () => {
           ctx.reply.send("Unified bind response");
         });
 
-      apiService.bind({ framework: "express", router });
+      apiService.bind({ adapter: expressAdapter, router });
 
       expect(router.stack.length).toBe(1);
       expect(router.stack[0].route?.path).toBe("/unified-test");
@@ -538,7 +540,7 @@ describe("Router - Unified bind() Method", () => {
         .register((ctx) => ctx.reply.send("ok"));
 
       expect(() => {
-        apiService.bind({ framework: "express" });
+        apiService.bind({ adapter: expressAdapter });
       }).toThrow();
     });
 
@@ -557,7 +559,7 @@ describe("Router - Unified bind() Method", () => {
           ctx.reply.json({ name: ctx.$params.name });
         });
 
-      apiService.bind({ framework: "express", router: app });
+      apiService.bind({ adapter: expressAdapter, router: app });
       app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(400).end((err as Error).message);
       });
@@ -587,7 +589,7 @@ describe("Router - Unified bind() Method", () => {
           ctx.reply.send("ok");
         });
 
-      apiService.bind({ framework: "koa", router });
+      apiService.bind({ adapter: koaAdapter, router });
 
       // koa-router keeps registered layers in router.stack
       expect(router.stack.length).toBe(1);
@@ -608,7 +610,7 @@ describe("Router - Unified bind() Method", () => {
         .query(z.object({ name: z.string() }))
         .register(function koaParamsHandler(_ctx: any) {});
 
-      apiService.bind({ framework: "koa", router });
+      apiService.bind({ adapter: koaAdapter, router });
 
       // 标准化后 checker 在 compose 链内部，验证路由已注册（含 checker 的链被包装为一个中间件）
       expect(router.stack.length).toBe(1);
@@ -631,7 +633,7 @@ describe("Router - Unified bind() Method", () => {
           ctx.reply.send("ok");
         });
 
-      apiService.bind({ framework: "leizmweb", router });
+      apiService.bind({ adapter: leizmwebAdapter, router });
 
       // @leizm/web Router stores each handler as a separate layer, with path info in `raw`
       const paths = router.stack.map((layer: { raw?: { path?: string } }) => layer.raw?.path);
@@ -651,7 +653,7 @@ describe("Router - Unified bind() Method", () => {
         .query(z.object({ name: z.string() }))
         .register(function leizmParamsHandler(_ctx: any) {});
 
-      apiService.bind({ framework: "leizmweb", router });
+      apiService.bind({ adapter: leizmwebAdapter, router });
 
       // 标准化后 checker + handler 被 compose 包装为单个中间件，注册为一个 layer
       const matching = router.stack.filter((layer: { raw?: { path?: string } }) => layer.raw?.path === "/leizm-params");

@@ -3,11 +3,11 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 
-import type API from "../api.js";
-import type ERest from "../index.js";
-import type { LifecycleHooks } from "../hooks.js";
-import type { Context, FrameworkAdapter, Middleware, Reply } from "./types.js";
-import { compose } from "./utils.js";
+import type { API } from "erest";
+import type { ERest } from "erest";
+import type { LifecycleHooks } from "erest";
+import type { Context, FrameworkAdapter, Middleware, Reply } from "erest";
+import { compose } from "erest";
 
 /**
  * Koa framework adapter

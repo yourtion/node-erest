@@ -1,3 +1,5 @@
+import { expressAdapter } from "./adapters";
+
 import express from "express";
 import { describe, test, expect } from "vitest";
 import { z } from "zod";
@@ -9,7 +11,7 @@ async function request(apiService: ReturnType<typeof lib>, method: string, path:
   const router = express.Router();
   router.use(express.json());
   app.use("/api", router);
-  apiService.bind({ framework: "express", router });
+  apiService.bind({ adapter: expressAdapter, router });
   const server = app.listen(0);
   const port = (server.address() as { port: number }).port;
   try {

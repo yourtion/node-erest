@@ -5,15 +5,7 @@
 
 import { strict as assert } from "node:assert";
 import { ZodRawShape, ZodType, z } from "zod";
-import {
-  buildHandlerChain,
-  ExpressAdapter,
-  type FrameworkAdapter,
-  type FrameworkType,
-  type IAdapterGroupInfo,
-  KoaAdapter,
-  LeizmWebAdapter,
-} from "./adapters/index.js";
+import { buildHandlerChain, type FrameworkAdapter, type IAdapterGroupInfo } from "./adapters/index.js";
 import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api.js";
 import { core as debug } from "./debug.js";
 import { type LifecycleHooks, hasHooks } from "./hooks.js";
@@ -158,13 +150,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
   ) => API<T>;
   private defineAPI: (options: APIDefine<T>, group?: string | undefined, prefix?: string | undefined) => API<T>;
   private mockHandler?: (data: unknown) => T;
-
-  /** Framework adapters */
-  private readonly adapters: {
-    express: FrameworkAdapter<T>;
-    koa: FrameworkAdapter<T>;
-    leizmweb: FrameworkAdapter<T>;
-  };
 
   /** @internal 错误工厂（adapter/params/api 用，替代 privateInfo 反射） */
   getError() {
@@ -392,13 +377,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
     // 错误管理
     this.errorManage = new ErrorManager();
     defaultErrors.call(this, this.errorManage);
-
-    // 初始化框架适配器
-    this.adapters = {
-      express: new ExpressAdapter<T>(),
-      koa: new KoaAdapter<T>(),
-      leizmweb: new LeizmWebAdapter<T>(),
-    };
   }
 
   /**
@@ -534,15 +512,14 @@ export default class ERest<T = DEFAULT_HANDLER> {
    * @param options 绑定选项
    */
   public bind(options: {
-    /** 框架类型 */
-    framework: FrameworkType;
+    /** 框架适配器实例（由 erest-express / erest-koa / erest-leizmweb 子包提供，或用户自定义） */
+    adapter: FrameworkAdapter<T>;
     /** 应用实例 */
     app?: unknown;
     /** 路由实例（非 forceGroup 模式）或路由构造函数（forceGroup 模式） */
     router?: unknown;
   }) {
-    const { framework, app, router } = options;
-    const adapter = this.adapters[framework];
+    const { adapter, app, router } = options;
 
     if (this.forceGroup) {
       if (!app || !router) {
@@ -560,7 +537,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
 
         const groupInfo = this.groupInfo[schema.options.group] || { before: [], middleware: [] };
         const prefix = groupInfo.prefix || camelCase2underscore(schema.options.group || "");
-        debug("bind (%s): %s - %s", framework, key, prefix);
+        debug("bind (%s): %s - %s", adapter.name, key, prefix);
 
         let route = routes.get(prefix);
         if (!route) {
@@ -580,7 +557,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       }
 
       for (const [key, groupRouter] of routes.entries()) {
-        debug("bind (%s) - applying router for prefix: %s", framework, key);
+        debug("bind (%s) - applying router for prefix: %s", adapter.name, key);
         adapter.attachGroupRouter(app, groupRouter, key);
       }
     } else {
@@ -589,7 +566,7 @@ export default class ERest<T = DEFAULT_HANDLER> {
       }
 
       for (const [key, schema] of this.apiInfo.$apis.entries()) {
-        debug("bind (%s): %s", framework, key);
+        debug("bind (%s): %s", adapter.name, key);
         schema.init(this as ERest<unknown>);
 
         if (typeof schema.options.handler !== "function") {
