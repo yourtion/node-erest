@@ -56,8 +56,10 @@ describe("ERest 测试套件", () => {
 
     // 绑定路由并开始测试
     apiService.bind({ adapter: expressAdapter, router });
-    // 绑定路由后再加载错误处理中间件
-    router.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // 绑定路由后再加载错误处理中间件。
+    // 注意：Express 5 改变了子 router 内部错误的传播语义，router 级错误中间件
+    // 可能捕获不到子层抛出的错误，因此挂到 app 级以兼容 Express 4 与 5。
+    app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
       if (err) return res.end((err as Error).message);
       next();
     });

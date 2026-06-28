@@ -78,7 +78,11 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
         headers: (req.headers ?? {}) as Record<string, string>,
         params: (req.params ?? {}) as Record<string, unknown>,
         query: (req.query ?? {}) as Record<string, unknown>,
-        body: req.body,
+        // Express 5 兼容：5 对未匹配的 content-type（如 multipart）不再初始化 req.body={},
+        // 而是保持 undefined。此处归一化为 {} 以恢复 Express 4 行为，确保定义了
+        // body schema 的接口在 body 缺失时仍会触发校验（而非被 params.ts 的
+        // `body !== undefined` 判断静默跳过）。
+        body: (req.body ?? {}) as Record<string, unknown> | undefined,
         state: {},
         reply,
       };
