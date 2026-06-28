@@ -69,7 +69,7 @@ export interface APIOption<T> extends Record<string, unknown> {
   compiled?: CompiledRoute;
 }
 
-export default class API<T = DEFAULT_HANDLER> {
+class API<T = DEFAULT_HANDLER> {
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
@@ -438,3 +438,8 @@ export default class API<T = DEFAULT_HANDLER> {
     this.inited = true;
   }
 }
+
+/** 命名导出别名（供子包用 `import { API } from "erest"`） */
+
+export default API;
+export { API };

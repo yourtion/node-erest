@@ -9,6 +9,7 @@
 import express from "express";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import ERest from "erest";
+import { ExpressAdapter } from "erest-express";
 import { API_INFO, GROUPS, registerApi } from "../src/api.js";
 import { createStore } from "../src/store.js";
 import { authBefore, adminBefore, logMiddleware, timingBefore } from "../src/hooks.js";
@@ -32,7 +33,7 @@ beforeAll(() => {
     timingBefore: timingBefore(),
   });
 
-  api.bind({ framework: "express", app, router: express.Router });
+  api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
 
   // 错误处理中间件（initTest 用 supertest，需要错误以响应体返回）
   app.use((err, _req, res, _next) => {

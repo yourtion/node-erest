@@ -18,6 +18,7 @@ import * as utils from "./utils.js";
 import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils.js";
 
 export * from "./adapters/index.js";
+export { type LifecycleHooks } from "./hooks.js";
 export * from "./api.js";
 export * from "./error.js";
 export * from "./params.js";
@@ -120,7 +121,7 @@ interface IGroupInfo<T> extends IGroupInfoOpt {
 /**
  * Easy rest api helper
  */
-export default class ERest<T = DEFAULT_HANDLER> {
+class ERest<T = DEFAULT_HANDLER> {
   public shareTestData?: unknown;
   public utils = utils;
 
@@ -585,3 +586,6 @@ export default class ERest<T = DEFAULT_HANDLER> {
     }
   }
 }
+
+export default ERest;
+export { ERest };

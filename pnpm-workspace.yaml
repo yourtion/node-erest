@@ -1,5 +1,9 @@
 packages:
   # 端到端示例工程（迷你博客业务域，三框架入口）
   - 'examples'
+  # 框架适配器子包（插件化：核心包解耦三框架）
+  - 'packages/erest-express'
+  - 'packages/erest-koa'
+  - 'packages/erest-leizmweb'
   # codegen CLI 子包（从 Zod schema 生成 handler 骨架等）
   - 'packages/erest-gen'

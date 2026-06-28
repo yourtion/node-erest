@@ -8,6 +8,7 @@
  */
 import { Application, Router, component } from "@leizm/web";
 import ERest from "erest";
+import { LeizmWebAdapter } from "erest-leizmweb";
 import { API_INFO, GROUPS, registerApi } from "../api.js";
 import { createStore } from "../store.js";
 import { authBefore, adminBefore, logMiddleware, timingBefore } from "../hooks.js";
@@ -29,7 +30,7 @@ registerApi(api, store, {
 });
 
 // forceGroup 绑定
-api.bind({ framework: "leizmweb", app, router: Router });
+api.bind({ adapter: new LeizmWebAdapter(), app, router: Router });
 
 // 错误处理中间件（双参数 = 错误处理中间件）；ERestError 用 statusCode
 app.use("/", (ctx, err) => {
