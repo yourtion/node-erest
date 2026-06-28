@@ -19,8 +19,8 @@
     "dev": "tsc --watch"
   },
   "peerDependencies": {
-    "erest": "workspace:^",
-    "express": "^4.0.0"
+    "erest": "^3.0.0",
+    "express": "^4.0.0 || ^5.0.0"
   },
   "devDependencies": {
     "erest": "workspace:*",

@@ -19,7 +19,7 @@
     "dev": "tsc --watch"
   },
   "peerDependencies": {
-    "erest": "workspace:^",
+    "erest": "^3.0.0",
     "@leizm/web": "^2.7.0"
   },
   "devDependencies": {
