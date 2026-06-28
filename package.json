@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Framework-agnostic REST API framework with Zod validation, auto docs & test scaffolding. Express/Koa/@leizm/web adapters as separate packages.",
   "type": "module",
   "main": "dist/lib/index.js",
@@ -29,7 +29,8 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
     "build:packages": "pnpm --filter @erest/express --filter @erest/koa --filter @erest/leizmweb --filter @erest/gen build",
-    "prepublishOnly": "npm run format && npm run test:cov && npm test",
+    "publish:all": "pnpm publish -r --no-git-checks --access public",
+    "prepublishOnly": "npm run format && npm run test",
     "postpublish": "npm run tag && git push && git push --tags"
   },
   "repository": {
@@ -65,14 +66,14 @@
   "devDependencies": {
     "@leizm/web": "^2.7.3",
     "@types/debug": "^4.1.12",
-    "@types/express": "^4.17.23",
+    "@types/express": "^5.0.0",
     "@types/koa": "^2.15.0",
     "@types/koa-bodyparser": "^4.3.12",
     "@types/koa-router": "^7.4.8",
     "@types/node": "^24.0.15",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
-    "express": "^4.21.2",
+    "express": "^5.1.0",
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
     "koa-router": "^13.1.1",

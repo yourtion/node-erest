@@ -1,6 +1,6 @@
 {
   "name": "@erest/koa",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Koa adapter for erest",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,7 +21,12 @@
   "peerDependencies": {
     "erest": "workspace:^",
     "koa": "^3.0.0",
-    "koa-router": "^13.0.0"
+    "koa-router": "^13.0.0",
+    "@koa/router": "^13.0.0"
+  },
+  "peerDependenciesMeta": {
+    "koa-router": { "optional": true },
+    "@koa/router": { "optional": true }
   },
   "devDependencies": {
     "erest": "workspace:*",

@@ -59,8 +59,8 @@ export interface IApiOptionInfo {
   title?: string;
   /** 项目描述（可以为 markdown 字符串） */
   description?: string;
-  /** 项目版本 */
-  version?: Date;
+  /** 项目版本（语义版本字符串，如 "1.0.0"；用于文档生成） */
+  version?: string;
   /** 服务器host地址 */
   host?: string;
   /** API默认位置 */
