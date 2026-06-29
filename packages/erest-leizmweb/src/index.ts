@@ -5,9 +5,13 @@
 
 import type { API } from "erest";
 import type { ERest } from "erest";
+import { ERest as ERestCtor, compose } from "erest";
 import type { LifecycleHooks } from "erest";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "erest";
-import { compose } from "erest";
+import type { Context as LeiContext } from "@leizm/web";
+
+/** @leizm/web 原生对象类型（reply.raw 在 @leizm/web 下为原生 Context） */
+export type LeizmWebRaw = LeiContext;
 
 /**
  * @leizm/web framework adapter
@@ -15,7 +19,7 @@ import { compose } from "erest";
  * 标准化改造后：bindRoute 注册单个 @leizm/web 中间件（单参数，避开按 .length 区分
  * 错误中间件的约束），内部构造标准 Context 并用 compose 串起标准化 handler 链。
  */
-export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
+export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T, LeizmWebRaw> {
   readonly name = "leizmweb" as const;
 
   /**
@@ -128,14 +132,14 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
   }
 }
 
-/** 构造 @leizm/web 的 Reply 封装（写 ctx.response.json/status/send） */
-function createLeiReply(ctx: Record<string, unknown>): Reply {
+/** 构造 @leizm/web 的 Reply 封装（写 ctx.response.json/status/send；含 raw 逃生舱：原生 ctx） */
+function createLeiReply(ctx: Record<string, unknown>): Reply<LeizmWebRaw> {
   const leiRes = (ctx.response ?? {}) as {
     status?: (c: number) => unknown;
     json?: (b: unknown) => void;
     send?: (b: string) => void;
   };
-  const reply: Reply = {
+  const reply: Reply<LeizmWebRaw> = {
     status(code: number) {
       leiRes.status?.(code);
       return reply;
@@ -146,8 +150,21 @@ function createLeiReply(ctx: Record<string, unknown>): Reply {
     send(body: string) {
       leiRes.send?.(body);
     },
+    raw: ctx as LeizmWebRaw,
   };
   return reply;
 }
 
 export const leizmWebAdapter = new LeizmWebAdapter();
+
+/**
+ * 创建绑定 @leizm/web 原生类型的 ERest 实例（构造时锁定 Raw 泛型）。
+ * handler 的 reply.raw 自动推导为 LeizmWebRaw（原生 Context），无需手动标注。
+ *
+ * @example
+ * import { createERest } from "@erest/leizmweb";
+ * const api = createERest({ info, groups, forceGroup });
+ */
+export function createERest(options: ConstructorParameters<typeof ERestCtor>[0]): ERest<Middleware, LeizmWebRaw> {
+  return new ERestCtor<Middleware, LeizmWebRaw>(options);
+}

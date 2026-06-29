@@ -86,3 +86,34 @@ describe("reply.raw - Koa 集成", () => {
     expect(String(setCookie).toLowerCase()).toContain("httponly");
   });
 });
+
+// ---------------- @leizm/web ----------------
+describe("reply.raw - @leizm/web 集成", () => {
+  it("handler 能通过 reply.raw.response 设置响应头（raw 逃生舱可用）", async () => {
+    const app = new Application();
+    app.use("/", component.bodyParser.json());
+
+    const apiService = lib({ basePath: "" });
+    const router = new Router();
+    apiService.api
+      .post("/login")
+      .group("Index")
+      .title("login-lei")
+      .registerTyped({ body: z.object({ user: z.string() }) }, (_req, reply) => {
+        // reply.raw 在 @leizm/web 下为原生 ctx；用设置自定义响应头作为 raw 可用性的稳定证明
+        // （leizmweb cookie API 随版本变化，header 操作更稳）
+        const raw = (reply as { raw: { response: { setHeader: (k: string, v: string) => void } } }).raw;
+        raw.response.setHeader("X-Raw-Test", "leizmweb");
+        reply.json({ ok: true });
+      });
+    apiService.bind({ adapter: leizmwebAdapter, router });
+    app.use("/", router);
+
+    const res = await request(app.server).post("/login").send({ user: "Anna" });
+    app.server.close();
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    // 验证 raw 设置的自定义头生效（小写读取）
+    expect(res.headers["x-raw-test"]).toBe("leizmweb");
+  });
+});
