@@ -251,3 +251,21 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 `@koa/router`。erest 仓库内部测试仍用 koa-router（开发环境 deprecated warning 无害），不影响
 发布的 peer 声明。
 
+
+## 补充：reply.raw 原生能力逃生舱 + createERest 工厂
+
+v3.0.x 新增 `reply.raw` 逃生舱与框架泛型驱动，**非破坏性变更**（现有 `new ERest()` 代码零改动）。
+
+- `Reply` 接口新增 `readonly raw: Raw` 字段，`status()` 返回类型从 `Reply` 改为 `this`。
+- registerTyped 的 handler 通过 `reply.raw` 访问框架原生对象（setCookie/redirect/stream 等）。
+- 推荐用子包工厂 `createERest()`（`@erest/express` / `@erest/koa` / `@erest/leizmweb` 导出）
+  代替 `new ERest()`，构造时自动锁定 Raw 泛型，handler 内 `reply.raw` 零标注强类型。
+- 裸 `new ERest()` 已标记 `@deprecated`（过渡期保留，Raw 默认 `unknown`，`reply.raw` 需断言）。
+- 新增可选工具函数 `defaultErrorFormatter`，用户在 app 级错误中间件调用以统一三框架错误响应体。
+- 能力差异（cookie/stream/redirect 等）不再逐个补 Reply 方法，统一通过 `reply.raw` + 文档速查表（见 README）暴露。
+
+```diff
+- const api = new ERest({ info, groups, forceGroup: true });
++ import { createERest } from "@erest/express";
++ const api = createERest({ info, groups, forceGroup: true });  // reply.raw 自动强类型
+```

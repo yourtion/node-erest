@@ -7,10 +7,10 @@ import { ERestError, defaultErrorFormatter } from "../lib/error.js";
 
 describe("defaultErrorFormatter", () => {
   it("ERestError 输出 statusCode 与 code/message body", () => {
-    const err = new ERestError("AUTH_REQUIRED", "未登录", undefined, 401);
+    const err = new ERestError("PERMISSION_DENIED", "未登录", undefined, 401);
     const out = defaultErrorFormatter(err);
     expect(out.status).toBe(401);
-    expect(out.body).toEqual({ error: "未登录", code: "AUTH_REQUIRED" });
+    expect(out.body).toEqual({ error: "未登录", code: "PERMISSION_DENIED" });
   });
 
   it("ERestError 默认 statusCode 400", () => {

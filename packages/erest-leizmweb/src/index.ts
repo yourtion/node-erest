@@ -150,6 +150,8 @@ function createLeiReply(ctx: Record<string, unknown>): Reply<LeizmWebRaw> {
     send(body: string) {
       leiRes.send?.(body);
     },
+    // LeizmWebRaw 是 @leizm/web 的 Context（结构含 request/response/session 等），
+    // 与此处的 Record<string, unknown> 不充分重叠，需经 unknown 双重断言（同运行时桥接）
     raw: ctx as unknown as LeizmWebRaw,
   };
   return reply;
