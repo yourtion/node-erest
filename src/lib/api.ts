@@ -69,7 +69,7 @@ export interface APIOption<T> extends Record<string, unknown> {
   compiled?: CompiledRoute;
 }
 
-class API<T = DEFAULT_HANDLER> {
+class API<T = DEFAULT_HANDLER, Raw = unknown> {
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
@@ -334,7 +334,7 @@ class API<T = DEFAULT_HANDLER> {
         params: z.infer<z.ZodObject<TParams>>;
         headers: z.infer<z.ZodObject<THeaders>>;
       },
-      reply: Reply
+      reply: Reply<Raw>
     ) => z.infer<TResponse> | Promise<z.infer<TResponse>> | void | Promise<void>
   ) {
     this.checkInited();
@@ -376,7 +376,10 @@ class API<T = DEFAULT_HANDLER> {
         headers: z.infer<z.ZodObject<THeaders>>;
       };
 
-      const result = handler(typedReq, ctx.reply);
+      // ctx.reply 运行时是 adapter 注入的 reply（含对应框架的 raw 值），
+      // 仅 Context 静态类型为 Reply<unknown>。Raw 由 ERest/API 类泛型锁定，
+      // 与 adapter 注入的 raw 值一致，故此处断言安全（同 typedReq 的断言模式）。
+      const result = handler(typedReq, ctx.reply as Reply<Raw>);
 
       // 若 handler 返回了值且定义了 response schema，则校验返回值（纯计算型 handler 场景）
       if (schemas.response && result !== undefined) {
