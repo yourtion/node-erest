@@ -149,7 +149,7 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
       schema.before(...options.before);
     }
     if (options.handler) {
-      schema.register(options.handler);
+      schema.register(options.handler as Middleware);
     }
     if (options.mock) {
       schema.mock(options.mock);
@@ -297,12 +297,22 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
   }
 
   /**
-   * 注册处理函数
+   * 注册处理函数。
+   *
+   * handler 参数 `(ctx, next)` 由 TS 自动推导——ctx 是 erest 标准 Context
+   * （含 reply/params/query/body/state/$params 等），next 调用链下一个中间件。
+   * 无需手写类型标注：
+   * ```ts
+   * api.group('g').get('/path').register(async (ctx, next) => {
+   *   ctx.reply.json({ ok: true });
+   *   return next();
+   * });
+   * ```
    */
-  public register(fn: T) {
+  public register(fn: Middleware): this {
     this.checkInited();
     assert(typeof fn === "function", "处理函数必须是一个函数类型");
-    this.options.handler = fn;
+    this.options.handler = fn as T;
     return this;
   }
 
