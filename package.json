@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "Framework-agnostic REST API framework with Zod validation, auto docs & test scaffolding. Express/Koa/@leizm/web adapters as separate packages.",
   "type": "module",
   "main": "dist/lib/index.js",

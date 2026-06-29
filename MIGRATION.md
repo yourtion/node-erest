@@ -167,6 +167,61 @@ npx erest-gen handler --from ./schemas/user.ts --group user --out ./handlers/use
 
 ---
 
+## 3.1.0 — reply.raw 逃生舱 + 框架能力对齐
+
+3.1.0 是 **3.0 的 minor 版本**，引入框架原生能力逃生舱与统一错误格式器，**非破坏性变更**
+（现有 `new ERest()` 代码零改动，examples 测试全绿）。
+
+### 1. `reply.raw` 逃生舱
+
+`Reply` 接口新增 `readonly raw: Raw` 字段（`status()` 返回类型从 `Reply` 收紧为 `this`）。
+registerTyped 的 handler 通过 `reply.raw` 访问框架原生对象，解决 setCookie / redirect /
+stream / 文件下载等底层能力此前完全无法访问的问题。
+
+`Context.reply` 仍保持 `Reply<unknown>`——before/middleware/hook 不暴露 raw，仅 handler 拿到
+（避免 onError hook 与 re-throw 语义冲突的双重写入）。
+
+### 2. 全自动 Raw 泛型 + `createERest()` 工厂
+
+`ERest<T, Raw>` / `API<T, Raw>` / `IGroup<T, Raw>` / `genSchema<T, Raw>` 全链路透传 Raw，
+registerTyped handler 的 reply 类型随之用 `Reply<Raw>`。子包工厂在**构造时**锁定 Raw：
+
+```diff
+- const api = new ERest({ info, groups, forceGroup: true });
++ import { createERest } from "@erest/express";   // 或 @erest/koa / @erest/leizmweb
++ const api = createERest({ info, groups, forceGroup: true });  // reply.raw 零标注强类型
+```
+
+- `createERest()` 由三子包分别导出（`@erest/express|koa|leizmweb`），各自返回
+  `ERest<Middleware, ExpressRaw|KoaRaw|LeizmWebRaw>`，handler 内 `reply.raw` 自动推导。
+- 裸 `new ERest()` 已标记 `@deprecated`（过渡期保留，Raw 默认 `unknown`，`reply.raw` 需断言）。
+- 三框架 adapter 在 `createXxxReply` 时把闭包已有的原生对象挂到 `raw`（热路径零额外分配，
+  Koa/leizmweb 仅多挂引用，Express 多一个 `{req,res}` 字面量）。
+
+### 3. 可选统一错误格式器 `defaultErrorFormatter`
+
+新增工具函数（不改 adapter、不破坏 commit 727b2c0 的 re-throw 对齐），用户在 app 级错误中间件
+调用以统一三框架错误响应体：
+
+```typescript
+import { defaultErrorFormatter } from "erest";
+// Express
+app.use((err, _req, res, _next) => {
+  const { status, body } = defaultErrorFormatter(err);  // { status, body: { error, code } }
+  res.status(status).json(body);
+});
+```
+
+### 4. 能力对齐：仅 `raw` + 文档速查表
+
+cookie/stream/redirect/headersSent 等原生能力差异不再逐个补 Reply 方法，统一通过 `reply.raw`
+暴露，并在 README 提供「三框架原生能力速查表」标注各框架语义差异。错误处理（re-throw 语义）
+已在 3.0.x 对齐，本次不动。
+
+> raw 的头部/cookie 操作应在 `reply.json()`/`reply.send()` 之前调用（HTTP 头先于体发送）。
+
+---
+
 ## 3.0.1 — 文档与发布修复
 
 3.0.1 是 **3.0 的补丁版本**，无运行时 breaking change，修复发布缺陷与文档错误：
@@ -251,21 +306,3 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 `@koa/router`。erest 仓库内部测试仍用 koa-router（开发环境 deprecated warning 无害），不影响
 发布的 peer 声明。
 
-
-## 补充：reply.raw 原生能力逃生舱 + createERest 工厂
-
-v3.0.x 新增 `reply.raw` 逃生舱与框架泛型驱动，**非破坏性变更**（现有 `new ERest()` 代码零改动）。
-
-- `Reply` 接口新增 `readonly raw: Raw` 字段，`status()` 返回类型从 `Reply` 改为 `this`。
-- registerTyped 的 handler 通过 `reply.raw` 访问框架原生对象（setCookie/redirect/stream 等）。
-- 推荐用子包工厂 `createERest()`（`@erest/express` / `@erest/koa` / `@erest/leizmweb` 导出）
-  代替 `new ERest()`，构造时自动锁定 Raw 泛型，handler 内 `reply.raw` 零标注强类型。
-- 裸 `new ERest()` 已标记 `@deprecated`（过渡期保留，Raw 默认 `unknown`，`reply.raw` 需断言）。
-- 新增可选工具函数 `defaultErrorFormatter`，用户在 app 级错误中间件调用以统一三框架错误响应体。
-- 能力差异（cookie/stream/redirect 等）不再逐个补 Reply 方法，统一通过 `reply.raw` + 文档速查表（见 README）暴露。
-
-```diff
-- const api = new ERest({ info, groups, forceGroup: true });
-+ import { createERest } from "@erest/express";
-+ const api = createERest({ info, groups, forceGroup: true });  // reply.raw 自动强类型
-```
