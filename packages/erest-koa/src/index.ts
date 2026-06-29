@@ -5,9 +5,13 @@
 
 import type { API } from "erest";
 import type { ERest } from "erest";
+import { ERest as ERestCtor, compose } from "erest";
 import type { LifecycleHooks } from "erest";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "erest";
-import { compose } from "erest";
+import type { Context as KoaContext } from "koa";
+
+/** Koa 原生对象类型（reply.raw 在 Koa 下为原生 Context） */
+export type KoaRaw = KoaContext;
 
 /**
  * Koa framework adapter
@@ -15,7 +19,7 @@ import { compose } from "erest";
  * 标准化改造后：bindRoute 注册一个 Koa 原生中间件，内部构造标准 Context
  * 并用 compose 串起标准化 handler 链。
  */
-export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
+export class KoaAdapter<T = unknown> implements FrameworkAdapter<T, KoaRaw> {
   readonly name = "koa" as const;
 
   /**
@@ -130,10 +134,10 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T> {
   }
 }
 
-/** 构造 Koa 的 Reply 封装（写 ctx.status / ctx.body） */
-function createKoaReply(ctx: Record<string, unknown>): Reply {
+/** 构造 Koa 的 Reply 封装（写 ctx.status / ctx.body；含 raw 逃生舱：原生 ctx） */
+function createKoaReply(ctx: Record<string, unknown>): Reply<KoaRaw> {
   const koaCtx = ctx as { status?: number; body?: unknown; type?: string };
-  const reply: Reply = {
+  const reply: Reply<KoaRaw> = {
     status(code: number) {
       koaCtx.status = code;
       return reply;
@@ -145,8 +149,21 @@ function createKoaReply(ctx: Record<string, unknown>): Reply {
     send(body: string) {
       koaCtx.body = body;
     },
+    raw: ctx as KoaRaw,
   };
   return reply;
 }
 
 export const koaAdapter = new KoaAdapter();
+
+/**
+ * 创建绑定 Koa 原生类型的 ERest 实例（构造时锁定 Raw 泛型）。
+ * handler 的 reply.raw 自动推导为 KoaRaw（原生 Context），无需手动标注。
+ *
+ * @example
+ * import { createERest } from "@erest/koa";
+ * const api = createERest({ info, groups, forceGroup });
+ */
+export function createERest(options: ConstructorParameters<typeof ERestCtor>[0]): ERest<Middleware, KoaRaw> {
+  return new ERestCtor<Middleware, KoaRaw>(options);
+}

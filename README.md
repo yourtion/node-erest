@@ -434,6 +434,43 @@ api.api
 
 无论哪种 API，**响应都通过 `reply` 写入**——不要用框架原生的 `res.json()` / `ctx.body =` / `ctx.response.json()`。
 
+### 原生能力逃生舱：`reply.raw`
+
+`reply` 只暴露 `json()/status()/send()` 三个框架无关方法。当需要框架特有能力（setCookie、redirect、流式响应、文件下载等）时，通过 `reply.raw` 访问框架原生对象——它是「逃生舱」，绕开标准抽象直达底层。
+
+`reply.raw` 的类型由 **`ERest<T, Raw>` 的 Raw 泛型**驱动。用子包提供的 `createERest()` 工厂创建实例，会在构造时自动锁定 Raw，handler 内 `reply.raw` 自动强类型、**零标注**：
+
+```typescript
+import { createERest } from '@erest/express';
+// 用 createERest 代替 new ERest：构造时锁定 Raw = ExpressRaw({ req, res })
+const api = createERest({ info, groups, forceGroup: true });
+
+api.api.post('/login').group('auth').title('登录').registerTyped(
+  { body: LoginSchema },
+  (req, reply) => {
+    const user = authenticate(req.body);
+    // reply.raw 自动推导为 { req: Request; res: Response }，无需断言
+    reply.raw.res.cookie('token', sign(user), { httpOnly: true });
+    reply.json({ ok: true });
+  },
+);
+```
+
+> 直接 `new ERest()` 仍可用（过渡期保留），但 Raw 默认为 `unknown`，`reply.raw` 需手动断言。新代码推荐用子包 `createERest()`。
+
+**框架原生能力速查表**（`reply.raw` 在三框架下的形态不同，签名/语义各自遵循原生约定）：
+
+| 能力 | Express (`reply.raw`) | Koa (`reply.raw`) | @leizm/web (`reply.raw`) |
+|------|------|------|------|
+| 设置 cookie | `.res.cookie(name, val, opts)` | `.cookies.set(name, val, opts)` | `.response.setHeader('Set-Cookie', ...)` |
+| 读取 cookie | `.req.cookies`（需 cookie-parser） | `.cookies.get(name)` | `.request.cookies` |
+| 重定向 | `.res.redirect(code, url)` | `.redirect(url)` | `.response.redirect(...)` |
+| 流式响应 | `.res.write()` / `.res.end()` | `.body = stream` | `.response.send()` |
+| 设置响应头 | `.res.setHeader(k, v)` | `.set(k, v)` | `.response.setHeader(k, v)` |
+| 响应头已发送 | `.res.headersSent` | `.res.headersSent` | 查原生 |
+
+> ⚠️ `raw` 的头部/cookie 操作应在 `reply.json()`/`reply.send()` **之前**调用（HTTP 头先于体发送）。`reply.raw` 是逃生舱，不参与框架无关复用——用了 raw 的 handler 即与具体框架耦合。
+
 ## 参数读取：`$params` 与分层访问器
 
 adapter 的 checker 把校验后的参数注入到 erest 的标准化 `ctx` 上，handler 通过它们读取。

@@ -18,6 +18,8 @@ export interface HttpResponse {
   status: number;
   body: unknown;
   text: string;
+  /** 响应头（小写键名，支持读取 set-cookie 等原生头） */
+  headers: Record<string, string | string[] | undefined>;
 }
 
 interface ReqState {
@@ -67,6 +69,15 @@ export function httpReq(app: unknown) {
           }
           const res = await fetch(t.baseUrl + state.path, { method: state.method, headers, body });
           const text = await res.text();
+          // 收集响应头为 plain object（小写键名）；set-cookie 保留为数组以支持多值
+          const respHeaders: Record<string, string | string[] | undefined> = {};
+          res.headers.forEach((value, key) => {
+            respHeaders[key.toLowerCase()] = value;
+          });
+          const setCookie = res.headers.getSetCookie?.();
+          if (setCookie && setCookie.length > 0) {
+            respHeaders["set-cookie"] = setCookie.length === 1 ? setCookie[0] : setCookie;
+          }
           let parsed: unknown = {};
           const ct = res.headers.get("content-type") || "";
           if ((ct.includes("json") || text.startsWith("{") || text.startsWith("[")) && text) {
@@ -76,7 +87,7 @@ export function httpReq(app: unknown) {
               parsed = {};
             }
           }
-          return onFulfilled({ status: res.status, body: parsed, text });
+          return onFulfilled({ status: res.status, body: parsed, text, headers: respHeaders });
         } catch (err) {
           if (onRejected) return onRejected(err);
           throw err;

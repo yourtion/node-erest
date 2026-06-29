@@ -5,9 +5,13 @@
 
 import type { API } from "erest";
 import type { ERest } from "erest";
+import { ERest as ERestCtor, compose } from "erest";
 import type { LifecycleHooks } from "erest";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "erest";
-import { compose } from "erest";
+import type { Context as LeiContext } from "@leizm/web";
+
+/** @leizm/web 原生对象类型（reply.raw 在 @leizm/web 下为原生 Context） */
+export type LeizmWebRaw = LeiContext;
 
 /**
  * @leizm/web framework adapter
@@ -15,7 +19,7 @@ import { compose } from "erest";
  * 标准化改造后：bindRoute 注册单个 @leizm/web 中间件（单参数，避开按 .length 区分
  * 错误中间件的约束），内部构造标准 Context 并用 compose 串起标准化 handler 链。
  */
-export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
+export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T, LeizmWebRaw> {
   readonly name = "leizmweb" as const;
 
   /**
@@ -68,7 +72,7 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
     const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
     // 单参数中间件（length=1），避免被 @leizm/web 误判为错误处理中间件
     const nativeMiddleware = (
-      ctx: Record<string, unknown> & { request: Record<string, unknown>; next: () => void }
+      ctx: Record<string, unknown> & { request: Record<string, unknown>; next: (err?: unknown) => void }
     ) => {
       const request = ctx.request ?? {};
       const reply = createLeiReply(ctx);
@@ -109,11 +113,9 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
               /* ignore */
             }
           }
-          const e = err as { statusCode?: number; status?: number; message?: string };
-          const code = e?.statusCode || e?.status || 500;
-          const leiRes = (ctx.response ?? {}) as { status?: (c: number) => unknown; json?: (b: unknown) => void };
-          leiRes.status?.(code);
-          leiRes.json?.({ error: e?.message || "internal error" });
+          // 与 express/koa adapter 对齐：re-throw 给 app 级错误中间件，而非在此吞错写死 {error}。
+          // nativeMiddleware 是单参数普通中间件，ctx.next(err) 会触发 @leizm/web 的双参数错误中间件。
+          ctx.next(err as Error);
         });
     };
     routerTyped[method].bind(router)(api.options.path, nativeMiddleware);
@@ -130,14 +132,14 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
   }
 }
 
-/** 构造 @leizm/web 的 Reply 封装（写 ctx.response.json/status/send） */
-function createLeiReply(ctx: Record<string, unknown>): Reply {
+/** 构造 @leizm/web 的 Reply 封装（写 ctx.response.json/status/send；含 raw 逃生舱：原生 ctx） */
+function createLeiReply(ctx: Record<string, unknown>): Reply<LeizmWebRaw> {
   const leiRes = (ctx.response ?? {}) as {
     status?: (c: number) => unknown;
     json?: (b: unknown) => void;
     send?: (b: string) => void;
   };
-  const reply: Reply = {
+  const reply: Reply<LeizmWebRaw> = {
     status(code: number) {
       leiRes.status?.(code);
       return reply;
@@ -148,8 +150,23 @@ function createLeiReply(ctx: Record<string, unknown>): Reply {
     send(body: string) {
       leiRes.send?.(body);
     },
+    // LeizmWebRaw 是 @leizm/web 的 Context（结构含 request/response/session 等），
+    // 与此处的 Record<string, unknown> 不充分重叠，需经 unknown 双重断言（同运行时桥接）
+    raw: ctx as unknown as LeizmWebRaw,
   };
   return reply;
 }
 
 export const leizmWebAdapter = new LeizmWebAdapter();
+
+/**
+ * 创建绑定 @leizm/web 原生类型的 ERest 实例（构造时锁定 Raw 泛型）。
+ * handler 的 reply.raw 自动推导为 LeizmWebRaw（原生 Context），无需手动标注。
+ *
+ * @example
+ * import { createERest } from "@erest/leizmweb";
+ * const api = createERest({ info, groups, forceGroup });
+ */
+export function createERest(options: ConstructorParameters<typeof ERestCtor>[0]): ERest<Middleware, LeizmWebRaw> {
+  return new ERestCtor<Middleware, LeizmWebRaw>(options);
+}

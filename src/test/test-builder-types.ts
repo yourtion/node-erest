@@ -32,4 +32,14 @@ describe("Builder 类型推导", () => {
     expectTypeOf(api.options.bodySchema).not.toBeAny();
     expectTypeOf(api.options.querySchema).not.toBeAny();
   });
+
+  test("new ERest() 时 reply.raw 为 unknown（默认 Raw）", () => {
+    apiService.api
+      .post("/raw-unknown")
+      .group("Index")
+      .registerTyped({ body: z.object({ x: z.number() }) }, (_req, reply) => {
+        // 默认 Raw=unknown：reply.raw 类型为 unknown，需断言才能用
+        expectTypeOf(reply.raw).toEqualTypeOf<unknown>();
+      });
+  });
 });

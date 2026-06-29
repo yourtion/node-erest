@@ -33,19 +33,19 @@ const invalidParameter = (msg: string) =>
 const internalError = (msg: string) => new ERestError("INTERNAL_ERROR", `internal error ${msg}`, undefined, 500);
 
 /** Schema方法 */
-export type genSchema<T> = Readonly<ISupportMethds<(path: string) => API<T>>>;
+export type genSchema<T, Raw = unknown> = Readonly<ISupportMethds<(path: string) => API<T, Raw>>>;
 
 /** 组方法 */
-export interface IGroup<T> extends Record<string, unknown>, genSchema<T> {
-  define: (opt: APIDefine<T>) => API<T>;
-  before: (...fn: T[]) => IGroup<T>;
-  middleware: (...fn: T[]) => IGroup<T>;
+export interface IGroup<T, Raw = unknown> extends Record<string, unknown>, genSchema<T, Raw> {
+  define: (opt: APIDefine<T>) => API<T, Raw>;
+  before: (...fn: T[]) => IGroup<T, Raw>;
+  middleware: (...fn: T[]) => IGroup<T, Raw>;
 }
 
 /** API接口定义 */
-export interface IApiInfo<T> extends Record<string, unknown>, genSchema<T> {
-  readonly $apis: Map<string, API<T>>;
-  define: (opt: APIDefine<T>) => API<T>;
+export interface IApiInfo<T, Raw = unknown> extends Record<string, unknown>, genSchema<T, Raw> {
+  readonly $apis: Map<string, API<T, Raw>>;
+  define: (opt: APIDefine<T>) => API<T, Raw>;
   beforeHooks: Set<T>;
   afterHooks: Set<T>;
   docs?: IAPIDoc;
@@ -121,11 +121,11 @@ interface IGroupInfo<T> extends IGroupInfoOpt {
 /**
  * Easy rest api helper
  */
-class ERest<T = DEFAULT_HANDLER> {
+class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
   public shareTestData?: unknown;
   public utils = utils;
 
-  private apiInfo: IApiInfo<T>;
+  private apiInfo: IApiInfo<T, Raw>;
   private testAgent: IAPITest = {} as IAPITest;
   private app: unknown;
   private info: IApiOptionInfo;
@@ -148,8 +148,8 @@ class ERest<T = DEFAULT_HANDLER> {
     path: string,
     group?: string | undefined,
     prefix?: string | undefined
-  ) => API<T>;
-  private defineAPI: (options: APIDefine<T>, group?: string | undefined, prefix?: string | undefined) => API<T>;
+  ) => API<T, Raw>;
+  private defineAPI: (options: APIDefine<T>, group?: string | undefined, prefix?: string | undefined) => API<T, Raw>;
   private mockHandler?: (data: unknown) => T;
 
   /** @internal 错误工厂（adapter/params/api 用，替代 privateInfo 反射） */
@@ -289,6 +289,12 @@ class ERest<T = DEFAULT_HANDLER> {
     };
   }
 
+  /**
+   * @deprecated 推荐使用子包工厂 `createERest()`（如 `@erest/express` / `@erest/koa` /
+   * `@erest/leizmweb` 导出的 createERest），以在构造时锁定 Raw 泛型，让 registerTyped
+   * handler 的 reply.raw 自动强类型。裸 `new ERest()` 在过渡期保留，Raw 默认 unknown，
+   * reply.raw 需手动断言。
+   */
   constructor(options: IApiOption) {
     this.info = options.info || {};
     this.forceGroup = options.forceGroup || false;
@@ -319,7 +325,7 @@ class ERest<T = DEFAULT_HANDLER> {
       } else {
         assert(!group, "请开启 forceGroup 再使用 group 功能");
       }
-      const s = new API<T>(method, path, getCallerSourceLine(this.config.path), group, prefix);
+      const s = new API<T, Raw>(method, path, getCallerSourceLine(this.config.path), group, prefix);
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
@@ -334,7 +340,7 @@ class ERest<T = DEFAULT_HANDLER> {
     };
     // define注册方法
     this.defineAPI = (opt: APIDefine<T>, group?: string, prefix?: string) => {
-      const s = API.define(opt, getCallerSourceLine(this.config.path), group, prefix);
+      const s = API.define<T, Raw>(opt, getCallerSourceLine(this.config.path), group, prefix);
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
@@ -460,9 +466,9 @@ class ERest<T = DEFAULT_HANDLER> {
   /**
    * 获取分组API实例
    */
-  public group(name: string, info?: IGroupInfoOpt): IGroup<T>;
-  public group(name: string, desc?: string): IGroup<T>;
-  public group(name: string, infoOrDesc?: IGroupInfoOpt | string): IGroup<T> {
+  public group(name: string, info?: IGroupInfoOpt): IGroup<T, Raw>;
+  public group(name: string, desc?: string): IGroup<T, Raw>;
+  public group(name: string, infoOrDesc?: IGroupInfoOpt | string): IGroup<T, Raw> {
     debug("using group: %s, desc: %j", name, infoOrDesc);
     // assert(this.groupInfo[name], `请先配置 ${name} 分组`);
     const info = !infoOrDesc || typeof infoOrDesc === "string" ? { name: infoOrDesc, prefix: "" } : infoOrDesc;

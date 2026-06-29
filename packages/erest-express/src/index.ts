@@ -5,9 +5,10 @@
 
 import type { API } from "erest";
 import type { ERest } from "erest";
+import { ERest as ERestCtor, compose } from "erest";
 import type { LifecycleHooks } from "erest";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "erest";
-import { compose } from "erest";
+import type { Request, Response } from "express";
 
 /**
  * Express framework adapter
@@ -16,7 +17,10 @@ import { compose } from "erest";
  * 并用 compose 串起标准化 handler 链。框架只看到这一个中间件，避开 Express
  * 对 handler 数组的签名假设。
  */
-export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
+/** Express 原生对象类型（reply.raw 在 Express 下为此类型） */
+export type ExpressRaw = { req: Request; res: Response };
+
+export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T, ExpressRaw> {
   readonly name = "express" as const;
 
   /**
@@ -71,7 +75,7 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
     // Stage 3：零开销裁剪——无 hooks 时装配不含 hook 调用的 dispatch
     const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
     const nativeMiddleware = (req: Record<string, unknown>, res: unknown, next: (err?: unknown) => void) => {
-      const reply: Reply = createExpressReply(res);
+      const reply: Reply<ExpressRaw> = createExpressReply(req, res);
       const ctx: Context = {
         method: String(req.method ?? "").toUpperCase(),
         path: String(req.path ?? req.url ?? ""),
@@ -130,10 +134,10 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T> {
   }
 }
 
-/** 构造 Express 的 Reply 封装 */
-function createExpressReply(res: unknown): Reply {
+/** 构造 Express 的 Reply 封装（含 raw 逃生舱：原生 { req, res }） */
+function createExpressReply(req: unknown, res: unknown): Reply<ExpressRaw> {
   const expressRes = res as { status?: (c: number) => unknown; json?: (b: unknown) => void; end?: (b: string) => void };
-  const reply: Reply = {
+  const reply: Reply<ExpressRaw> = {
     status(code: number) {
       expressRes.status?.(code);
       return reply;
@@ -144,8 +148,23 @@ function createExpressReply(res: unknown): Reply {
     send(body: string) {
       expressRes.end?.(body);
     },
+    raw: { req, res } as ExpressRaw,
   };
   return reply;
 }
 
 export const expressAdapter = new ExpressAdapter();
+
+/**
+ * 创建绑定 Express 原生类型的 ERest 实例（构造时锁定 Raw 泛型）。
+ *
+ * 返回的 ERest 实例中，registerTyped handler 的 reply.raw 自动推导为 ExpressRaw，
+ * 无需手动标注。等价于 `new ERest<Middleware, ExpressRaw>(options)`。
+ *
+ * @example
+ * import { createERest } from "@erest/express";
+ * const api = createERest({ info, groups, forceGroup });
+ */
+export function createERest(options: ConstructorParameters<typeof ERestCtor>[0]): ERest<Middleware, ExpressRaw> {
+  return new ERestCtor<Middleware, ExpressRaw>(options);
+}

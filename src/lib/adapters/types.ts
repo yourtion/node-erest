@@ -21,8 +21,13 @@ export interface IAdapterGroupInfo<T> {
  * Framework adapter interface
  * Provides unified interface for different web frameworks (Express/Koa/@leizm/web built-in via subpackages;
  * third-party adapters implement this interface with an arbitrary `name`)
+ *
+ * `Raw` 泛型不在接口方法签名中出现——它仅作为类型标记，由具体 adapter 实现类通过
+ * `implements FrameworkAdapter<T, ExpressRaw>` 锁定，再经子包 `createERest()` 工厂透传到
+ * registerTyped handler 的 `reply.raw`。故此处 no-unused-vars 不适用（类型层标记用法）。
  */
-export interface FrameworkAdapter<T = unknown> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Raw 为类型标记，供子类 implements 锁定（见上 JSDoc）
+export interface FrameworkAdapter<T = unknown, Raw = unknown> {
   /** Framework identifier (e.g. "express"/"koa"/"leizmweb", or a custom adapter name) */
   readonly name: string;
 
@@ -68,14 +73,20 @@ export type CheckerFunction<T> = (erest: ERest<T>, schema: API<T>) => T;
  * 由各 adapter 注入到请求对象（`$reply`），让 registerTyped 的 handler 用统一的
  * `reply.json()/status()` 写响应，从而与具体框架解耦——同一份 handler 可被
  * Express / Koa / @leizm/web 三个框架复用。
+ *
+ * `raw` 是逃生舱：当需要框架特有能力（setCookie/redirect/stream/文件下载等）时，
+ * 通过 `reply.raw` 访问框架原生对象。类型由 `ERest<T, Raw>` 的 Raw 泛型驱动，
+ * 经子包 `createERest()` 工厂在构造时锁定。
  */
-export interface Reply {
+export interface Reply<Raw = unknown> {
   /** 设置 HTTP 状态码并返回自身，支持链式调用 */
-  status(code: number): Reply;
+  status(code: number): this;
   /** 以 JSON 写入响应体 */
   json(body: unknown): void;
   /** 以纯文本写入响应体 */
   send(body: string): void;
+  /** 框架原生对象逃生舱（setCookie/redirect/stream/文件下载等） */
+  readonly raw: Raw;
 }
 
 /**
@@ -103,7 +114,7 @@ export interface Context {
   /** 跨中间件传递数据的可读写状态（替代直接写 req/ctx.currentUser） */
   readonly state: Record<string, unknown>;
   /** 框架无关响应接口（复用 Reply；中间件可提前响应/终止） */
-  readonly reply: Reply;
+  readonly reply: Reply<unknown>;
   /** 校验后分层参数（由 checker 注入；before/middleware 执行时尚未填充） */
   $validated?: {
     params: Record<string, unknown>;
