@@ -12,7 +12,7 @@
 import { leizmwebAdapter } from "./adapters";
 
 import { Application, component, Router } from "@leizm/web";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import lib from "./lib";
 
@@ -130,5 +130,48 @@ describe("@leizm/web Integration - bind() forceGroup 模式", () => {
   it("应对分组路由中的参数进行校验", async () => {
     const ret = await apiService.test.get("/user/info").error();
     expect(ret).toBeInstanceOf(Error);
+  });
+});
+
+/**
+ * 错误 re-throw 能力验证：adapter 不应吞错写死 {error}，而应 re-throw 让 app 级错误中间件
+ * 统一处理（与 express/koa adapter + README「app 级错误中间件」约定对齐）。
+ * 用真实 HTTP fetch 验证（不走 test 脚手架的 .error()，因其依赖框架错误响应形状）。
+ */
+describe("@leizm/web Integration - 错误 re-throw", () => {
+  const app = new Application();
+  app.use("/", component.bodyParser.json());
+
+  const apiService = lib({ basePath: "" });
+  const { api } = apiService;
+  const router = new Router();
+
+  // 故意抛一个带 statusCode 的业务错误
+  api.get("/lei/boom").group("Index").title("抛错").register((ctx: any) => {
+    const e: any = new Error("业务错误");
+    e.statusCode = 418;
+    throw e;
+  });
+
+  apiService.bind({ adapter: leizmwebAdapter, router });
+  app.use("/", router);
+  // app 级错误中间件（双参数）：捕获 re-throw 的错并写自定义信封
+  app.use("/", ((ctx: any, err?: any) => {
+    if (!err) return ctx.next();
+    ctx.response.status(err.statusCode || 500).json({ success: false, error: { code: "ERR", message: err.message } });
+  }) as any);
+
+  let port = 0;
+  beforeAll(async () => {
+    await new Promise<void>((resolve) => app.server.listen(0, "127.0.0.1", resolve));
+    port = (app.server.address() as any).port;
+  });
+  afterAll(() => app.server.close());
+
+  it("handler 抛错应被 app 级错误中间件捕获（re-throw，非吞错）", async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/lei/boom`);
+    expect(res.status).toBe(418);
+    const body = await res.json();
+    expect(body).toStrictEqual({ success: false, error: { code: "ERR", message: "业务错误" } });
   });
 });

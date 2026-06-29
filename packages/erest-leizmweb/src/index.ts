@@ -68,7 +68,7 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
     const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
     // 单参数中间件（length=1），避免被 @leizm/web 误判为错误处理中间件
     const nativeMiddleware = (
-      ctx: Record<string, unknown> & { request: Record<string, unknown>; next: () => void }
+      ctx: Record<string, unknown> & { request: Record<string, unknown>; next: (err?: unknown) => void }
     ) => {
       const request = ctx.request ?? {};
       const reply = createLeiReply(ctx);
@@ -109,11 +109,9 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T> {
               /* ignore */
             }
           }
-          const e = err as { statusCode?: number; status?: number; message?: string };
-          const code = e?.statusCode || e?.status || 500;
-          const leiRes = (ctx.response ?? {}) as { status?: (c: number) => unknown; json?: (b: unknown) => void };
-          leiRes.status?.(code);
-          leiRes.json?.({ error: e?.message || "internal error" });
+          // 与 express/koa adapter 对齐：re-throw 给 app 级错误中间件，而非在此吞错写死 {error}。
+          // nativeMiddleware 是单参数普通中间件，ctx.next(err) 会触发 @leizm/web 的双参数错误中间件。
+          ctx.next(err as Error);
         });
     };
     routerTyped[method].bind(router)(api.options.path, nativeMiddleware);
