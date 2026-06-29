@@ -109,7 +109,12 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
     debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
 
-  public static define<T, Raw = unknown>(options: APIDefine<T>, sourceFile: SourceResult, group?: string, prefix?: string) {
+  public static define<T, Raw = unknown>(
+    options: APIDefine<T>,
+    sourceFile: SourceResult,
+    group?: string,
+    prefix?: string
+  ) {
     const schema = new API<T, Raw>(options.method, options.path, sourceFile, group, prefix);
     schema.title(options.title);
     const g = group || options.group;

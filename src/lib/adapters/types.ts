@@ -21,7 +21,12 @@ export interface IAdapterGroupInfo<T> {
  * Framework adapter interface
  * Provides unified interface for different web frameworks (Express/Koa/@leizm/web built-in via subpackages;
  * third-party adapters implement this interface with an arbitrary `name`)
+ *
+ * `Raw` 泛型不在接口方法签名中出现——它仅作为类型标记，由具体 adapter 实现类通过
+ * `implements FrameworkAdapter<T, ExpressRaw>` 锁定，再经子包 `createERest()` 工厂透传到
+ * registerTyped handler 的 `reply.raw`。故此处 no-unused-vars 不适用（类型层标记用法）。
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Raw 为类型标记，供子类 implements 锁定（见上 JSDoc）
 export interface FrameworkAdapter<T = unknown, Raw = unknown> {
   /** Framework identifier (e.g. "express"/"koa"/"leizmweb", or a custom adapter name) */
   readonly name: string;

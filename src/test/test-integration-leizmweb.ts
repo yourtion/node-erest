@@ -147,11 +147,15 @@ describe("@leizm/web Integration - 错误 re-throw", () => {
   const router = new Router();
 
   // 故意抛一个带 statusCode 的业务错误
-  api.get("/lei/boom").group("Index").title("抛错").register((ctx: any) => {
-    const e: any = new Error("业务错误");
-    e.statusCode = 418;
-    throw e;
-  });
+  api
+    .get("/lei/boom")
+    .group("Index")
+    .title("抛错")
+    .register((_ctx: any) => {
+      const e: any = new Error("业务错误");
+      e.statusCode = 418;
+      throw e;
+    });
 
   apiService.bind({ adapter: leizmwebAdapter, router });
   app.use("/", router);

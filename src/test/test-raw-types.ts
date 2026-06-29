@@ -12,8 +12,8 @@ describe("createERest 类型锁定", () => {
       info: { title: "t", version: "1.0.0" },
       groups: { Index: "首页" },
     });
-    api
-      .api.post("/raw-typed")
+    api.api
+      .post("/raw-typed")
       .group("Index")
       .registerTyped({}, (_req, reply) => {
         // 构造时锁定 Raw=ExpressRaw：reply.raw 自动强类型，handler 零标注

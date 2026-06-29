@@ -31,7 +31,8 @@
     "build:packages": "pnpm --filter @erest/express --filter @erest/koa --filter @erest/leizmweb --filter @erest/gen build",
     "publish:all": "pnpm publish -r --no-git-checks --access public",
     "prepublishOnly": "npm run format && npm run test",
-    "postpublish": "npm run tag && git push && git push --tags"
+    "postpublish": "npm run tag && git push && git push --tags",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -74,9 +75,11 @@
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
     "express": "^5.1.0",
+    "husky": "^9.1.7",
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
     "koa-router": "^13.1.1",
+    "lint-staged": "^17.0.8",
     "memfs": "^4.36.0",
     "oxfmt": "0.56.0",
     "oxlint": "1.71.0",
@@ -87,6 +90,12 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
+    ]
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "oxfmt --write",
+      "oxlint --fix"
     ]
   }
 }
