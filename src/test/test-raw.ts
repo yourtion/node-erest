@@ -44,3 +44,45 @@ describe("reply.raw - Express 集成", () => {
 });
 
 afterAll(() => {});
+
+// ---------------- Koa ----------------
+describe("reply.raw - Koa 集成", () => {
+  it("handler 能通过 reply.raw.cookies.set 设置 Set-Cookie", async () => {
+    const app = new Koa();
+    app.use(bodyParser());
+    app.use(async (ctx, next) => {
+      try {
+        await next();
+      } catch (err: unknown) {
+        ctx.status = (err as { statusCode?: number }).statusCode || 400;
+        ctx.body = { message: (err as Error).message };
+      }
+    });
+
+    const apiService = lib({ basePath: "" });
+    const router = new KoaRouter();
+    apiService.api
+      .post("/login")
+      .group("Index")
+      .title("login-koa")
+      .registerTyped({ body: z.object({ user: z.string() }) }, (_req, reply) => {
+        // reply.raw 在 Koa 下为原生 ctx
+        const ctx = (reply as { raw: { cookies: { set: (n: string, v: string, o: unknown) => void } } }).raw;
+        ctx.cookies.set("token", "koa-456", { httpOnly: true });
+        reply.json({ ok: true });
+      });
+    apiService.bind({ adapter: koaAdapter, router });
+    app.use(router.routes()).use(router.allowedMethods());
+
+    const server = app.listen();
+    const res = await request(server).post("/login").send({ user: "Jerry" });
+    server.close();
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    const setCookie = res.headers["set-cookie"];
+    expect(setCookie).toBeDefined();
+    expect(String(setCookie)).toContain("token=koa-456");
+    // Koa cookies 库输出小写 httponly，大小写不敏感断言
+    expect(String(setCookie).toLowerCase()).toContain("httponly");
+  });
+});
