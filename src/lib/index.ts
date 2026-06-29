@@ -289,6 +289,12 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
     };
   }
 
+  /**
+   * @deprecated 推荐使用子包工厂 `createERest()`（如 `@erest/express` / `@erest/koa` /
+   * `@erest/leizmweb` 导出的 createERest），以在构造时锁定 Raw 泛型，让 registerTyped
+   * handler 的 reply.raw 自动强类型。裸 `new ERest()` 在过渡期保留，Raw 默认 unknown，
+   * reply.raw 需手动断言。
+   */
   constructor(options: IApiOption) {
     this.info = options.info || {};
     this.forceGroup = options.forceGroup || false;

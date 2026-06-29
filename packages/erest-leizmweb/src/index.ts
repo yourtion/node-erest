@@ -150,7 +150,7 @@ function createLeiReply(ctx: Record<string, unknown>): Reply<LeizmWebRaw> {
     send(body: string) {
       leiRes.send?.(body);
     },
-    raw: ctx as LeizmWebRaw,
+    raw: ctx as unknown as LeizmWebRaw,
   };
   return reply;
 }
