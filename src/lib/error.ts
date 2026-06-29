@@ -76,3 +76,41 @@ export class ERestError extends Error {
     };
   }
 }
+
+/**
+ * 错误响应格式器：把任意错误归一化为 { status, body } 结构。
+ *
+ * 用户在 app 级错误中间件中调用（三框架一行替换），实现跨框架统一的错误响应体。
+ * 不由 adapter 内置——adapter 只做桥接，错误响应格式由用户在 app 级决定。
+ *
+ * @example
+ * // Express
+ * app.use((err, _req, res, _next) => {
+ *   const { status, body } = defaultErrorFormatter(err);
+ *   res.status(status).json(body);
+ * });
+ * // Koa
+ * app.use(async (ctx, next) => {
+ *   try { await next(); }
+ *   catch (err) {
+ *     const { status, body } = defaultErrorFormatter(err);
+ *     ctx.status = status; ctx.body = body;
+ *   }
+ * });
+ */
+export interface ErrorFormatter {
+  (err: ERestError | Error): { status: number; body: unknown };
+}
+
+/** 内置默认格式器（与 examples 错误中间件一致），可直接用或自定义 */
+export const defaultErrorFormatter: ErrorFormatter = (err) => {
+  const e = err as ERestError & { status?: number };
+  const status = e.statusCode || e.status || 400;
+  return {
+    status,
+    body: {
+      error: err.message,
+      code: e.code ?? "INTERNAL_ERROR",
+    },
+  };
+};
