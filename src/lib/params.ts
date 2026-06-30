@@ -107,7 +107,7 @@ export const zodTypeMap = {
       return val
         .split(",")
         .map((v) => parseInt(v.trim(), 10))
-        .toSorted((a, b) => a - b);
+        .sort((a, b) => a - b);
     }),
   ]),
   StringArray: z.union([
