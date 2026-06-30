@@ -4,7 +4,7 @@
  */
 
 import { strict as assert } from "node:assert";
-import { ZodRawShape, ZodType, z } from "zod";
+import { ZodRawShape, ZodType, z as _zodZ } from "zod";
 import { buildHandlerChain, type FrameworkAdapter, type IAdapterGroupInfo } from "./adapters/index.js";
 import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api.js";
 import { core as debug } from "./debug.js";
@@ -13,7 +13,7 @@ import { defaultErrors } from "./default/index.js";
 import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs.js";
 import IAPITest from "./extend/test.js";
 import { ErrorManager } from "./manager/index.js";
-import { zodTypeMap } from "./params.js";
+import { anyObject as _anyObject, zodTypeMap } from "./params.js";
 import * as utils from "./utils.js";
 import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils.js";
 
@@ -22,7 +22,24 @@ export { type LifecycleHooks } from "./hooks.js";
 export * from "./api.js";
 export * from "./error.js";
 export * from "./params.js";
-export { z, ZodRawShape, ZodType };
+export { ZodRawShape, ZodType };
+
+/**
+ * z 命名空间：原生 Zod 的 z + erest 便利别名（`z.anyObject()`）。
+ *
+ * Zod 导出的 z 对象在 ESM 模块命名空间下是 sealed（不可扩展），无法直接挂属性，
+ * 故以 Proxy 透传原生 z 的全部成员，并在读取时注入 anyObject，保持 z 原有语义不变。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const z: typeof _zodZ & { anyObject: typeof _anyObject } = new Proxy(_zodZ as any, {
+  get(target, prop, receiver) {
+    if (prop === "anyObject") return _anyObject;
+    return Reflect.get(target, prop, receiver);
+  },
+}) as typeof _zodZ & { anyObject: typeof _anyObject };
+
+// 具名导出常量（供 import { zAnyObject } 用，避免每次调用工厂）
+export const zAnyObject = _anyObject();
 
 import { ERestError } from "./error.js";
 

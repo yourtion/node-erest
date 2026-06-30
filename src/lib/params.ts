@@ -107,7 +107,7 @@ export const zodTypeMap = {
       return val
         .split(",")
         .map((v) => parseInt(v.trim(), 10))
-        .sort((a, b) => a - b);
+        .toSorted((a, b) => a - b);
     }),
   ]),
   StringArray: z.union([
@@ -136,6 +136,14 @@ export const zodTypeMap = {
   Ascii: z.string(),
   Base64: z.string(),
 } as const;
+
+/**
+ * 接受任意键值对象的 schema 别名：等价 `z.object({}).catchall(z.unknown())`。
+ *
+ * 供「动态字段 body」（如 one-api 的 records CRUD：字段由业务表 schema 决定，
+ * API 定义时未知）等场景使用。挂到 z 命名空间后写作 `z.anyObject()`。
+ */
+export const anyObject = () => z.object({}).catchall(z.unknown());
 
 // ============ Stage 1: 预编译校验（热路径零分配） ============
 
