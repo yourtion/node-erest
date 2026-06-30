@@ -349,4 +349,55 @@ describe("ERest 测试套件", () => {
       expect(data).toBeInstanceOf(Object);
     });
   });
+
+  describe("success<T>() 返回类型从 response schema 推导", () => {
+    it("声明 response schema 时 success() 返回内层数据（运行时）", async () => {
+      const app2 = express();
+      app2.use(express.json());
+      const apiService2 = lib({ basePath: "" });
+      const UserVO = z.object({ id: z.number(), name: z.string() });
+      apiService2.api
+        .get("/vo-test")
+        .group("Index")
+        .title("vo")
+        .registerTyped({ response: UserVO }, (req: any, ctx: any) =>
+          ctx.reply.json({ result: { id: 1, name: "Tom" } })
+        );
+      apiService2.bind({ adapter: expressAdapter, router: app2 });
+      apiService2.setFormatOutput((data: unknown): [Error | null, unknown] => {
+        const d = data as { result?: unknown };
+        return d && typeof d === "object" && "result" in d ? [null, d.result] : [null, data];
+      });
+      apiService2.initTest(app2, "/tmp", "/tmp");
+
+      const ret = await apiService2.test.get("/vo-test").success();
+      expect(ret).toEqual({ id: 1, name: "Tom" });
+    });
+
+    it("声明 response schema 时 success<T>() 的 T 被正确推导（类型层）", async () => {
+      const app2 = express();
+      app2.use(express.json());
+      const apiService2 = lib({ basePath: "" });
+      const UserVO = z.object({ id: z.number(), name: z.string() });
+      apiService2.api
+        .get("/vo-type")
+        .group("Index")
+        .title("vo-type")
+        .registerTyped({ response: UserVO }, (req: any, ctx: any) =>
+          ctx.reply.json({ result: { id: 1, name: "Tom" } })
+        );
+      apiService2.bind({ adapter: expressAdapter, router: app2 });
+      apiService2.setFormatOutput((data: unknown): [Error | null, unknown] => {
+        const d = data as { result?: unknown };
+        return d && typeof d === "object" && "result" in d ? [null, d.result] : [null, data];
+      });
+      apiService2.initTest(app2, "/tmp", "/tmp");
+
+      type UserVO = z.infer<typeof UserVO>;
+      const ret = await apiService2.test.get<UserVO>("/vo-type").success<UserVO>();
+      // 类型断言：ret 必须是 UserVO，不是 unknown
+      const _check: UserVO = ret;
+      expect(_check.id).toBe(1);
+    });
+  });
 });

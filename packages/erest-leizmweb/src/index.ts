@@ -5,8 +5,8 @@
 
 import type { API } from "erest";
 import type { ERest } from "erest";
-import { ERest as ERestCtor, compose } from "erest";
-import type { LifecycleHooks } from "erest";
+import { ERest as ERestCtor, compose, wrapWithEnvelope } from "erest";
+import type { Envelopers, LifecycleHooks } from "erest";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "erest";
 import type { Context as LeiContext } from "@leizm/web";
 
@@ -65,10 +65,11 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T, LeizmWe
     return checker as unknown as T;
   }
 
-  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: LifecycleHooks): void {
+  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: LifecycleHooks, envelopers?: Envelopers): void {
     const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
     const method = api.options.method as string;
-    const dispatch = compose(handlers as unknown as Middleware[]);
+    const rawDispatch = compose(handlers as unknown as Middleware[]);
+    const dispatch = envelopers ? wrapWithEnvelope(rawDispatch, envelopers) : rawDispatch;
     const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
     // 单参数中间件（length=1），避免被 @leizm/web 误判为错误处理中间件
     const nativeMiddleware = (
@@ -167,6 +168,8 @@ export const leizmWebAdapter = new LeizmWebAdapter();
  * import { createERest } from "@erest/leizmweb";
  * const api = createERest({ info, groups, forceGroup });
  */
-export function createERest(options: ConstructorParameters<typeof ERestCtor>[0]): ERest<Middleware, LeizmWebRaw> {
-  return new ERestCtor<Middleware, LeizmWebRaw>(options);
+export function createERest<State extends Record<string, unknown> = Record<string, unknown>>(
+  options: ConstructorParameters<typeof ERestCtor>[0]
+): ERest<Middleware<State>, LeizmWebRaw, State> {
+  return new ERestCtor<Middleware<State>, LeizmWebRaw, State>(options);
 }

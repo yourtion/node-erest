@@ -43,8 +43,16 @@ export interface FrameworkAdapter<T = unknown, Raw = unknown> {
    * @param router Router instance (express.Router, koa-router, etc.)
    * @param api API schema
    * @param handlers Handler chain
+   * @param hooks 生命周期 hooks（可选）
+   * @param envelopers 全局响应信封包装器（可选，由 setResponseEnvelopers 注册）
    */
-  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: import("../hooks.js").LifecycleHooks): void;
+  bindRoute(
+    router: unknown,
+    api: API<T>,
+    handlers: T[],
+    hooks?: import("../hooks.js").LifecycleHooks,
+    envelopers?: import("./utils.js").Envelopers
+  ): void;
 
   /**
    * Create a new group router with optional prefix
@@ -98,7 +106,7 @@ export interface Reply<Raw = unknown> {
  *
  * params/query/body 为框架原始请求数据（校验前的原始值，由 checker 校验后填入 $validated）。
  */
-export interface Context {
+export interface Context<State extends Record<string, unknown> = Record<string, unknown>, Raw = unknown> {
   /** 请求方法（GET/POST/...），大写 */
   readonly method: string;
   /** 请求路径（日志/计时用） */
@@ -111,10 +119,10 @@ export interface Context {
   readonly query: Record<string, unknown>;
   /** 请求体（校验前原始值） */
   readonly body: unknown;
-  /** 跨中间件传递数据的可读写状态（替代直接写 req/ctx.currentUser） */
-  readonly state: Record<string, unknown>;
-  /** 框架无关响应接口（复用 Reply；中间件可提前响应/终止） */
-  readonly reply: Reply<unknown>;
+  /** 跨中间件传递数据的可读写状态（类型由 ERest<State> 泛型驱动；默认 Record<string,unknown>） */
+  readonly state: State;
+  /** 框架无关响应接口（Raw 经 ERest<T,Raw,State> 泛型锁定，由子包 createERest 工厂在构造时确定） */
+  readonly reply: Reply<Raw>;
   /** 校验后分层参数（由 checker 注入；before/middleware 执行时尚未填充） */
   $validated?: {
     params: Record<string, unknown>;
@@ -142,4 +150,7 @@ export interface Context {
  *
  * before / middleware / register / registerTyped / define 的 handler 均用此签名。
  */
-export type Middleware = (ctx: Context, next: () => Promise<void> | void) => Promise<void> | void;
+export type Middleware<State extends Record<string, unknown> = Record<string, unknown>> = (
+  ctx: Context<State>,
+  next: () => Promise<void> | void
+) => Promise<void> | void;

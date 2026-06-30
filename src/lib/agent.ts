@@ -261,12 +261,17 @@ export class TestAgent {
     return ret;
   }
 
-  /** 期望输出成功结果 */
-  public success(): Promise<unknown> {
+  /**
+   * 期望输出成功结果。
+   *
+   * 返回类型 T 可由调用方显式传入（如 `.success<UserVO>()`），便于从 response schema 推导；
+   * 未传 T 时退回 unknown（向后兼容）。
+   */
+  public success<T = unknown>(): Promise<T> {
     this.debug("success");
     return this.output(false, true).catch((err) => {
       throw new Error(`${this.key} 期望API输出成功结果，但实际输出失败结果：${inspect(err)}`);
-    });
+    }) as Promise<T>;
   }
 
   /** 期望输出失败结果 */

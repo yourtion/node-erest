@@ -4,8 +4,9 @@
  */
 
 import { strict as assert } from "node:assert";
-import { ZodRawShape, ZodType, z } from "zod";
+import { ZodRawShape, ZodType, z as _zodZ } from "zod";
 import { buildHandlerChain, type FrameworkAdapter, type IAdapterGroupInfo } from "./adapters/index.js";
+import type { Context } from "./adapters/types.js";
 import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api.js";
 import { core as debug } from "./debug.js";
 import { type LifecycleHooks, hasHooks } from "./hooks.js";
@@ -13,7 +14,7 @@ import { defaultErrors } from "./default/index.js";
 import IAPIDoc, { type IDocGeneratePlugin, type IDocWritter } from "./extend/docs.js";
 import IAPITest from "./extend/test.js";
 import { ErrorManager } from "./manager/index.js";
-import { zodTypeMap } from "./params.js";
+import { anyObject as _anyObject, zodTypeMap } from "./params.js";
 import * as utils from "./utils.js";
 import { camelCase2underscore, getCallerSourceLine, type ISupportMethds, type SourceResult } from "./utils.js";
 
@@ -22,7 +23,24 @@ export { type LifecycleHooks } from "./hooks.js";
 export * from "./api.js";
 export * from "./error.js";
 export * from "./params.js";
-export { z, ZodRawShape, ZodType };
+export { ZodRawShape, ZodType };
+
+/**
+ * z 命名空间：原生 Zod 的 z + erest 便利别名（`z.anyObject()`）。
+ *
+ * Zod 导出的 z 对象在 ESM 模块命名空间下是 sealed（不可扩展），无法直接挂属性，
+ * 故以 Proxy 透传原生 z 的全部成员，并在读取时注入 anyObject，保持 z 原有语义不变。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const z: typeof _zodZ & { anyObject: typeof _anyObject } = new Proxy(_zodZ as any, {
+  get(target, prop, receiver) {
+    if (prop === "anyObject") return _anyObject;
+    return Reflect.get(target, prop, receiver);
+  },
+}) as typeof _zodZ & { anyObject: typeof _anyObject };
+
+// 具名导出常量（供 import { zAnyObject } 用，避免每次调用工厂）
+export const zAnyObject = _anyObject();
 
 import { ERestError } from "./error.js";
 
@@ -33,24 +51,32 @@ const invalidParameter = (msg: string) =>
 const internalError = (msg: string) => new ERestError("INTERNAL_ERROR", `internal error ${msg}`, undefined, 500);
 
 /** Schema方法 */
-export type genSchema<T, Raw = unknown> = Readonly<ISupportMethds<(path: string) => API<T, Raw>>>;
+export type genSchema<T, Raw = unknown, State extends Record<string, unknown> = Record<string, unknown>> = Readonly<
+  ISupportMethds<(path: string) => API<T, Raw, State>>
+>;
 
 /** 组方法 */
-export interface IGroup<T, Raw = unknown> extends Record<string, unknown>, genSchema<T, Raw> {
-  define: (opt: APIDefine<T>) => API<T, Raw>;
-  before: (...fn: T[]) => IGroup<T, Raw>;
-  middleware: (...fn: T[]) => IGroup<T, Raw>;
+export interface IGroup<T, Raw = unknown, State extends Record<string, unknown> = Record<string, unknown>>
+  extends Record<string, unknown>, genSchema<T, Raw, State> {
+  define: (opt: APIDefine<T>) => API<T, Raw, State>;
+  before: (...fn: T[]) => IGroup<T, Raw, State>;
+  middleware: (...fn: T[]) => IGroup<T, Raw, State>;
 }
 
 /** API接口定义 */
-export interface IApiInfo<T, Raw = unknown> extends Record<string, unknown>, genSchema<T, Raw> {
-  readonly $apis: Map<string, API<T, Raw>>;
-  define: (opt: APIDefine<T>) => API<T, Raw>;
+export interface IApiInfo<T, Raw = unknown, State extends Record<string, unknown> = Record<string, unknown>>
+  extends Record<string, unknown>, genSchema<T, Raw, State> {
+  readonly $apis: Map<string, API<T, Raw, State>>;
+  define: (opt: APIDefine<T>) => API<T, Raw, State>;
   beforeHooks: Set<T>;
   afterHooks: Set<T>;
   docs?: IAPIDoc;
   formatOutputReverse?: (out: unknown) => [Error | null, unknown];
   docOutputFormat?: (out: unknown) => unknown;
+  /** 全局成功信封包装器（setResponseEnvelopers 注册后，handler return data 自动经此包装） */
+  successEnveloper?: (data: unknown, ctx: Context) => unknown;
+  /** 全局错误信封包装器（抛错时自动包装为 {body, status}） */
+  errorEnveloper?: (err: unknown, ctx: Context) => { body: unknown; status: number };
 }
 
 /** API基础信息 */
@@ -121,7 +147,7 @@ interface IGroupInfo<T> extends IGroupInfoOpt {
 /**
  * Easy rest api helper
  */
-class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
+class ERest<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unknown> = Record<string, unknown>> {
   public shareTestData?: unknown;
   public utils = utils;
 
@@ -148,8 +174,12 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
     path: string,
     group?: string | undefined,
     prefix?: string | undefined
-  ) => API<T, Raw>;
-  private defineAPI: (options: APIDefine<T>, group?: string | undefined, prefix?: string | undefined) => API<T, Raw>;
+  ) => API<T, Raw, State>;
+  private defineAPI: (
+    options: APIDefine<T>,
+    group?: string | undefined,
+    prefix?: string | undefined
+  ) => API<T, Raw, State>;
   private mockHandler?: (data: unknown) => T;
 
   /** @internal 错误工厂（adapter/params/api 用，替代 privateInfo 反射） */
@@ -325,7 +355,7 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
       } else {
         assert(!group, "请开启 forceGroup 再使用 group 功能");
       }
-      const s = new API<T, Raw>(method, path, getCallerSourceLine(this.config.path), group, prefix);
+      const s = new API<T, Raw, State>(method, path, getCallerSourceLine(this.config.path), group, prefix);
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
@@ -340,7 +370,7 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
     };
     // define注册方法
     this.defineAPI = (opt: APIDefine<T>, group?: string, prefix?: string) => {
-      const s = API.define<T, Raw>(opt, getCallerSourceLine(this.config.path), group, prefix);
+      const s = API.define<T, Raw, State>(opt, getCallerSourceLine(this.config.path), group, prefix);
       const s2 = this.apiInfo.$apis.get(s.key);
       assert(
         !s2,
@@ -413,6 +443,27 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
   }
 
   /**
+   * 注册全局响应信封包装器。
+   *
+   * 注册后，registerTyped 的 handler 进入「return 模式」：handler 只 return data，
+   * 框架在 dispatcher 层用 successEnveloper 包装写入响应；抛错用 errorEnveloper 包装。
+   * 未注册时维持 v3.1 行为（handler 调 ctx.reply 写响应）。
+   *
+   * 可选 testUnwrapper：供测试脚手架（test.success/error）拆解信封（便捷入口，等价 setFormatOutput）。
+   */
+  public setResponseEnvelopers(envelopers: {
+    success: (data: unknown, ctx: Context) => unknown;
+    error: (err: unknown, ctx: Context) => { body: unknown; status: number };
+    testUnwrapper?: (out: unknown) => [Error | null, unknown];
+  }): void {
+    this.apiInfo.successEnveloper = envelopers.success;
+    this.apiInfo.errorEnveloper = envelopers.error;
+    if (envelopers.testUnwrapper) {
+      this.apiInfo.formatOutputReverse = envelopers.testUnwrapper;
+    }
+  }
+
+  /**
    * 设置文档格式化函数
    */
   public setDocOutputFormat(fn: (out: unknown) => unknown) {
@@ -466,9 +517,9 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
   /**
    * 获取分组API实例
    */
-  public group(name: string, info?: IGroupInfoOpt): IGroup<T, Raw>;
-  public group(name: string, desc?: string): IGroup<T, Raw>;
-  public group(name: string, infoOrDesc?: IGroupInfoOpt | string): IGroup<T, Raw> {
+  public group(name: string, info?: IGroupInfoOpt): IGroup<T, Raw, State>;
+  public group(name: string, desc?: string): IGroup<T, Raw, State>;
+  public group(name: string, infoOrDesc?: IGroupInfoOpt | string): IGroup<T, Raw, State> {
     debug("using group: %s, desc: %j", name, infoOrDesc);
     // assert(this.groupInfo[name], `请先配置 ${name} 分组`);
     const info = !infoOrDesc || typeof infoOrDesc === "string" ? { name: infoOrDesc, prefix: "" } : infoOrDesc;
@@ -560,7 +611,10 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
           groupInfo: groupInfo as IAdapterGroupInfo<T>,
         });
 
-        adapter.bindRoute(route, schema, handlers, this.hooks);
+        adapter.bindRoute(route, schema, handlers, this.hooks, {
+          success: this.apiInfo.successEnveloper,
+          error: this.apiInfo.errorEnveloper,
+        });
       }
 
       for (const [key, groupRouter] of routes.entries()) {
@@ -587,7 +641,10 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown> {
           checker,
         });
 
-        adapter.bindRoute(router, schema, handlers, this.hooks);
+        adapter.bindRoute(router, schema, handlers, this.hooks, {
+          success: this.apiInfo.successEnveloper,
+          error: this.apiInfo.errorEnveloper,
+        });
       }
     }
   }

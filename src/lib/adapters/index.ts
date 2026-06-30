@@ -9,4 +9,10 @@
  */
 
 export * from "./types.js";
-export { type BuildHandlerChainOptions, buildHandlerChain, compose } from "./utils.js";
+export {
+  type BuildHandlerChainOptions,
+  buildHandlerChain,
+  compose,
+  type Envelopers,
+  wrapWithEnvelope,
+} from "./utils.js";

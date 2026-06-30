@@ -137,6 +137,14 @@ export const zodTypeMap = {
   Base64: z.string(),
 } as const;
 
+/**
+ * 接受任意键值对象的 schema 别名：等价 `z.object({}).catchall(z.unknown())`。
+ *
+ * 供「动态字段 body」（如 one-api 的 records CRUD：字段由业务表 schema 决定，
+ * API 定义时未知）等场景使用。挂到 z 命名空间后写作 `z.anyObject()`。
+ */
+export const anyObject = () => z.object({}).catchall(z.unknown());
+
 // ============ Stage 1: 预编译校验（热路径零分配） ============
 
 /** 分层校验后的参数（按来源区分，registerTyped 读取此结构以获得类型安全） */
@@ -181,22 +189,22 @@ export interface ValidationErrorFactory {
  * - 缺失必填 → "missing required parameter 'field'"
  * - 类型错误 → "'field' should be valid"
  */
+// Zod 4 的 issue：缺失字段 message 含 "received undefined"（含 union 嵌套 errors），
+// 类型错误含具体 received 值。
+const isMissing = (issue: { code: string; message?: string; errors?: unknown[] }): boolean => {
+  if (issue.message?.includes("received undefined")) return true;
+  if (issue.code === "invalid_union" && Array.isArray(issue.errors)) {
+    return issue.errors.some((branch) =>
+      Array.isArray(branch)
+        ? branch.some((e: { message?: string }) => e.message?.includes("received undefined"))
+        : false
+    );
+  }
+  return false;
+};
+
 export function compileValidate(errorFactory: ValidationErrorFactory, schemas: CompiledSchemas): CompiledRoute {
   const { paramsSchema, querySchema, bodySchema, headersSchema } = schemas;
-
-  // Zod 4 的 issue：缺失字段 message 含 "received undefined"（含 union 嵌套 errors），
-  // 类型错误含具体 received 值。
-  const isMissing = (issue: { code: string; message?: string; errors?: unknown[] }): boolean => {
-    if (issue.message?.includes("received undefined")) return true;
-    if (issue.code === "invalid_union" && Array.isArray(issue.errors)) {
-      return issue.errors.some((branch) =>
-        Array.isArray(branch)
-          ? branch.some((e: { message?: string }) => e.message?.includes("received undefined"))
-          : false
-      );
-    }
-    return false;
-  };
 
   const makeParse =
     (schema: ZodType) =>

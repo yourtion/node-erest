@@ -5,6 +5,7 @@ package-lock.json
 
 # 构建产物
 dist/
+!docs/superpowers
 docs/
 examples/docs/out/
 # 根级 TS 配置的编译产物（vitest.bench.config.ts 等，误 tsc 时会生成同名 .js/.d.ts）

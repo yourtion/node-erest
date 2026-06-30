@@ -6,7 +6,7 @@
 import { strict as assert } from "node:assert";
 import { pathToRegexp } from "path-to-regexp";
 import { type ZodTypeAny, z } from "zod";
-import type { Middleware, Reply } from "./adapters/types.js";
+import type { Context, Middleware } from "./adapters/types.js";
 import { api as debug } from "./debug.js";
 import type ERest from "./index.js";
 import { compileValidate, type CompiledRoute, type SchemaType } from "./params.js";
@@ -69,7 +69,7 @@ export interface APIOption<T> extends Record<string, unknown> {
   compiled?: CompiledRoute;
 }
 
-class API<T = DEFAULT_HANDLER, Raw = unknown> {
+class API<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unknown> = Record<string, unknown>> {
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
@@ -109,13 +109,13 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
     debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
 
-  public static define<T, Raw = unknown>(
+  public static define<T, Raw = unknown, State extends Record<string, unknown> = Record<string, unknown>>(
     options: APIDefine<T>,
     sourceFile: SourceResult,
     group?: string,
     prefix?: string
   ) {
-    const schema = new API<T, Raw>(options.method, options.path, sourceFile, group, prefix);
+    const schema = new API<T, Raw, State>(options.method, options.path, sourceFile, group, prefix);
     schema.title(options.title);
     const g = group || options.group;
     if (g) {
@@ -149,7 +149,7 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
       schema.before(...options.before);
     }
     if (options.handler) {
-      schema.register(options.handler);
+      schema.register(options.handler as Middleware);
     }
     if (options.mock) {
       schema.mock(options.mock);
@@ -297,21 +297,31 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
   }
 
   /**
-   * 注册处理函数
+   * 注册处理函数。
+   *
+   * handler 参数 `(ctx, next)` 由 TS 自动推导——ctx 是 erest 标准 Context
+   * （含 reply/params/query/body/state/$params 等），next 调用链下一个中间件。
+   * 无需手写类型标注：
+   * ```ts
+   * api.group('g').get('/path').register(async (ctx, next) => {
+   *   ctx.reply.json({ ok: true });
+   *   return next();
+   * });
+   * ```
    */
-  public register(fn: T) {
+  public register(fn: Middleware<State>): this {
     this.checkInited();
     assert(typeof fn === "function", "处理函数必须是一个函数类型");
-    this.options.handler = fn;
+    this.options.handler = fn as T;
     return this;
   }
 
   /**
    * 注册强类型处理函数 (基于 zod schema)。
    *
-   * handler 签名为 `(req, reply)`，与框架无关：
+   * handler 签名为 `(req, ctx)`，与框架无关：
    * - req.params / req.query / req.body / req.headers：分层校验后的参数，类型由 Zod schema 推导
-   * - reply：框架无关的响应接口（{ status, json, send }），由各 adapter 注入
+   * - ctx：框架无关的请求上下文（Context<State, Raw>），含 ctx.reply（响应接口 { status, json, send }）+ ctx.state（typed 跨中间件状态）+ ctx.reply.raw（原生逃生舱）
    *
    * 同一份 handler 可被 Express / Koa / @leizm/web 三个框架复用，无需关心 ctx/res 差异。
    * 校验由 adapter 的 checker 统一完成（注入到 req/ctx.$validated + $reply），handler 内不重复 parse。
@@ -339,7 +349,7 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
         params: z.infer<z.ZodObject<TParams>>;
         headers: z.infer<z.ZodObject<THeaders>>;
       },
-      reply: Reply<Raw>
+      ctx: Context<State, Raw>
     ) => z.infer<TResponse> | Promise<z.infer<TResponse>> | void | Promise<void>
   ) {
     this.checkInited();
@@ -381,20 +391,27 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
         headers: z.infer<z.ZodObject<THeaders>>;
       };
 
-      // ctx.reply 运行时是 adapter 注入的 reply（含对应框架的 raw 值），
-      // 仅 Context 静态类型为 Reply<unknown>。Raw 由 ERest/API 类泛型锁定，
-      // 与 adapter 注入的 raw 值一致，故此处断言安全（同 typedReq 的断言模式）。
-      const result = handler(typedReq, ctx.reply as Reply<Raw>);
+      // ctx 运行时由 adapter 注入（reply 含对应框架的 raw 值，state 为跨中间件共享对象）。
+      // 此处 ctx 静态类型为 Context<State>（Middleware 链推导，Raw 默认 unknown），
+      // 断言为 Context<State, Raw> 以让 handler 的 ctx.reply.raw 拿到强类型原生对象。
+      // Raw 由 ERest/API 类泛型锁定，与 adapter 注入的 raw 值一致，故断言安全。
+      const result = handler(typedReq, ctx as Context<State, Raw>);
 
-      // 若 handler 返回了值且定义了 response schema，则校验返回值（纯计算型 handler 场景）
-      if (schemas.response && result !== undefined) {
-        const resolved = result;
-        if (resolved instanceof Promise) {
-          await resolved.then((v) => schemas.response!.parse(v));
-        } else {
-          schemas.response.parse(resolved);
-        }
+      // 统一 await：handler 可能是 async（返回 Promise），先解析出真实返回值。
+      // 解析后的值用于 response schema 校验 + enveloper 模式的 __returnValue。
+      const resolved = result instanceof Promise ? await result : result;
+
+      // 若定义了 response schema 且 handler 返回了值，则校验返回值（纯计算型 handler 场景）
+      if (schemas.response && resolved !== undefined) {
+        schemas.response.parse(resolved);
       }
+
+      // enveloper 模式：handler return 后置 __returned + __returnValue，
+      // 供 wrapWithEnvelope 用 successEnveloper 包装（含 return undefined）。
+      // registerTyped handler 的 return 总是触发（约定 enveloper 模式下不调 ctx.reply）。
+      const ctxExt = ctx as Context<State, Raw> & { __returned?: boolean; __returnValue?: unknown };
+      ctxExt.__returned = true;
+      ctxExt.__returnValue = resolved;
     };
 
     this.options.handler = wrappedHandler as unknown as T;

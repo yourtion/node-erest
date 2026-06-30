@@ -42,9 +42,7 @@ export function generateHandler(options: GenerateHandlerOptions): string {
   const schemaNames = extractSchemaNames(source);
 
   if (schemaNames.length === 0) {
-    throw new Error(
-      `erest-gen: 未在 ${schemaFile} 中找到 \`export const XxxSchema = z.object(...)\` 形式的导出`
-    );
+    throw new Error(`erest-gen: 未在 ${schemaFile} 中找到 \`export const XxxSchema = z.object(...)\` 形式的导出`);
   }
 
   const handlers = schemaNames
@@ -55,10 +53,10 @@ export function generateHandler(options: GenerateHandlerOptions): string {
     .group("${group}")
     .registerTyped(
       { body: ${name} },
-      (req, reply) => {
+      (req, ctx) => {
         // TODO: 实现 ${resource} 处理逻辑
         // req.body 类型由 ${name} 推导
-        return reply.json({ ok: true });
+        return ctx.reply.json({ ok: true });
       }
     );`;
     })

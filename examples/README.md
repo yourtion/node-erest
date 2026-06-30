@@ -119,12 +119,12 @@ pnpm --filter erest-example docs   # 生成到 docs/out/
 erest v3 标准化后，**业务 handler 与 before/middleware 钩子都框架无关**，同一份代码被
 Express / Koa / @leizm/web 三个入口复用：
 
-- **业务 handler**（`registerTyped`）：用 `(req, reply)` 签名，声明一次，三框架复用。
+- **业务 handler**（`registerTyped`）：用 `(req, ctx)` 签名，声明一次，三框架复用。
 - **组级 `before`/`middleware` 钩子**：用统一的 `(ctx, next)` 签名（erest 标准 Context），
   在 `hooks.js` 里只写一份（`authBefore` / `adminBefore` / `logMiddleware` / `timingBefore`），
   三入口共用。`ctx.headers` 读 token、`ctx.state.currentUser` 传递用户、`next()` 推进链。
 - **`define()` 的 handler**：同样用 `(ctx, next)` 签名，经 `ctx.$params` 读校验后参数、
-  `ctx.reply.json()` 写响应。虽然 define 路由仍各自在入口内注册（演示该 API），但其 handler
+  `ctx.ctx.reply.json()` 写响应。虽然 define 路由仍各自在入口内注册（演示该 API），但其 handler
   也是框架无关的。
 
 这是 v3 标准化的核心收益：整个请求处理链（global before → group before → api before →

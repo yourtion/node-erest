@@ -9,6 +9,8 @@ import { expressAdapter, koaAdapter, leizmwebAdapter } from "./adapters";
 import express from "express";
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
+import { compose } from "../lib/adapters/utils.js";
+import type { Context } from "../lib/adapters/types.js";
 import { commonSchemas, createAllCrudApis, createGetApi, createPostApi } from "./utils/api-helpers";
 import { assertApiRegistered, assertThrowsWithMessage } from "./utils/assertion-helpers";
 import { createMockHook, createStandardHooks } from "./utils/mock-factories";
@@ -659,5 +661,81 @@ describe("Router - Unified bind() Method", () => {
       const matching = router.stack.filter((layer: { raw?: { path?: string } }) => layer.raw?.path === "/leizm-params");
       expect(matching.length).toBeGreaterThanOrEqual(1);
     });
+  });
+});
+
+// compose 洋葱模型单元测试（bind 路由的中间件链核心，直接 import 源码确保 coverage）
+describe("compose 洋葱模型", () => {
+  /** 构造最小 Context */
+  function mockCtx(): Context {
+    return {
+      method: "GET",
+      path: "/",
+      headers: {},
+      params: {},
+      query: {},
+      body: {},
+      state: {},
+      reply: { status: () => undefined, json: () => undefined, send: () => undefined, raw: {} },
+    } as Context;
+  }
+
+  test("按顺序执行中间件链（洋葱：next 前后）", async () => {
+    const order: string[] = [];
+    const mws = [
+      (ctx: Context, next: () => Promise<void>) => {
+        order.push("a-before");
+        return next().then(() => order.push("a-after"));
+      },
+      (_ctx: Context, next: () => Promise<void>) => {
+        order.push("b");
+        return next();
+      },
+    ];
+    await compose(mws)(mockCtx());
+    expect(order).toEqual(["a-before", "b", "a-after"]);
+  });
+
+  test("不调 next 则终止后续链", async () => {
+    const order: string[] = [];
+    const mws = [
+      () => {
+        order.push("a");
+      },
+      () => {
+        order.push("b");
+      },
+    ];
+    await compose(mws)(mockCtx());
+    expect(order).toEqual(["a"]);
+  });
+
+  test("中间件 reject 向上抛", async () => {
+    const mws = [() => Promise.reject(new Error("boom"))];
+    await expect(compose(mws)(mockCtx())).rejects.toThrow("boom");
+  });
+
+  test("中间件同步抛错也 reject", async () => {
+    const mws = [
+      () => {
+        throw new Error("sync-boom");
+      },
+    ];
+    await expect(compose(mws)(mockCtx())).rejects.toThrow("sync-boom");
+  });
+
+  test("next 重复调用时报错（防循环）", async () => {
+    const mws = [
+      async (_ctx: Context, next: () => Promise<void>) => {
+        await next();
+        await next();
+      },
+    ];
+    await expect(compose(mws)(mockCtx())).rejects.toThrow("next() called multiple times");
+  });
+
+  test("空中间件链直接完成", async () => {
+    const ret = await compose([])(mockCtx());
+    expect(ret).toBeUndefined();
   });
 });

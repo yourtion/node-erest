@@ -306,3 +306,16 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 `@koa/router`。erest 仓库内部测试仍用 koa-router（开发环境 deprecated warning 无害），不影响
 发布的 peer 声明。
 
+
+## v3.2 — 类型安全 state + 全局响应信封 + 便利 schema
+
+### Breaking（仅当启用新特性时）
+
+- **registerTyped handler 第二参数从 `reply` 统一为 `ctx`**：签名 `(req, reply) => void` 变为 `(req, ctx) => data`。`ctx` 即 `Context<State, Raw>`，含 `ctx.reply`（原 reply 能力）+ `ctx.state`（typed）。存量 handler `(req, reply) => reply.json(x)` 须改为 `(req, ctx) => ctx.reply.json(x)`。
+- **ctx.state 类型由 `ERest<T, Raw, State>` 的 State 泛型驱动**：默认 `Record<string, unknown>`（存量代码不变）。启用 `createERest<MyState>()` 后，`ctx.state` 收紧为 MyState——**State 须用 `type` alias 定义**（不能用 `interface`，否则不满足 `Record<string, unknown>` 约束）。
+
+### 新增（非 breaking）
+
+- **`z.anyObject()`**：等价 `z.object({}).catchall(z.unknown())`，挂在 erest 导出的 `z` 上（也具名导出 `zAnyObject` 常量）。供「动态字段 body」场景使用。
+- **`success<T>()`**：TestAgent 测试方法泛型化，返回类型可从 response schema 推导（`.get<UserVO>(path).success<UserVO>()`）；默认 `unknown` 向后兼容。
+- **`setResponseEnvelopers({ success, error, testUnwrapper })`**：注册后 registerTyped handler 进入「return 模式」——handler 只 `return data`，框架用 success enveloper 自动包装成响应体；抛错用 error enveloper 包装成 `{body, status}`。未注册时维持 v3.1 行为（handler 调 `ctx.reply` 写响应）。`testUnwrapper` 供测试脚手架拆信封（便捷入口，等价 `setFormatOutput`）。
