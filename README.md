@@ -68,7 +68,7 @@ ERest 通过统一的 `bind()` 方法接入任意框架。API 定义方式与框
 ### 定义 API
 
 无论使用哪个框架，API 的定义方式完全一致。推荐使用 `registerTyped`——它基于 Zod schema
-自动推导参数类型，handler 签名为**框架无关的 `(req, reply)`**，同一份 handler 可被
+自动推导参数类型，handler 签名为**框架无关的 `(req, ctx)`**，同一份 handler 可被
 Express / Koa / @leizm/web 复用：
 
 ```typescript
@@ -100,9 +100,9 @@ api.api
       params: z.object({ id: z.string().describe('用户ID') }),
       query: z.object({ include: z.string().optional().describe('包含的关联数据') }),
     },
-    async (req, reply) => {
+    async (req, ctx) => {
       const user = await getUserById(req.params.id, req.query.include);
-      reply.json({ success: true, data: user });
+      ctx.reply.json({ success: true, data: user });
     },
   );
 
@@ -117,14 +117,14 @@ api.api
   .post('/users')
   .group('user')
   .title('创建用户')
-  .registerTyped({ body: CreateUserSchema }, async (req, reply) => {
+  .registerTyped({ body: CreateUserSchema }, async (req, ctx) => {
     const user = await createUser(req.body);
-    reply.status(201).json({ success: true, data: user });
+    ctx.reply.status(201).json({ success: true, data: user });
   });
 ```
 
-> **handler 签名说明**：`registerTyped` 的 handler 是 `(req, reply)`，其中
-> `req.params/query/body/headers` 是分层校验后的参数，`reply.json()/status()/send()`
+> **handler 签名说明**：`registerTyped` 的 handler 是 `(req, ctx)`，其中
+> `req.params/query/body/headers` 是分层校验后的参数，`ctx.reply.json()/status()/send()`
 > 是统一的响应接口。**不要**用 Express 的 `(req, res)` 或 Koa 的 `ctx.body = ...` 写法——
 > 详见 [register 与 registerTyped 的区别](#类型安全的-handlerregistertyped)。
 
@@ -231,14 +231,14 @@ app.listen(3000);
 
 > **handler 签名**：erest 在 Koa 下同样使用**标准化 `(ctx, next)`** 签名——`ctx` 是 erest
 > 的内部上下文（有 `reply`/`$params`/`$validated` 等），**不是** Koa 原生 ctx，没有 `.body` setter。
-> 返回响应请用 `ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, reply)`）：
+> 返回响应请用 `ctx.ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, ctx)`）：
 
 ```typescript
 api.api
   .post('/users')
   .group('user')
-  .registerTyped({ body: z.object({ name: z.string() }) }, (req, reply) => {
-    reply.json({ name: req.body.name });
+  .registerTyped({ body: z.object({ name: z.string() }) }, (req, ctx) => {
+    ctx.reply.json({ name: req.body.name });
   });
 ```
 
@@ -287,14 +287,14 @@ app.server.listen(3000);
 
 > **handler 签名**：erest 在 @leizm/web 下同样使用**标准化 `(ctx, next)`** 签名——`ctx` 是 erest
 > 的内部上下文（有 `reply`/`$params`/`$validated` 等），**不是** @leizm/web 原生 ctx，没有 `.response`。
-> 返回响应请用 `ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, reply)`）：
+> 返回响应请用 `ctx.ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, ctx)`）：
 
 ```typescript
 api.api
   .post('/users')
   .group('user')
-  .registerTyped({ body: z.object({ name: z.string() }) }, (req, reply) => {
-    reply.json({ name: req.body.name });
+  .registerTyped({ body: z.object({ name: z.string() }) }, (req, ctx) => {
+    ctx.reply.json({ name: req.body.name });
   });
 ```
 
@@ -395,8 +395,8 @@ it('应拒绝未成年用户', async () => {
 `req.params` / `req.query` / `req.body` / `req.headers` 的类型，**编译期类型安全、运行时由
 checker 统一校验**，且对 Express / Koa / @leizm/web 三个框架都有效。
 
-handler 签名为 `(req, reply)`——**与框架无关**：`req` 是分层校验后的参数，`reply` 是统一的响应接口
-（`reply.json()` / `reply.status()`）。因此**同一份 handler 可被三个框架复用**，无需关心 ctx/res 差异。
+handler 签名为 `(req, ctx)`——**与框架无关**：`req` 是分层校验后的参数，`reply` 是统一的响应接口
+（`ctx.reply.json()` / `ctx.reply.status()`）。因此**同一份 handler 可被三个框架复用**，无需关心 ctx/res 差异。
 
 ```typescript
 const CreateUserSchema = z.object({
@@ -411,12 +411,12 @@ api.api
   .title('创建用户')
   .registerTyped(
     { body: CreateUserSchema },
-    (req, reply) => {
+    (req, ctx) => {
       // req.body 类型由 CreateUserSchema 自动推导：{ name: string; email: string; age: number }
       // 无需任何 `as` 类型断言
       const user = createUser(req.body);
       // reply 框架无关：内部封装各框架的原生响应写法（Express res / Koa ctx / @leizm/web ctx）
-      reply.status(201).json({ success: true, id: user.id });
+      ctx.reply.status(201).json({ success: true, id: user.id });
     },
   );
 ```
@@ -429,16 +429,16 @@ api.api
 
 | API | handler 签名 | 适用场景 |
 |-----|-------------|----------|
-| `registerTyped(schemas, fn)` | `(req, reply)` | **推荐**。编译期类型安全，校验自动完成，框架无关 |
+| `registerTyped(schemas, fn)` | `(req, ctx)` | **推荐**。编译期类型安全，校验自动完成，框架无关 |
 | `register(fn)` / `define({handler})` | `(ctx, next)` | 标准化 Koa 风格签名。`ctx` 有 `$params`/`$validated`/`reply`/`state` 等，需自己读 ctx（无类型推导）。适合需要 `next` 控制流或 `ctx.state` 跨中间件传数据的场景 |
 
-无论哪种 API，**响应都通过 `reply` 写入**——不要用框架原生的 `res.json()` / `ctx.body =` / `ctx.response.json()`。
+无论哪种 API，**响应都通过 `reply` 写入**（`registerTyped` 是 `ctx.reply`，`register` 是 `ctx.reply`）——不要用框架原生的 `res.json()` / `ctx.body =` / `ctx.response.json()`。
 
-### 原生能力逃生舱：`reply.raw`
+### 原生能力逃生舱：`ctx.reply.raw`
 
-`reply` 只暴露 `json()/status()/send()` 三个框架无关方法。当需要框架特有能力（setCookie、redirect、流式响应、文件下载等）时，通过 `reply.raw` 访问框架原生对象——它是「逃生舱」，绕开标准抽象直达底层。
+handler 第二参数 `ctx` 携带的 `reply` 只暴露 `json()/status()/send()` 三个框架无关方法。当需要框架特有能力（setCookie、redirect、流式响应、文件下载等）时，通过 `ctx.reply.raw` 访问框架原生对象——它是「逃生舱」，绕开标准抽象直达底层。
 
-`reply.raw` 的类型由 **`ERest<T, Raw>` 的 Raw 泛型**驱动。用子包提供的 `createERest()` 工厂创建实例，会在构造时自动锁定 Raw，handler 内 `reply.raw` 自动强类型、**零标注**：
+`ctx.reply.raw` 的类型由 **`ERest<T, Raw, State>` 的 Raw 泛型**驱动。用子包提供的 `createERest()` 工厂创建实例，会在构造时自动锁定 Raw，handler 内 `ctx.reply.raw` 自动强类型、**零标注**：
 
 ```typescript
 import { createERest } from '@erest/express';
@@ -447,20 +447,20 @@ const api = createERest({ info, groups, forceGroup: true });
 
 api.api.post('/login').group('auth').title('登录').registerTyped(
   { body: LoginSchema },
-  (req, reply) => {
+  (req, ctx) => {
     const user = authenticate(req.body);
-    // reply.raw 自动推导为 { req: Request; res: Response }，无需断言
-    reply.raw.res.cookie('token', sign(user), { httpOnly: true });
-    reply.json({ ok: true });
+    // ctx.reply.raw 自动推导为 { req: Request; res: Response }，无需断言
+    ctx.reply.raw.res.cookie('token', sign(user), { httpOnly: true });
+    ctx.reply.json({ ok: true });
   },
 );
 ```
 
-> 直接 `new ERest()` 仍可用（过渡期保留），但 Raw 默认为 `unknown`，`reply.raw` 需手动断言。新代码推荐用子包 `createERest()`。
+> 直接 `new ERest()` 仍可用（过渡期保留），但 Raw 默认为 `unknown`，`ctx.reply.raw` 需手动断言。新代码推荐用子包 `createERest()`。
 
-**框架原生能力速查表**（`reply.raw` 在三框架下的形态不同，签名/语义各自遵循原生约定）：
+**框架原生能力速查表**（`ctx.reply.raw` 在三框架下的形态不同，签名/语义各自遵循原生约定）：
 
-| 能力 | Express (`reply.raw`) | Koa (`reply.raw`) | @leizm/web (`reply.raw`) |
+| 能力 | Express (`ctx.reply.raw`) | Koa (`ctx.reply.raw`) | @leizm/web (`ctx.reply.raw`) |
 |------|------|------|------|
 | 设置 cookie | `.res.cookie(name, val, opts)` | `.cookies.set(name, val, opts)` | `.response.setHeader('Set-Cookie', ...)` |
 | 读取 cookie | `.req.cookies`（需 cookie-parser） | `.cookies.get(name)` | `.request.cookies` |
@@ -469,7 +469,7 @@ api.api.post('/login').group('auth').title('登录').registerTyped(
 | 设置响应头 | `.res.setHeader(k, v)` | `.set(k, v)` | `.response.setHeader(k, v)` |
 | 响应头已发送 | `.res.headersSent` | `.res.headersSent` | 查原生 |
 
-> ⚠️ `raw` 的头部/cookie 操作应在 `reply.json()`/`reply.send()` **之前**调用（HTTP 头先于体发送）。`reply.raw` 是逃生舱，不参与框架无关复用——用了 raw 的 handler 即与具体框架耦合。
+> ⚠️ `raw` 的头部/cookie 操作应在 `ctx.reply.json()`/`ctx.reply.send()` **之前**调用（HTTP 头先于体发送）。`reply.raw` 是逃生舱，不参与框架无关复用——用了 raw 的 handler 即与具体框架耦合。
 
 ## 参数读取：`$params` 与分层访问器
 
@@ -500,7 +500,7 @@ api.api
     const pathId = ctx.$pathParams.id; // 42 —— 保留路径来源
     const bodyId = ctx.$body.id;       // "body-id" —— 保留请求体来源
     const name = ctx.$body.name;
-    ctx.reply.json({ pathId, bodyId, name }); // 响应统一走 ctx.reply
+    ctx.ctx.reply.json({ pathId, bodyId, name }); // 响应统一走 ctx.reply
   });
 ```
 
@@ -543,7 +543,7 @@ api.group('admin').before(authMiddleware).middleware(logMiddleware);
 
 api.group('admin').get('/dashboard').register((ctx) => {
   // 执行顺序：globalBefore -> authMiddleware(before) -> checker -> logMiddleware -> handler
-  ctx.reply.json({ ok: true });
+  ctx.ctx.reply.json({ ok: true });
 });
 ```
 
@@ -586,7 +586,7 @@ throw ERestError.invalidParam('age', 'Integer', 'abc');
 
 `examples/` 是一个**迷你博客业务域**的完整最佳实践样板，串联 erest 全部核心能力：
 **一份 API 定义（`src/api.js`），三个框架入口**（`src/entries/`）。handler 用 `registerTyped`
-的 `(req, reply)` 签名声明一次，被 @leizm/web / Express / Koa 复用，仅 `bind()` 参数不同。
+的 `(req, ctx)` 签名声明一次，被 @leizm/web / Express / Koa 复用，仅 `bind()` 参数不同。
 
 examples 作为 pnpm workspace 子包，通过 `erest: workspace:*` 引用本地 erest，安装时自动 link。
 

@@ -2,12 +2,12 @@
  * erest API 定义（与框架无关）。
  *
  * 迷你博客业务域，用 forceGroup 分三个组，串联 erest 的核心能力：
- * - registerTyped + reply（框架无关 handler，三入口复用）
+ * - registerTyped + ctx（框架无关 handler，三入口复用；v3.2 起 handler 第二参数为 ctx，含 ctx.reply）
  * - forceGroup + 组级 before/middleware 钩子（鉴权/日志，见 hooks.js）
  * - 自定义错误注册（errors.js）、自定义 type/schema 注册（types.js）
  * - define() 声明式、mock()、response() schema
  *
- * handler 约定：(req, reply)。req 由 registerTyped 校验并分层注入；
+ * handler 约定：(req, ctx)。req 由 registerTyped 校验并分层注入；
  * 需要「当前用户」的 handler 通过 headers schema 读 token（before 钩子负责拒绝未授权请求）。
  */
 import { ERestError } from "erest";
@@ -65,21 +65,21 @@ export function registerApi(api, store, hooks) {
   pub
     .get("/posts")
     .title("已发布文章列表")
-    .registerTyped({ query: z.object({ limit: z.coerce.number().int().min(1).max(100).optional() }) }, (req, reply) => {
+    .registerTyped({ query: z.object({ limit: z.coerce.number().int().min(1).max(100).optional() }) }, (req, ctx) => {
       const limit = req.query.limit ?? 10;
-      reply.json({ posts: store.listPublishedPosts().slice(0, limit) });
+      ctx.reply.json({ posts: store.listPublishedPosts().slice(0, limit) });
     });
 
   // GET /public/posts/:slug —— 按 slug 查详情（演示 params）
   pub
     .get("/posts/:slug")
     .title("文章详情")
-    .registerTyped({ params: z.object({ slug: z.string() }) }, (req, reply) => {
+    .registerTyped({ params: z.object({ slug: z.string() }) }, (req, ctx) => {
       const post = store.getPostBySlug(req.params.slug);
       if (!post || !post.published) {
         throw new ERestError("NOT_FOUND", "文章不存在", undefined, 404);
       }
-      reply.json({ post });
+      ctx.reply.json({ post });
     });
 
   // ==================== post 组（需登录）====================
@@ -97,14 +97,14 @@ export function registerApi(api, store, hooks) {
           status: z.enum(["draft", "published"]).optional().describe("按状态过滤"),
         }),
       },
-      (req, reply) => {
+      (req, ctx) => {
         const user = store.authenticate(req.headers["x-admin-token"]);
         if (!user) throw authRequired();
         let posts = store.listPosts();
         // query 字段是 optional，按存在性过滤
         if (req.query.slug) posts = posts.filter((p) => p.slug === req.query.slug);
         if (req.query.status) posts = posts.filter((p) => p.status === req.query.status);
-        reply.json({ posts, user });
+        ctx.reply.json({ posts, user });
       }
     )
     // 多选一必填：slug 与 status 至少传一个（Zod 之上的便利方法，无完美等价）
@@ -114,10 +114,10 @@ export function registerApi(api, store, hooks) {
   post
     .post("/posts")
     .title("创建文章")
-    .registerTyped({ headers: TokenHeaderSchema, body: CreatePostSchema }, (req, reply) => {
+    .registerTyped({ headers: TokenHeaderSchema, body: CreatePostSchema }, (req, ctx) => {
       const user = store.authenticate(req.headers["x-admin-token"]);
       const created = store.createPost({ ...req.body, authorId: user.id });
-      reply.status(201).json({ post: created });
+      ctx.reply.status(201).json({ post: created });
     });
 
   // PUT /posts/:id —— 更新（分层 req.params 与 req.body）
@@ -129,10 +129,10 @@ export function registerApi(api, store, hooks) {
         params: z.object({ id: z.coerce.number() }),
         body: UpdatePostSchema,
       },
-      (req, reply) => {
+      (req, ctx) => {
         try {
           const updated = store.updatePost(req.params.id, req.body);
-          reply.json({ post: updated });
+          ctx.reply.json({ post: updated });
         } catch (e) {
           throw new ERestError("NOT_FOUND", e.message, undefined, e.status || 400);
         }
@@ -143,10 +143,10 @@ export function registerApi(api, store, hooks) {
   post
     .delete("/posts/:id")
     .title("删除文章")
-    .registerTyped({ params: z.object({ id: z.coerce.number() }) }, (req, reply) => {
+    .registerTyped({ params: z.object({ id: z.coerce.number() }) }, (req, ctx) => {
       try {
         store.deletePost(req.params.id);
-        reply.json({ success: true });
+        ctx.reply.json({ success: true });
       } catch (e) {
         throw new ERestError("NOT_FOUND", e.message, undefined, e.status || 400);
       }
@@ -160,8 +160,8 @@ export function registerApi(api, store, hooks) {
   admin
     .get("/stats")
     .title("系统统计")
-    .registerTyped({}, (_req, reply) => {
-      reply.json(store.stats());
+    .registerTyped({}, (_req, ctx) => {
+      ctx.reply.json(store.stats());
     });
 
   // 注：mock() 能力（无 handler 时由 setMockHandler 生成 mock 响应）在 docs/generate.js
@@ -183,8 +183,8 @@ export function registerApi(api, store, hooks) {
         ),
       })
     )
-    .registerTyped({}, (_req, reply) => {
-      reply.json({ users: store.listUsers() });
+    .registerTyped({}, (_req, ctx) => {
+      ctx.reply.json({ users: store.listUsers() });
     });
 
   // define() 声明式定义（演示）：与 registerTyped 等价，handler 同样是框架无关的
