@@ -158,12 +158,16 @@ export const koaAdapter = new KoaAdapter();
 
 /**
  * 创建绑定 Koa 原生类型的 ERest 实例（构造时锁定 Raw 泛型）。
- * handler 的 reply.raw 自动推导为 KoaRaw（原生 Context），无需手动标注。
+ * handler 的 ctx.reply.raw 自动推导为 KoaRaw（原生 Context），无需手动标注。
+ *
+ * 泛型 State 可选：`createERest<MyState>(options)` 让 ctx.state 类型安全（默认 Record<string,unknown>）。
  *
  * @example
  * import { createERest } from "@erest/koa";
  * const api = createERest({ info, groups, forceGroup });
  */
-export function createERest(options: ConstructorParameters<typeof ERestCtor>[0]): ERest<Middleware, KoaRaw> {
-  return new ERestCtor<Middleware, KoaRaw>(options);
+export function createERest<State extends Record<string, unknown> = Record<string, unknown>>(
+  options: ConstructorParameters<typeof ERestCtor>[0]
+): ERest<Middleware<State>, KoaRaw, State> {
+  return new ERestCtor<Middleware<State>, KoaRaw, State>(options);
 }

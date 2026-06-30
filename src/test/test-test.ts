@@ -360,7 +360,9 @@ describe("ERest 测试套件", () => {
         .get("/vo-test")
         .group("Index")
         .title("vo")
-        .registerTyped({ response: UserVO }, (req: any, reply: any) => reply.json({ result: { id: 1, name: "Tom" } }));
+        .registerTyped({ response: UserVO }, (req: any, ctx: any) =>
+          ctx.reply.json({ result: { id: 1, name: "Tom" } })
+        );
       apiService2.bind({ adapter: expressAdapter, router: app2 });
       apiService2.setFormatOutput((data: unknown): [Error | null, unknown] => {
         const d = data as { result?: unknown };
@@ -381,7 +383,9 @@ describe("ERest 测试套件", () => {
         .get("/vo-type")
         .group("Index")
         .title("vo-type")
-        .registerTyped({ response: UserVO }, (req: any, reply: any) => reply.json({ result: { id: 1, name: "Tom" } }));
+        .registerTyped({ response: UserVO }, (req: any, ctx: any) =>
+          ctx.reply.json({ result: { id: 1, name: "Tom" } })
+        );
       apiService2.bind({ adapter: expressAdapter, router: app2 });
       apiService2.setFormatOutput((data: unknown): [Error | null, unknown] => {
         const d = data as { result?: unknown };

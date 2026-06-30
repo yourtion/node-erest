@@ -6,7 +6,7 @@
 import { strict as assert } from "node:assert";
 import { pathToRegexp } from "path-to-regexp";
 import { type ZodTypeAny, z } from "zod";
-import type { Middleware, Reply } from "./adapters/types.js";
+import type { Context, Middleware } from "./adapters/types.js";
 import { api as debug } from "./debug.js";
 import type ERest from "./index.js";
 import { compileValidate, type CompiledRoute, type SchemaType } from "./params.js";
@@ -69,7 +69,7 @@ export interface APIOption<T> extends Record<string, unknown> {
   compiled?: CompiledRoute;
 }
 
-class API<T = DEFAULT_HANDLER, Raw = unknown> {
+class API<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unknown> = Record<string, unknown>> {
   public key: string;
   public pathTestRegExp: RegExp;
   public inited: boolean;
@@ -109,13 +109,13 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
     debug("new: %s %s from %s", method, path, sourceFile.absolute);
   }
 
-  public static define<T, Raw = unknown>(
+  public static define<T, Raw = unknown, State extends Record<string, unknown> = Record<string, unknown>>(
     options: APIDefine<T>,
     sourceFile: SourceResult,
     group?: string,
     prefix?: string
   ) {
-    const schema = new API<T, Raw>(options.method, options.path, sourceFile, group, prefix);
+    const schema = new API<T, Raw, State>(options.method, options.path, sourceFile, group, prefix);
     schema.title(options.title);
     const g = group || options.group;
     if (g) {
@@ -309,7 +309,7 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
    * });
    * ```
    */
-  public register(fn: Middleware): this {
+  public register(fn: Middleware<State>): this {
     this.checkInited();
     assert(typeof fn === "function", "处理函数必须是一个函数类型");
     this.options.handler = fn as T;
@@ -349,7 +349,7 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
         params: z.infer<z.ZodObject<TParams>>;
         headers: z.infer<z.ZodObject<THeaders>>;
       },
-      reply: Reply<Raw>
+      ctx: Context<State, Raw>
     ) => z.infer<TResponse> | Promise<z.infer<TResponse>> | void | Promise<void>
   ) {
     this.checkInited();
@@ -391,10 +391,11 @@ class API<T = DEFAULT_HANDLER, Raw = unknown> {
         headers: z.infer<z.ZodObject<THeaders>>;
       };
 
-      // ctx.reply 运行时是 adapter 注入的 reply（含对应框架的 raw 值），
-      // 仅 Context 静态类型为 Reply<unknown>。Raw 由 ERest/API 类泛型锁定，
-      // 与 adapter 注入的 raw 值一致，故此处断言安全（同 typedReq 的断言模式）。
-      const result = handler(typedReq, ctx.reply as Reply<Raw>);
+      // ctx 运行时由 adapter 注入（reply 含对应框架的 raw 值，state 为跨中间件共享对象）。
+      // 此处 ctx 静态类型为 Context<State>（Middleware 链推导，Raw 默认 unknown），
+      // 断言为 Context<State, Raw> 以让 handler 的 ctx.reply.raw 拿到强类型原生对象。
+      // Raw 由 ERest/API 类泛型锁定，与 adapter 注入的 raw 值一致，故断言安全。
+      const result = handler(typedReq, ctx as Context<State, Raw>);
 
       // 若 handler 返回了值且定义了 response schema，则校验返回值（纯计算型 handler 场景）
       if (schemas.response && result !== undefined) {

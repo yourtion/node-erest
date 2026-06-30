@@ -23,11 +23,11 @@ describe("reply.raw - Express 集成", () => {
     .post("/login")
     .group("Index")
     .title("login-express")
-    .registerTyped({ body: z.object({ user: z.string() }) }, (_req, reply) => {
-      // reply.raw 在 Express 下为 { req, res }，通过 res.cookie 设置 cookie
-      const res = (reply as { raw: { res: express.Response } }).raw.res;
+    .registerTyped({ body: z.object({ user: z.string() }) }, (_req, ctx) => {
+      // ctx.reply.raw 在 Express 下为 { req, res }，通过 res.cookie 设置 cookie
+      const res = (ctx.reply as { raw: { res: express.Response } }).raw.res;
       res.cookie("token", "abc-123", { httpOnly: true });
-      reply.json({ ok: true });
+      ctx.reply.json({ ok: true });
     });
 
   apiService.bind({ adapter: expressAdapter, router: app });
@@ -65,11 +65,11 @@ describe("reply.raw - Koa 集成", () => {
       .post("/login")
       .group("Index")
       .title("login-koa")
-      .registerTyped({ body: z.object({ user: z.string() }) }, (_req, reply) => {
-        // reply.raw 在 Koa 下为原生 ctx
-        const ctx = (reply as { raw: { cookies: { set: (n: string, v: string, o: unknown) => void } } }).raw;
-        ctx.cookies.set("token", "koa-456", { httpOnly: true });
-        reply.json({ ok: true });
+      .registerTyped({ body: z.object({ user: z.string() }) }, (_req, ctx) => {
+        // ctx.reply.raw 在 Koa 下为原生 ctx
+        const kctx = (ctx.reply as { raw: { cookies: { set: (n: string, v: string, o: unknown) => void } } }).raw;
+        kctx.cookies.set("token", "koa-456", { httpOnly: true });
+        ctx.reply.json({ ok: true });
       });
     apiService.bind({ adapter: koaAdapter, router });
     app.use(router.routes()).use(router.allowedMethods());
@@ -99,12 +99,12 @@ describe("reply.raw - @leizm/web 集成", () => {
       .post("/login")
       .group("Index")
       .title("login-lei")
-      .registerTyped({ body: z.object({ user: z.string() }) }, (_req, reply) => {
-        // reply.raw 在 @leizm/web 下为原生 ctx；用设置自定义响应头作为 raw 可用性的稳定证明
+      .registerTyped({ body: z.object({ user: z.string() }) }, (_req, ctx) => {
+        // ctx.reply.raw 在 @leizm/web 下为原生 ctx；用设置自定义响应头作为 raw 可用性的稳定证明
         // （leizmweb cookie API 随版本变化，header 操作更稳）
-        const raw = (reply as { raw: { response: { setHeader: (k: string, v: string) => void } } }).raw;
+        const raw = (ctx.reply as { raw: { response: { setHeader: (k: string, v: string) => void } } }).raw;
         raw.response.setHeader("X-Raw-Test", "leizmweb");
-        reply.json({ ok: true });
+        ctx.reply.json({ ok: true });
       });
     apiService.bind({ adapter: leizmwebAdapter, router });
     app.use("/", router);

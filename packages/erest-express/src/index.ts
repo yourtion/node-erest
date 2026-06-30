@@ -158,13 +158,17 @@ export const expressAdapter = new ExpressAdapter();
 /**
  * 创建绑定 Express 原生类型的 ERest 实例（构造时锁定 Raw 泛型）。
  *
- * 返回的 ERest 实例中，registerTyped handler 的 reply.raw 自动推导为 ExpressRaw，
- * 无需手动标注。等价于 `new ERest<Middleware, ExpressRaw>(options)`。
+ * 返回的 ERest 实例中，registerTyped handler 的 ctx.reply.raw 自动推导为 ExpressRaw，
+ * 无需手动标注。等价于 `new ERest<Middleware, ExpressRaw, State>(options)`。
+ *
+ * 泛型 State 可选：`createERest<MyState>(options)` 让 ctx.state 类型安全（默认 Record<string,unknown>）。
  *
  * @example
  * import { createERest } from "@erest/express";
  * const api = createERest({ info, groups, forceGroup });
  */
-export function createERest(options: ConstructorParameters<typeof ERestCtor>[0]): ERest<Middleware, ExpressRaw> {
-  return new ERestCtor<Middleware, ExpressRaw>(options);
+export function createERest<State extends Record<string, unknown> = Record<string, unknown>>(
+  options: ConstructorParameters<typeof ERestCtor>[0]
+): ERest<Middleware<State>, ExpressRaw, State> {
+  return new ERestCtor<Middleware<State>, ExpressRaw, State>(options);
 }

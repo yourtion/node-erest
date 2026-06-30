@@ -47,8 +47,8 @@ describe("registerTyped - Express 集成", () => {
           typed: z.boolean(),
         }),
       },
-      (req, reply) => {
-        reply.status(201).json({
+      (req, ctx) => {
+        ctx.reply.status(201).json({
           id: req.params.id,
           include: req.query.include ?? null,
           name: req.body.name,
@@ -100,8 +100,13 @@ describe("registerTyped / 分层访问器 - Koa 集成", () => {
       .put("/typed/:id")
       .group("Index")
       .title("typed-koa")
-      .registerTyped(schemas, (req, reply) => {
-        reply.json({ id: req.params.id, name: req.body.name, age: req.body.age, include: req.query.include ?? null });
+      .registerTyped(schemas, (req, ctx) => {
+        ctx.reply.json({
+          id: req.params.id,
+          name: req.body.name,
+          age: req.body.age,
+          include: req.query.include ?? null,
+        });
       });
     apiService.bind({ adapter: koaAdapter, router });
     app.use(router.routes()).use(router.allowedMethods());
@@ -163,8 +168,8 @@ describe("registerTyped / 分层访问器 - @leizm/web 集成", () => {
       .put("/typed/:id")
       .group("Index")
       .title("typed-lei")
-      .registerTyped(schemas, (req, reply) => {
-        reply.json({ id: req.params.id, name: req.body.name, age: req.body.age });
+      .registerTyped(schemas, (req, ctx) => {
+        ctx.reply.json({ id: req.params.id, name: req.body.name, age: req.body.age });
       });
     apiService.bind({ adapter: leizmwebAdapter, router });
     app.use("/", router);
@@ -244,22 +249,22 @@ describe("$reply 框架无关响应（同一 handler 三框架复用）", () => 
       .post("/users")
       .group("Index")
       .title("create")
-      .registerTyped({ body: z.object({ name: z.string(), age: z.number().int() }) }, (req, reply) => {
+      .registerTyped({ body: z.object({ name: z.string(), age: z.number().int() }) }, (req, ctx) => {
         const id = store.size + 1;
         store.set(id, req.body);
-        reply.status(201).json({ success: true, id });
+        ctx.reply.status(201).json({ success: true, id });
       });
     apiObj.api
       .get("/users/:id")
       .group("Index")
       .title("get")
-      .registerTyped({ params: z.object({ id: z.coerce.number() }) }, (req, reply) => {
+      .registerTyped({ params: z.object({ id: z.coerce.number() }) }, (req, ctx) => {
         const user = store.get(req.params.id);
         if (!user) {
-          reply.status(404).json({ error: "not found" });
+          ctx.reply.status(404).json({ error: "not found" });
           return;
         }
-        reply.json(user);
+        ctx.reply.json(user);
       });
   };
 
@@ -423,6 +428,33 @@ describe("分层快捷访问器避免同名覆盖", () => {
       validatedPresent: true,
       flatPresent: true,
     });
+  });
+});
+
+// ---------------- ctx.state 跨中间件传递 ----------------
+describe("ctx.state 跨中间件传递", () => {
+  it("before 钩子写入 state，handler 能读取（运行时）", async () => {
+    const app = express();
+    app.use(express.json());
+    const apiService = lib({ basePath: "" });
+
+    apiService.api
+      .get("/state-test")
+      .group("Index")
+      .title("state")
+      .before((ctx, next) => {
+        ctx.state["userId"] = 42;
+        return next();
+      })
+      .register((ctx, next) => {
+        ctx.reply.json({ userId: ctx.state["userId"] });
+        return next();
+      });
+
+    apiService.bind({ adapter: expressAdapter, router: app });
+    const res = await request(app).get("/state-test");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ userId: 42 });
   });
 });
 

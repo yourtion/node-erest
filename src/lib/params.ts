@@ -189,22 +189,22 @@ export interface ValidationErrorFactory {
  * - 缺失必填 → "missing required parameter 'field'"
  * - 类型错误 → "'field' should be valid"
  */
+// Zod 4 的 issue：缺失字段 message 含 "received undefined"（含 union 嵌套 errors），
+// 类型错误含具体 received 值。
+const isMissing = (issue: { code: string; message?: string; errors?: unknown[] }): boolean => {
+  if (issue.message?.includes("received undefined")) return true;
+  if (issue.code === "invalid_union" && Array.isArray(issue.errors)) {
+    return issue.errors.some((branch) =>
+      Array.isArray(branch)
+        ? branch.some((e: { message?: string }) => e.message?.includes("received undefined"))
+        : false
+    );
+  }
+  return false;
+};
+
 export function compileValidate(errorFactory: ValidationErrorFactory, schemas: CompiledSchemas): CompiledRoute {
   const { paramsSchema, querySchema, bodySchema, headersSchema } = schemas;
-
-  // Zod 4 的 issue：缺失字段 message 含 "received undefined"（含 union 嵌套 errors），
-  // 类型错误含具体 received 值。
-  const isMissing = (issue: { code: string; message?: string; errors?: unknown[] }): boolean => {
-    if (issue.message?.includes("received undefined")) return true;
-    if (issue.code === "invalid_union" && Array.isArray(issue.errors)) {
-      return issue.errors.some((branch) =>
-        Array.isArray(branch)
-          ? branch.some((e: { message?: string }) => e.message?.includes("received undefined"))
-          : false
-      );
-    }
-    return false;
-  };
 
   const makeParse =
     (schema: ZodType) =>

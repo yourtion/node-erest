@@ -167,6 +167,8 @@ export const leizmWebAdapter = new LeizmWebAdapter();
  * import { createERest } from "@erest/leizmweb";
  * const api = createERest({ info, groups, forceGroup });
  */
-export function createERest(options: ConstructorParameters<typeof ERestCtor>[0]): ERest<Middleware, LeizmWebRaw> {
-  return new ERestCtor<Middleware, LeizmWebRaw>(options);
+export function createERest<State extends Record<string, unknown> = Record<string, unknown>>(
+  options: ConstructorParameters<typeof ERestCtor>[0]
+): ERest<Middleware<State>, LeizmWebRaw, State> {
+  return new ERestCtor<Middleware<State>, LeizmWebRaw, State>(options);
 }
