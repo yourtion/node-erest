@@ -53,10 +53,10 @@ export function generateHandler(options: GenerateHandlerOptions): string {
     .group("${group}")
     .registerTyped(
       { body: ${name} },
-      (req, reply) => {
+      (req, ctx) => {
         // TODO: 实现 ${resource} 处理逻辑
         // req.body 类型由 ${name} 推导
-        return reply.json({ ok: true });
+        return ctx.reply.json({ ok: true });
       }
     );`;
     })

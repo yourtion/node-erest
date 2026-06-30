@@ -54,9 +54,9 @@ export function registerUserHandlers(api: ERest["api"]) {
     .group("user")
     .registerTyped(
       { body: UserCreateSchema },
-      (req, reply) => {
+      (req, ctx) => {
         // TODO: 实现 user-create 处理逻辑
-        return reply.json({ ok: true });
+        return ctx.reply.json({ ok: true });
       }
     );
   // ...

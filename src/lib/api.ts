@@ -319,9 +319,9 @@ class API<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unkno
   /**
    * 注册强类型处理函数 (基于 zod schema)。
    *
-   * handler 签名为 `(req, reply)`，与框架无关：
+   * handler 签名为 `(req, ctx)`，与框架无关：
    * - req.params / req.query / req.body / req.headers：分层校验后的参数，类型由 Zod schema 推导
-   * - reply：框架无关的响应接口（{ status, json, send }），由各 adapter 注入
+   * - ctx：框架无关的请求上下文（Context<State, Raw>），含 ctx.reply（响应接口 { status, json, send }）+ ctx.state（typed 跨中间件状态）+ ctx.reply.raw（原生逃生舱）
    *
    * 同一份 handler 可被 Express / Koa / @leizm/web 三个框架复用，无需关心 ctx/res 差异。
    * 校验由 adapter 的 checker 统一完成（注入到 req/ctx.$validated + $reply），handler 内不重复 parse。

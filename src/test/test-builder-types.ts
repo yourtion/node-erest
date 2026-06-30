@@ -33,13 +33,13 @@ describe("Builder 类型推导", () => {
     expectTypeOf(api.options.querySchema).not.toBeAny();
   });
 
-  test("new ERest() 时 reply.raw 为 unknown（默认 Raw）", () => {
+  test("new ERest() 时 ctx.reply.raw 为 unknown（默认 Raw）", () => {
     apiService.api
       .post("/raw-unknown")
       .group("Index")
-      .registerTyped({ body: z.object({ x: z.number() }) }, (_req, reply) => {
-        // 默认 Raw=unknown：reply.raw 类型为 unknown，需断言才能用
-        expectTypeOf(reply.raw).toEqualTypeOf<unknown>();
+      .registerTyped({ body: z.object({ x: z.number() }) }, (_req, ctx) => {
+        // 默认 Raw=unknown：ctx.reply.raw 类型为 unknown，需断言才能用
+        expectTypeOf(ctx.reply.raw).toEqualTypeOf<unknown>();
       });
   });
 });

@@ -231,7 +231,7 @@ app.listen(3000);
 
 > **handler 签名**：erest 在 Koa 下同样使用**标准化 `(ctx, next)`** 签名——`ctx` 是 erest
 > 的内部上下文（有 `reply`/`$params`/`$validated` 等），**不是** Koa 原生 ctx，没有 `.body` setter。
-> 返回响应请用 `ctx.ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, ctx)`）：
+> 返回响应请用 `ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, ctx)`）：
 
 ```typescript
 api.api
@@ -287,7 +287,7 @@ app.server.listen(3000);
 
 > **handler 签名**：erest 在 @leizm/web 下同样使用**标准化 `(ctx, next)`** 签名——`ctx` 是 erest
 > 的内部上下文（有 `reply`/`$params`/`$validated` 等），**不是** @leizm/web 原生 ctx，没有 `.response`。
-> 返回响应请用 `ctx.ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, ctx)`）：
+> 返回响应请用 `ctx.reply.json()`。推荐直接用 `registerTyped`（handler 为 `(req, ctx)`）：
 
 ```typescript
 api.api
@@ -500,7 +500,7 @@ api.api
     const pathId = ctx.$pathParams.id; // 42 —— 保留路径来源
     const bodyId = ctx.$body.id;       // "body-id" —— 保留请求体来源
     const name = ctx.$body.name;
-    ctx.ctx.reply.json({ pathId, bodyId, name }); // 响应统一走 ctx.reply
+    ctx.reply.json({ pathId, bodyId, name }); // 响应统一走 ctx.reply
   });
 ```
 
@@ -543,7 +543,7 @@ api.group('admin').before(authMiddleware).middleware(logMiddleware);
 
 api.group('admin').get('/dashboard').register((ctx) => {
   // 执行顺序：globalBefore -> authMiddleware(before) -> checker -> logMiddleware -> handler
-  ctx.ctx.reply.json({ ok: true });
+  ctx.reply.json({ ok: true });
 });
 ```
 
