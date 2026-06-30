@@ -319,3 +319,18 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 - **`z.anyObject()`**：等价 `z.object({}).catchall(z.unknown())`，挂在 erest 导出的 `z` 上（也具名导出 `zAnyObject` 常量）。供「动态字段 body」场景使用。
 - **`success<T>()`**：TestAgent 测试方法泛型化，返回类型可从 response schema 推导（`.get<UserVO>(path).success<UserVO>()`）；默认 `unknown` 向后兼容。
 - **`setResponseEnvelopers({ success, error, testUnwrapper })`**：注册后 registerTyped handler 进入「return 模式」——handler 只 `return data`，框架用 success enveloper 自动包装成响应体；抛错用 error enveloper 包装成 `{body, status}`。未注册时维持 v3.1 行为（handler 调 `ctx.reply` 写响应）。`testUnwrapper` 供测试脚手架拆信封（便捷入口，等价 `setFormatOutput`）。
+
+
+## v3.2.1 — enveloper 逃生舱 + @leizm/web send 修复 + 测试文档
+
+### 新增（非 breaking）
+
+- **`Reply.markSent()`**：enveloper 模式下，`registerTyped` handler 若需返回非 JSON 响应（CSV / 文件下载 / 流式）并经 `ctx.reply.raw` 手动写完响应，调用 `ctx.reply.markSent()` 告知 enveloper 跳过自动包装。否则 enveloper 会在 handler return 后再用 `successEnveloper` 包一层 `reply.json()`，可能覆盖已发送响应或触发「headers already sent」（各框架行为不一）。三 adapter（express/koa/leizmweb）的 `reply` 实现统一维护 `__sent` 标记：`json()`/`send()`/`markSent()` 均置位，`wrapWithEnvelope` 综合判断。不调 `markSent` 的存量 handler 行为不变。
+
+### 修复
+
+- **`@erest/leizmweb` `reply.send` 映射错误导致纯文本响应 404**：`createLeiReply.send` 此前调 `ctx.response.send()`，但 `@leizm/web` 的 response 没有 `send` 方法（仅有 `end/json/file`）。可选链 `leiRes.send?.()` 静默跳过 → 响应体未写 → 框架 final handler 返回 404。修正为映射到 `end(body)` + 补 `text/plain` content-type。**影响面**：`@leizm/web` adapter 下任何用 `ctx.reply.send(文本)` 的路由此前都会 404（用 `reply.json` 的路由不受影响）。
+
+### 文档
+
+- **测试引擎 `.input()` 的方法归属约定显式化**：GET/DELETE 归 query、POST/PUT/PATCH 归 body。注册 DELETE 路由时 schema 必须从 `query` 读参数（HTTP DELETE body 有争议，fetch/浏览器/代理普遍不传递）。README 与 `agent.ts` JSDoc 同步补充。
