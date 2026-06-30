@@ -133,12 +133,13 @@ export class LeizmWebAdapter<T = unknown> implements FrameworkAdapter<T, LeizmWe
   }
 }
 
-/** 构造 @leizm/web 的 Reply 封装（写 ctx.response.json/status/send；含 raw 逃生舱：原生 ctx） */
+/** 构造 @leizm/web 的 Reply 封装（写 ctx.response.json/status；send→end；含 raw 逃生舱：原生 ctx） */
 function createLeiReply(ctx: Record<string, unknown>): Reply<LeizmWebRaw> {
   const leiRes = (ctx.response ?? {}) as {
     status?: (c: number) => unknown;
     json?: (b: unknown) => void;
-    send?: (b: string) => void;
+    end?: (b?: string) => void;
+    setHeader?: (n: string, v: string) => void;
   };
   const reply: Reply<LeizmWebRaw> = {
     status(code: number) {
@@ -148,8 +149,12 @@ function createLeiReply(ctx: Record<string, unknown>): Reply<LeizmWebRaw> {
     json(body: unknown) {
       leiRes.json?.(body);
     },
+    // @leizm/web 的 response 没有 send() 方法（仅有 end/json/file），纯文本响应用 end()。
+    // 此前误调不存在的 send()（可选链静默跳过）→ 响应体未写 → 框架 final handler 返回 404。
+    // 修正：send 映射到 end()，并补 text/plain content-type，与 json() 的 application/json 对齐。
     send(body: string) {
-      leiRes.send?.(body);
+      leiRes.setHeader?.("Content-Type", "text/plain; charset=utf-8");
+      leiRes.end?.(body);
     },
     // LeizmWebRaw 是 @leizm/web 的 Context（结构含 request/response/session 等），
     // 与此处的 Record<string, unknown> 不充分重叠，需经 unknown 双重断言（同运行时桥接）
