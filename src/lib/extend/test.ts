@@ -78,24 +78,25 @@ export default class IAPITest {
     return [...this.cookies.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
   };
 
+  /** GET 测试方法（<T> 可选，供 success<T>() 类型推导串联） */
   get get() {
-    return this.buildTest("get");
+    return <T = unknown>(path: string) => this.buildTest<T>("get")(path);
   }
 
   get post() {
-    return this.buildTest("post");
+    return <T = unknown>(path: string) => this.buildTest<T>("post")(path);
   }
 
   get put() {
-    return this.buildTest("put");
+    return <T = unknown>(path: string) => this.buildTest<T>("put")(path);
   }
 
   get delete() {
-    return this.buildTest("delete");
+    return <T = unknown>(path: string) => this.buildTest<T>("delete")(path);
   }
 
   get patch() {
-    return this.buildTest("patch");
+    return <T = unknown>(path: string) => this.buildTest<T>("patch")(path);
   }
 
   /** 创建测试会话（cookie 持久化，复用同一个 TestAgent 上下文） */
@@ -150,8 +151,13 @@ export default class IAPITest {
     return;
   }
 
-  /** 生成测试方法 */
-  private buildTest(method: SUPPORT_METHODS) {
+  /**
+   * 生成测试方法。
+   *
+   * 泛型 T 透传到 TestAgent.success<T>()（默认 unknown 向后兼容）：
+   * 调用侧 `.get<UserVO>(path).success<UserVO>()` 时，T 由 response schema 推导。
+   */
+  private buildTest<T = unknown>(method: SUPPORT_METHODS) {
     return (path: string) => {
       const s = this.findApi(method, path);
       if (!s || !s.key) {
@@ -160,7 +166,7 @@ export default class IAPITest {
       const a = new TestAgent(method, path, s.key, getCallerSourceLine(this.testPath), this.erest);
       assert(this.erest.getTestView().app, "请先调用 initTest(app) 设置 app 实例");
       a.bindRequest(this.getBaseUrl, this.ready);
-      return a.agent();
+      return a.agent() as TestAgent & { success: <U = T>(...args: []) => Promise<U> };
     };
   }
 }
