@@ -42,9 +42,7 @@ export function generateHandler(options: GenerateHandlerOptions): string {
   const schemaNames = extractSchemaNames(source);
 
   if (schemaNames.length === 0) {
-    throw new Error(
-      `erest-gen: 未在 ${schemaFile} 中找到 \`export const XxxSchema = z.object(...)\` 形式的导出`
-    );
+    throw new Error(`erest-gen: 未在 ${schemaFile} 中找到 \`export const XxxSchema = z.object(...)\` 形式的导出`);
   }
 
   const handlers = schemaNames

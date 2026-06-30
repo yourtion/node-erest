@@ -6,6 +6,7 @@
 import { strict as assert } from "node:assert";
 import { ZodRawShape, ZodType, z as _zodZ } from "zod";
 import { buildHandlerChain, type FrameworkAdapter, type IAdapterGroupInfo } from "./adapters/index.js";
+import type { Context } from "./adapters/types.js";
 import API, { type APIDefine, type DEFAULT_HANDLER, type SUPPORT_METHODS } from "./api.js";
 import { core as debug } from "./debug.js";
 import { type LifecycleHooks, hasHooks } from "./hooks.js";
@@ -72,6 +73,10 @@ export interface IApiInfo<T, Raw = unknown, State extends Record<string, unknown
   docs?: IAPIDoc;
   formatOutputReverse?: (out: unknown) => [Error | null, unknown];
   docOutputFormat?: (out: unknown) => unknown;
+  /** 全局成功信封包装器（setResponseEnvelopers 注册后，handler return data 自动经此包装） */
+  successEnveloper?: (data: unknown, ctx: Context) => unknown;
+  /** 全局错误信封包装器（抛错时自动包装为 {body, status}） */
+  errorEnveloper?: (err: unknown, ctx: Context) => { body: unknown; status: number };
 }
 
 /** API基础信息 */
@@ -438,6 +443,27 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unk
   }
 
   /**
+   * 注册全局响应信封包装器。
+   *
+   * 注册后，registerTyped 的 handler 进入「return 模式」：handler 只 return data，
+   * 框架在 dispatcher 层用 successEnveloper 包装写入响应；抛错用 errorEnveloper 包装。
+   * 未注册时维持 v3.1 行为（handler 调 ctx.reply 写响应）。
+   *
+   * 可选 testUnwrapper：供测试脚手架（test.success/error）拆解信封（便捷入口，等价 setFormatOutput）。
+   */
+  public setResponseEnvelopers(envelopers: {
+    success: (data: unknown, ctx: Context) => unknown;
+    error: (err: unknown, ctx: Context) => { body: unknown; status: number };
+    testUnwrapper?: (out: unknown) => [Error | null, unknown];
+  }): void {
+    this.apiInfo.successEnveloper = envelopers.success;
+    this.apiInfo.errorEnveloper = envelopers.error;
+    if (envelopers.testUnwrapper) {
+      this.apiInfo.formatOutputReverse = envelopers.testUnwrapper;
+    }
+  }
+
+  /**
    * 设置文档格式化函数
    */
   public setDocOutputFormat(fn: (out: unknown) => unknown) {
@@ -585,7 +611,10 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unk
           groupInfo: groupInfo as IAdapterGroupInfo<T>,
         });
 
-        adapter.bindRoute(route, schema, handlers, this.hooks);
+        adapter.bindRoute(route, schema, handlers, this.hooks, {
+          success: this.apiInfo.successEnveloper,
+          error: this.apiInfo.errorEnveloper,
+        });
       }
 
       for (const [key, groupRouter] of routes.entries()) {
@@ -612,7 +641,10 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unk
           checker,
         });
 
-        adapter.bindRoute(router, schema, handlers, this.hooks);
+        adapter.bindRoute(router, schema, handlers, this.hooks, {
+          success: this.apiInfo.successEnveloper,
+          error: this.apiInfo.errorEnveloper,
+        });
       }
     }
   }

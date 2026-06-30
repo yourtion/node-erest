@@ -43,8 +43,16 @@ export interface FrameworkAdapter<T = unknown, Raw = unknown> {
    * @param router Router instance (express.Router, koa-router, etc.)
    * @param api API schema
    * @param handlers Handler chain
+   * @param hooks 生命周期 hooks（可选）
+   * @param envelopers 全局响应信封包装器（可选，由 setResponseEnvelopers 注册）
    */
-  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: import("../hooks.js").LifecycleHooks): void;
+  bindRoute(
+    router: unknown,
+    api: API<T>,
+    handlers: T[],
+    hooks?: import("../hooks.js").LifecycleHooks,
+    envelopers?: import("./utils.js").Envelopers
+  ): void;
 
   /**
    * Create a new group router with optional prefix

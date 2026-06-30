@@ -66,3 +66,48 @@ export function compose(middlewares: Middleware[]): (ctx: Context) => Promise<vo
     return execute(0) as Promise<void>;
   };
 }
+
+/** enveloper 函数集（由 setResponseEnvelopers 注册，经 bind -> bindRoute 传入） */
+export interface Envelopers {
+  success?: (data: unknown, ctx: Context) => unknown;
+  error?: (err: unknown, ctx: Context) => { body: unknown; status: number };
+}
+
+/**
+ * 包装 dispatch：注册了 enveloper 时，handler return 值经 successEnveloper 包装写入 reply；
+ * 抛错经 errorEnveloper 包装。未注册 enveloper 时退化为原 dispatch（向后兼容，零开销）。
+ *
+ * handler 的 return 值通过 ctx.__returnValue 传递（由 registerTyped 的 wrappedHandler 写入，
+ * 即使 return undefined 也会写入标记 __returned=true，以区分「return undefined」与「调 ctx.reply」）。
+ *
+ * enveloper 模式约定：handler 只 return data，不调 ctx.reply。若误调又 return，successEnveloper
+ * 的 json 会覆盖前者——属误用。
+ */
+export function wrapWithEnvelope(
+  dispatch: (ctx: Context) => Promise<void>,
+  envelopers: Envelopers
+): (ctx: Context) => Promise<void> {
+  const { success: successEnveloper, error: errorEnveloper } = envelopers;
+  if (!successEnveloper && !errorEnveloper) return dispatch; // 零开销：未注册时直接返回原 dispatch
+
+  return async function (ctx: Context): Promise<void> {
+    try {
+      await dispatch(ctx);
+      // 成功：handler 执行完无抛错。enveloper 模式下用 successEnveloper 包装 return 值。
+      // __returned 标记由 wrappedHandler 在 handler return 后置位（含 return undefined）；
+      // 未置位说明 handler 自行调 ctx.reply 写了响应（非 enveloper 用法），不再二次包装。
+      if (successEnveloper && (ctx as Context & { __returned?: boolean }).__returned) {
+        const returnValue = (ctx as Context & { __returnValue?: unknown }).__returnValue;
+        const wrapped = successEnveloper(returnValue, ctx);
+        ctx.reply.json(wrapped);
+      }
+    } catch (err) {
+      if (errorEnveloper) {
+        const { body, status } = errorEnveloper(err, ctx);
+        ctx.reply.status(status).json(body);
+      } else {
+        throw err; // 未注册 errorEnveloper 时 re-throw（交给 app 级中间件）
+      }
+    }
+  };
+}

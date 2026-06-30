@@ -5,8 +5,8 @@
 
 import type { API } from "erest";
 import type { ERest } from "erest";
-import { ERest as ERestCtor, compose } from "erest";
-import type { LifecycleHooks } from "erest";
+import { ERest as ERestCtor, compose, wrapWithEnvelope } from "erest";
+import type { Envelopers, LifecycleHooks } from "erest";
 import type { Context, FrameworkAdapter, Middleware, Reply } from "erest";
 import type { Request, Response } from "express";
 
@@ -67,11 +67,13 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T, ExpressR
     return checker as unknown as T;
   }
 
-  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: LifecycleHooks): void {
+  bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: LifecycleHooks, envelopers?: Envelopers): void {
     const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
     const method = api.options.method as string;
     // 包装为单个 Express 中间件：构造标准 Context + compose 标准化 handler 链
-    const dispatch = compose(handlers as unknown as Middleware[]);
+    const rawDispatch = compose(handlers as unknown as Middleware[]);
+    // envelope 接入：注册了 enveloper 时包装 dispatch（成功/错误分支统一信封）
+    const dispatch = envelopers ? wrapWithEnvelope(rawDispatch, envelopers) : rawDispatch;
     // Stage 3：零开销裁剪——无 hooks 时装配不含 hook 调用的 dispatch
     const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
     const nativeMiddleware = (req: Record<string, unknown>, res: unknown, next: (err?: unknown) => void) => {

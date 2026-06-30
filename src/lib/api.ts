@@ -397,15 +397,21 @@ class API<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unkno
       // Raw 由 ERest/API 类泛型锁定，与 adapter 注入的 raw 值一致，故断言安全。
       const result = handler(typedReq, ctx as Context<State, Raw>);
 
-      // 若 handler 返回了值且定义了 response schema，则校验返回值（纯计算型 handler 场景）
-      if (schemas.response && result !== undefined) {
-        const resolved = result;
-        if (resolved instanceof Promise) {
-          await resolved.then((v) => schemas.response!.parse(v));
-        } else {
-          schemas.response.parse(resolved);
-        }
+      // 统一 await：handler 可能是 async（返回 Promise），先解析出真实返回值。
+      // 解析后的值用于 response schema 校验 + enveloper 模式的 __returnValue。
+      const resolved = result instanceof Promise ? await result : result;
+
+      // 若定义了 response schema 且 handler 返回了值，则校验返回值（纯计算型 handler 场景）
+      if (schemas.response && resolved !== undefined) {
+        schemas.response.parse(resolved);
       }
+
+      // enveloper 模式：handler return 后置 __returned + __returnValue，
+      // 供 wrapWithEnvelope 用 successEnveloper 包装（含 return undefined）。
+      // registerTyped handler 的 return 总是触发（约定 enveloper 模式下不调 ctx.reply）。
+      const ctxExt = ctx as Context<State, Raw> & { __returned?: boolean; __returnValue?: unknown };
+      ctxExt.__returned = true;
+      ctxExt.__returnValue = resolved;
     };
 
     this.options.handler = wrappedHandler as unknown as T;
