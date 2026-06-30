@@ -137,18 +137,24 @@ export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T, ExpressR
 }
 
 /** 构造 Express 的 Reply 封装（含 raw 逃生舱：原生 { req, res }） */
-function createExpressReply(req: unknown, res: unknown): Reply<ExpressRaw> {
+function createExpressReply(req: unknown, res: unknown): Reply<ExpressRaw> & { __sent: boolean } {
   const expressRes = res as { status?: (c: number) => unknown; json?: (b: unknown) => void; end?: (b: string) => void };
-  const reply: Reply<ExpressRaw> = {
+  const reply: Reply<ExpressRaw> & { __sent: boolean } = {
+    __sent: false,
     status(code: number) {
       expressRes.status?.(code);
       return reply;
     },
     json(body: unknown) {
+      reply.__sent = true;
       expressRes.json?.(body);
     },
     send(body: string) {
+      reply.__sent = true;
       expressRes.end?.(body);
+    },
+    markSent() {
+      reply.__sent = true;
     },
     raw: { req, res } as ExpressRaw,
   };

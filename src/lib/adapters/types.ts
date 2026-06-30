@@ -85,6 +85,11 @@ export type CheckerFunction<T> = (erest: ERest<T>, schema: API<T>) => T;
  * `raw` 是逃生舱：当需要框架特有能力（setCookie/redirect/stream/文件下载等）时，
  * 通过 `reply.raw` 访问框架原生对象。类型由 `ERest<T, Raw>` 的 Raw 泛型驱动，
  * 经子包 `createERest()` 工厂在构造时锁定。
+ *
+ * `markSent()` 是 enveloper 逃生舱：当 registerTyped handler 需要返回非 JSON 响应
+ * （CSV/文件下载/流式）并已通过 raw 手动写完响应时，调用它告知 enveloper 跳过自动
+ * 包装。否则 enveloper 会在 handler return 后再用 successEnveloper 包一层 json，
+ * 可能覆盖已发送的响应或抛错（各框架行为不一）。
  */
 export interface Reply<Raw = unknown> {
   /** 设置 HTTP 状态码并返回自身，支持链式调用 */
@@ -93,6 +98,11 @@ export interface Reply<Raw = unknown> {
   json(body: unknown): void;
   /** 以纯文本写入响应体 */
   send(body: string): void;
+  /**
+   * 标记响应已由 handler 手动发送（如经 raw 写 CSV/文件流），enveloper 将跳过自动包装。
+   * 仅在注册了 enveloper 且 handler 已自行写完整响应时需要调用。
+   */
+  markSent(): void;
   /** 框架原生对象逃生舱（setCookie/redirect/stream/文件下载等） */
   readonly raw: Raw;
 }

@@ -136,19 +136,25 @@ export class KoaAdapter<T = unknown> implements FrameworkAdapter<T, KoaRaw> {
 }
 
 /** 构造 Koa 的 Reply 封装（写 ctx.status / ctx.body；含 raw 逃生舱：原生 ctx） */
-function createKoaReply(ctx: Record<string, unknown>): Reply<KoaRaw> {
+function createKoaReply(ctx: Record<string, unknown>): Reply<KoaRaw> & { __sent: boolean } {
   const koaCtx = ctx as { status?: number; body?: unknown; type?: string };
-  const reply: Reply<KoaRaw> = {
+  const reply: Reply<KoaRaw> & { __sent: boolean } = {
+    __sent: false,
     status(code: number) {
       koaCtx.status = code;
       return reply;
     },
     json(body: unknown) {
+      reply.__sent = true;
       koaCtx.type = "application/json";
       koaCtx.body = JSON.stringify(body);
     },
     send(body: string) {
+      reply.__sent = true;
       koaCtx.body = body;
+    },
+    markSent() {
+      reply.__sent = true;
     },
     raw: ctx as KoaRaw,
   };

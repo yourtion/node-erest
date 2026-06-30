@@ -96,7 +96,11 @@ export function wrapWithEnvelope(
       // 成功：handler 执行完无抛错。enveloper 模式下用 successEnveloper 包装 return 值。
       // __returned 标记由 wrappedHandler 在 handler return 后置位（含 return undefined）；
       // 未置位说明 handler 自行调 ctx.reply 写了响应（非 enveloper 用法），不再二次包装。
-      if (successEnveloper && (ctx as Context & { __returned?: boolean }).__returned) {
+      // 额外检查 reply.__sent：handler 若调用了 reply.markSent()（或 json/send），
+      // 说明响应已手动发送（如经 raw 写 CSV/文件流），enveloper 不再二次包装，
+      // 避免覆盖已发送的响应或触发「headers already sent」类错误（各框架行为不一）。
+      const reply = ctx.reply as { __sent?: boolean };
+      if (successEnveloper && (ctx as Context & { __returned?: boolean }).__returned && !reply.__sent) {
         const returnValue = (ctx as Context & { __returnValue?: unknown }).__returnValue;
         const wrapped = successEnveloper(returnValue, ctx);
         ctx.reply.json(wrapped);
