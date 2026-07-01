@@ -263,6 +263,37 @@ function convertZodFieldToSwagger(zodSchema: ZodType): {
   return result;
 }
 
+/**
+ * 构造 Swagger 2.0 的 200 响应对象。
+ * 当 API 声明了 responseSchema（init 阶段解析后的最终 Zod schema）时，输出标准 schema；
+ * 否则保持原有占位（仅 description）。复用 extractDocFields，与参数提取保持一致。
+ */
+function response200(api: { responseSchema?: unknown }): { description: string; schema?: unknown } {
+  const fields = extractDocFields(api.responseSchema, "body");
+  if (fields.length === 0) return { description: "请求成功" };
+  const properties: Record<string, unknown> = {};
+  const required: string[] = [];
+  for (const f of fields) {
+    const prop: { type: string; format?: string; description?: string; enum?: string[]; items?: unknown } = {
+      type: f.enumValues ? "string" : f.type,
+      ...(f.comment ? { description: f.comment } : {}),
+      ...(f.format ? { format: f.format } : {}),
+      ...(f.enumValues ? { enum: f.enumValues } : {}),
+    };
+    if (f.type === "array") prop.items = { type: "string" };
+    properties[f.name] = prop;
+    if (f.required) required.push(f.name);
+  }
+  return {
+    description: "请求成功",
+    schema: {
+      type: "object",
+      properties,
+      ...(required.length > 0 ? { required } : {}),
+    },
+  };
+}
+
 export function buildSwagger(data: IDocData) {
   const url = new URL(`${data.info.host || ""}${data.info.basePath || ""}`);
 
@@ -303,9 +334,7 @@ export function buildSwagger(data: IDocData) {
       consumes: ["application/json"],
       produces: ["application/json"],
       responses: {
-        200: {
-          description: "请求成功",
-        },
+        200: response200(api),
       },
     };
 

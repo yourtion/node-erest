@@ -1,6 +1,6 @@
 {
   "name": "@erest/koa",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Koa adapter for erest",
   "type": "module",
   "main": "./dist/index.js",
