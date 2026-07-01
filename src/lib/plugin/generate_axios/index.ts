@@ -48,8 +48,13 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
     return `'${path}'`;
   }
 
-  function getPathParams(_req: APIOption<unknown>) {
-    const dataKeys = schemaFieldNames(_req.paramsSchema);
+  function getPathParams(req: APIOption<unknown>) {
+    // 优先用 paramsSchema 声明的字段名；缺失时从路径 :xxx 兜底，
+    // 避免生成的请求路径引用了未出现在签名里的变量（issue #27）。
+    let dataKeys = schemaFieldNames(req.paramsSchema);
+    if (!dataKeys.length && hasUrlParam(req.realPath)) {
+      dataKeys = (req.realPath.match(/:([a-z]+)/gi) || []).map((s) => s.slice(1));
+    }
     if (!dataKeys.length) return "";
     return dataKeys.map((key) => `${key},`).join("");
   }
