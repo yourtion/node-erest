@@ -54,6 +54,7 @@ const DOC_FIELD = [
   "tested",
   "responseSchema",
   "headersSchema",
+  "sourceFile",
 ];
 
 /** 文档数据 */

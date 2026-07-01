@@ -9,6 +9,7 @@
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
 import generateAxios from "../lib/plugin/generate_axios";
+import apiDocs from "../lib/plugin/generate_markdown/apis";
 import generatePostman from "../lib/plugin/generate_postman";
 import generateSwagger, { buildSwagger } from "../lib/plugin/generate_swagger";
 
@@ -142,5 +143,40 @@ describe("postman response 示例（issue #6）", () => {
     const postman = capturePostman({});
     const item = postman.item[0].item[0];
     expect(item.response).toBeUndefined();
+  });
+});
+
+describe("markdown 源码位置展示（issue #5）", () => {
+  function buildWith(sourceFile?: { relative?: string }) {
+    const data = {
+      info: {},
+      group: { G: "G" },
+      types: {},
+      apis: {
+        "get_/test": {
+          method: "get",
+          path: "/test",
+          realPath: "/test",
+          group: "G",
+          title: "测试路由",
+          examples: [],
+          requiredOneOf: [],
+          ...(sourceFile ? { sourceFile } : {}),
+        },
+      },
+    } as any;
+    return apiDocs(data);
+  }
+
+  test("有 sourceFile.relative 时，Markdown 输出含源码位置", () => {
+    const { list } = buildWith({ relative: "src/api/user.ts" });
+    const content = list[0].content;
+    expect(content).toContain("src/api/user.ts");
+  });
+
+  test("无 sourceFile 时不报错，且不输出源码位置行", () => {
+    const { list } = buildWith(undefined);
+    const content = list[0].content;
+    expect(content).not.toMatch(/源码位置/);
   });
 });
