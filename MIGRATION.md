@@ -338,3 +338,10 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 ### Breaking
 
 - **`zod` 从 `dependencies` 改为 `peerDependencies`**：作为 schema 校验库，erest 不应硬钉死 zod 版本，应由宿主项目统一提供。此前 erest 把 `zod@^4.0.5` 列为 hard dependency，导致任何 link/依赖 erest 的项目出现两份 zod 副本（erest 自带的 + 宿主的），TS 因 zod 版本字面量标记不同而报类型不兼容。**迁移**：宿主项目须在自身 `dependencies` 显式声明 `zod`（版本 `^4.0.0`）。adapter 子包（`@erest/express` 等）不直接依赖 zod，无需改动。
+
+
+## v3.2.3 — Axios SDK 路径参数兜底（issue #27）
+
+### 修复
+
+- **`generate_axios` 在未声明 `paramsSchema` 时从路径兜底提取路径参数**：此前 `getPathParams` 只读 `paramsSchema`，而 `getReqSendPath` 只看路径串，两者脱节。当路由为 `/:id` 形式但用户未调用 `.params()` / `registerTyped({ params })` 时，生成的请求路径会引用变量 `id`，但函数签名里没有 `id` 参数 → 生成引用未定义变量的坏 SDK。现在 `getPathParams` 在 `paramsSchema` 为空时从 `realPath` 的 `:xxx` 提取参数名作为兜底，保证签名与路径一致。已声明 `paramsSchema` 的场景行为不变。
