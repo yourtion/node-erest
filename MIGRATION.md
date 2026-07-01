@@ -338,3 +338,10 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 ### Breaking
 
 - **`zod` 从 `dependencies` 改为 `peerDependencies`**：作为 schema 校验库，erest 不应硬钉死 zod 版本，应由宿主项目统一提供。此前 erest 把 `zod@^4.0.5` 列为 hard dependency，导致任何 link/依赖 erest 的项目出现两份 zod 副本（erest 自带的 + 宿主的），TS 因 zod 版本字面量标记不同而报类型不兼容。**迁移**：宿主项目须在自身 `dependencies` 显式声明 `zod`（版本 `^4.0.0`）。adapter 子包（`@erest/express` 等）不直接依赖 zod，无需改动。
+
+
+## v3.2.5 — Markdown 文档展示中间件（issue #4）
+
+### 新增（非 breaking）
+
+- **Markdown 文档输出路由的中间件函数名列表**：`middlewares` 此前已通过 `.middlewares()` 注册并经 `DOC_FIELD` 采集进文档数据，但四个生成器无一渲染。现 Markdown 在「请求地址」行下方输出 `中间件：\`<fn1>\`, \`<fn2>\``（取具名函数的 `fn.name`，匿名函数跳过），便于在文档中看到路由的处理链。Swagger/Postman 不受影响（OpenAPI 标准无中间件字段，强行加入反而不被消费方识别）。

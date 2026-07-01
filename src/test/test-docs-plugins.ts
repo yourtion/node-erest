@@ -8,6 +8,7 @@
  */
 import { describe, expect, test } from "vitest";
 import generateAxios from "../lib/plugin/generate_axios";
+import apiDocs from "../lib/plugin/generate_markdown/apis";
 import generatePostman from "../lib/plugin/generate_postman";
 import generateSwagger from "../lib/plugin/generate_swagger";
 
@@ -55,5 +56,51 @@ describe("文档插件文件名解析", () => {
 
     generatePostman(docData, "/out", { postman: true } as any, writer);
     expect(written[0]).toContain("postman.json");
+  });
+});
+
+describe("markdown 中间件展示（issue #4）", () => {
+  function buildWith(middlewares?: Set<Function>) {
+    const data = {
+      info: {},
+      group: { G: "G" },
+      types: {},
+      apis: {
+        "get_/test": {
+          method: "get",
+          path: "/test",
+          realPath: "/test",
+          group: "G",
+          title: "测试路由",
+          examples: [],
+          requiredOneOf: [],
+          ...(middlewares ? { middlewares } : {}),
+        },
+      },
+    } as any;
+    return apiDocs(data);
+  }
+
+  test("有具名中间件时，Markdown 输出中间件名列表", () => {
+    function authCheck() {}
+    function logRequest() {}
+    const { list } = buildWith(new Set([authCheck, logRequest]));
+    const content = list[0].content;
+    expect(content).toContain("authCheck");
+    expect(content).toContain("logRequest");
+  });
+
+  test("无中间件时不报错，且不输出中间件行", () => {
+    const { list } = buildWith(undefined);
+    const content = list[0].content;
+    expect(content).not.toMatch(/中间件/);
+  });
+
+  test("匿名中间件不输出空名（跳过无 name 的函数）", () => {
+    const anon = function () {};
+    const { list } = buildWith(new Set([anon]));
+    const content = list[0].content;
+    // 不应出现「中间件：」后跟空列表
+    expect(content).not.toMatch(/中间件：\s*$/);
   });
 });
