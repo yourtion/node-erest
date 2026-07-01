@@ -1,6 +1,6 @@
 {
   "name": "@erest/gen",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "erest codegen CLI：从 Zod schema 生成 handler 骨架等（实验性，独立于 erest 主版本演进）",
   "type": "module",
   "bin": {
