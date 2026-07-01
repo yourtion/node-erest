@@ -334,3 +334,7 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 ### 文档
 
 - **测试引擎 `.input()` 的方法归属约定显式化**：GET/DELETE 归 query、POST/PUT/PATCH 归 body。注册 DELETE 路由时 schema 必须从 `query` 读参数（HTTP DELETE body 有争议，fetch/浏览器/代理普遍不传递）。README 与 `agent.ts` JSDoc 同步补充。
+
+### Breaking
+
+- **`zod` 从 `dependencies` 改为 `peerDependencies`**：作为 schema 校验库，erest 不应硬钉死 zod 版本，应由宿主项目统一提供。此前 erest 把 `zod@^4.0.5` 列为 hard dependency，导致任何 link/依赖 erest 的项目出现两份 zod 副本（erest 自带的 + 宿主的），TS 因 zod 版本字面量标记不同而报类型不兼容。**迁移**：宿主项目须在自身 `dependencies` 显式声明 `zod`（版本 `^4.0.0`）。adapter 子包（`@erest/express` 等）不直接依赖 zod，无需改动。

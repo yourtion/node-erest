@@ -58,11 +58,16 @@
   "homepage": "https://github.com/yourtion/node-erest#readme",
   "dependencies": {
     "debug": "^4.4.1",
-    "path-to-regexp": "^6.3.0",
-    "zod": "^4.0.5"
+    "path-to-regexp": "^6.3.0"
   },
   "peerDependencies": {
-    "@types/node": "*"
+    "@types/node": "*",
+    "zod": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": false
+    }
   },
   "devDependencies": {
     "@leizm/web": "^2.7.3",
@@ -85,7 +90,8 @@
     "oxlint": "1.71.0",
     "typedoc": "^0.28.19",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "zod": "^4.4.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -14,9 +14,6 @@ importers:
       path-to-regexp:
         specifier: ^6.3.0
         version: 6.3.0
-      zod:
-        specifier: ^4.0.5
-        version: 4.0.5
     devDependencies:
       '@leizm/web':
         specifier: ^2.7.3
@@ -81,6 +78,9 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@24.0.15)(@vitest/ui@3.2.4)(yaml@2.9.0)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
   examples:
     dependencies:
@@ -2051,6 +2051,9 @@ packages:
   zod@4.0.5:
     resolution: {integrity: sha512-/5UuuRPStvHXu7RS+gmvRf4NXrNxpSllGwDnCBcJZtQsKrviYXm54yDGV2KYNLT5kq0lHGcl7lqWJLgSaG+tgA==}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 snapshots:
 
   '@ampproject/remapping@2.3.0':
@@ -3851,3 +3854,5 @@ snapshots:
   ylru@1.4.0: {}
 
   zod@4.0.5: {}
+
+  zod@4.4.3: {}
