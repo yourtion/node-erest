@@ -338,3 +338,10 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 ### Breaking
 
 - **`zod` 从 `dependencies` 改为 `peerDependencies`**：作为 schema 校验库，erest 不应硬钉死 zod 版本，应由宿主项目统一提供。此前 erest 把 `zod@^4.0.5` 列为 hard dependency，导致任何 link/依赖 erest 的项目出现两份 zod 副本（erest 自带的 + 宿主的），TS 因 zod 版本字面量标记不同而报类型不兼容。**迁移**：宿主项目须在自身 `dependencies` 显式声明 `zod`（版本 `^4.0.0`）。adapter 子包（`@erest/express` 等）不直接依赖 zod，无需改动。
+
+
+## v3.2.4 — Markdown 文档展示源码位置（issue #5）
+
+### 新增（非 breaking）
+
+- **Markdown 文档在每个 API 标题块下输出源码位置**：`sourceFile`（含 `relative`/`absolute`，由 `getCallerSourceLine` 在路由注册时解析 Error.stack 采集）此前已在 API 构造时记录，但未纳入 `DOC_FIELD`，文档生成器拿不到。现将其加入 `DOC_FIELD`，并在 Markdown 的「请求地址」行下方输出 `源码位置：\`<relative>\``，便于从文档快速定位到定义代码。无 `sourceFile` 时不输出该行，行为与之前一致。
