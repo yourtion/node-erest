@@ -370,6 +370,19 @@ api.genDocs('./docs/');
 > `.input(data)` 对 **GET/DELETE** 把 `data` 转为 query string，对 **POST/PUT/PATCH** 作为 JSON body。
 > 用 `.query(data)` / `.json(data)` 可显式指定来源。
 
+> **⚠️ DELETE 参数从 query 读**：HTTP DELETE 带 body 有争议（fetch/浏览器/代理普遍不保证传递），
+> 所以测试引擎把 DELETE 的 `.input()` 归为 query，**生产侧三 adapter 也只从 query 读 DELETE 参数**。
+> 因此注册 DELETE 路由时，schema 必须用 `query`（不是 `body`）：
+
+```typescript
+// ✅ DELETE 的确认参数走 query
+api.delete('/items/:id').registerTyped(
+  { params: z.object({ id: z.string() }), query: z.object({ confirm: z.boolean() }) },
+  (req) => { if (!req.query.confirm) throw new Error('需确认'); /* ... */ },
+);
+// 测试侧对应：api.test.delete('/items/1').input({ confirm: true })
+```
+
 ```typescript
 // initTest 接收 http.Server 或框架的 app/server/callback
 api.initTest(app);
@@ -470,6 +483,28 @@ api.api.post('/login').group('auth').title('登录').registerTyped(
 | 响应头已发送 | `.res.headersSent` | `.res.headersSent` | 查原生 |
 
 > ⚠️ `raw` 的头部/cookie 操作应在 `ctx.reply.json()`/`ctx.reply.send()` **之前**调用（HTTP 头先于体发送）。`reply.raw` 是逃生舱，不参与框架无关复用——用了 raw 的 handler 即与具体框架耦合。
+
+#### `ctx.reply.markSent()`：enveloper 模式下的非 JSON 响应逃生舱
+
+当注册了 `setResponseEnvelopers` 且 `registerTyped` handler 需要返回**非 JSON 响应**（CSV / 文件下载 / 流式）时，handler 必须经 `reply.raw` 手动写完整响应，并调用 **`ctx.reply.markSent()`** 告知 enveloper 跳过自动包装。
+
+否则 handler return 后，enveloper 会用 `successEnveloper` 包一层 `reply.json()`，可能覆盖已发送的响应或触发「headers already sent」类错误（各框架行为不一）。
+
+```typescript
+api.group('admin').get('/tables/:id/export').registerTyped(
+  { params: z.object({ id: z.string() }) },
+  (req, ctx) => {
+    // 经 raw 手动写 CSV（非 JSON），三框架原生写法不同
+    const res = ctx.reply.raw.res;            // Express；Koa 用 ctx.reply.raw.body，@leizm/web 用 ctx.reply.raw.response
+    res.setHeader('Content-Type', 'text/csv');
+    res.end('a,b\n1,2');
+    ctx.reply.markSent();                      // ← 关键：跳过 enveloper 的自动包装
+  },
+);
+```
+
+> `markSent()` 只在「enveloper + registerTyped + 手动 raw 响应」三者同时成立时需要。
+> 用 `register()`（非 typed）注册的 handler 本就不触发 enveloper，无需调用。
 
 ## 参数读取：`$params` 与分层访问器
 

@@ -2,8 +2,11 @@
  * @file 全局 response envelope 集成测试
  * 验证 setResponseEnvelopers 后 registerTyped handler return data 被自动包装
  */
+import { Application, component, Router } from "@leizm/web";
 import express from "express";
-import { expressAdapter } from "./adapters";
+import Koa from "koa";
+import KoaRouter from "koa-router";
+import { expressAdapter, koaAdapter, leizmwebAdapter } from "./adapters";
 import { httpReq as request } from "./http-req";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -11,7 +14,7 @@ import { wrapWithEnvelope } from "../lib/adapters/utils.js";
 import type { Context } from "../lib/adapters/types.js";
 import lib from "./lib";
 
-/** 构造最小 Context mock（state 可读写，reply 记录调用） */
+/** 构造最小 Context mock（state 可读写，reply 记录调用；__sent 模拟手动响应标记） */
 function mockCtx(): Context & {
   __returned?: boolean;
   __returnValue?: unknown;
@@ -19,14 +22,24 @@ function mockCtx(): Context & {
     status: ReturnType<typeof vi.fn>;
     json: ReturnType<typeof vi.fn>;
     send: ReturnType<typeof vi.fn>;
+    markSent: ReturnType<typeof vi.fn>;
     raw: unknown;
+    __sent?: boolean;
   };
 } {
   const reply = {
     status: vi.fn(() => reply),
-    json: vi.fn(),
-    send: vi.fn(),
+    json: vi.fn(() => {
+      reply.__sent = true;
+    }),
+    send: vi.fn(() => {
+      reply.__sent = true;
+    }),
+    markSent: vi.fn(() => {
+      reply.__sent = true;
+    }),
     raw: {},
+    __sent: false,
   };
   return {
     method: "GET",
@@ -219,6 +232,117 @@ describe("wrapWithEnvelope 单元测试", () => {
 
     expect(success).toHaveBeenCalledWith(undefined, ctx);
     expect(ctx.reply.json).toHaveBeenCalled();
+  });
+
+  it("reply.__sent=true（handler 调 markSent 手动响应）→ enveloper 跳过，不二次包装", async () => {
+    const ctx = mockCtx();
+    ctx.__returned = true;
+    ctx.__returnValue = { raw: "csv" };
+    ctx.reply.__sent = true; // 模拟 handler 已调 reply.markSent()
+    const success = vi.fn();
+
+    await wrapWithEnvelope(async () => Promise.resolve(), { success })(ctx);
+
+    expect(success).not.toHaveBeenCalled();
+    expect(ctx.reply.json).not.toHaveBeenCalled();
+  });
+});
+
+// 三框架集成：enveloper 模式下 registerTyped handler 经 raw 手动写 CSV + reply.markSent()，
+// enveloper 应跳过自动包装，响应体保持原始 CSV（而非被 json 覆盖/报错）。
+const csvEnvelopers = {
+  success: (data: unknown) => ({ success: true, data }),
+  error: (err: unknown) => {
+    const e = err as { statusCode?: number; message?: string };
+    return { body: { error: e.message ?? "fail" }, status: e.statusCode ?? 500 };
+  },
+};
+
+describe("enveloper + markSent 逃生舱 - Express", () => {
+  const apiService = lib({
+    forceGroup: true,
+    info: { basePath: "" },
+    groups: { api: { name: "api", prefix: "/api" } },
+  });
+  apiService.setResponseEnvelopers(csvEnvelopers);
+  apiService
+    .group("api")
+    .get("/csv")
+    .registerTyped({}, (req, ctx) => {
+      // 经 raw 手动写非 JSON 响应（CSV），调 markSent 告知 enveloper 跳过
+      const res = (ctx.reply.raw as { res: { setHeader: (n: string, v: string) => void; end: (b: string) => void } })
+        .res;
+      res.setHeader("Content-Type", "text/csv");
+      res.end("a,b\n1,2");
+      ctx.reply.markSent();
+    });
+  const app = express();
+  app.use(express.json());
+  apiService.bind({ adapter: expressAdapter, app, router: express.Router });
+
+  it("raw 写 CSV + markSent → 响应体是原始 CSV，非信封", async () => {
+    const res = await request(app).get("/api/csv");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.text).toBe("a,b\n1,2");
+  });
+});
+
+describe("enveloper + markSent 逃生舱 - @leizm/web", () => {
+  const apiService = lib({
+    forceGroup: true,
+    info: { basePath: "" },
+    groups: { api: { name: "api", prefix: "/api" } },
+  });
+  apiService.setResponseEnvelopers(csvEnvelopers);
+  apiService
+    .group("api")
+    .get("/csv")
+    .registerTyped({}, (req, ctx) => {
+      const raw = ctx.reply.raw as {
+        response: { setHeader: (n: string, v: string) => void; end: (b: string) => void };
+      };
+      raw.response.setHeader("Content-Type", "text/csv");
+      raw.response.end("a,b\n1,2");
+      ctx.reply.markSent();
+    });
+  const app = new Application();
+  app.use("/", component.bodyParser.json());
+  apiService.bind({ adapter: leizmwebAdapter, app, router: Router });
+
+  it("raw 写 CSV + markSent → 响应体是原始 CSV，非信封", async () => {
+    const res = await request(app.server).get("/api/csv");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.text).toBe("a,b\n1,2");
+  });
+});
+
+describe("enveloper + markSent 逃生舱 - Koa", () => {
+  const apiService = lib({
+    forceGroup: true,
+    info: { basePath: "" },
+    groups: { api: { name: "api", prefix: "/api" } },
+  });
+  apiService.setResponseEnvelopers(csvEnvelopers);
+  apiService
+    .group("api")
+    .get("/csv")
+    .registerTyped({}, (req, ctx) => {
+      // Koa：用原生 ctx 赋值写响应（Koa 惯例：ctx.type + ctx.body 均为 setter），markSent 阻止 enveloper 覆盖
+      const raw = ctx.reply.raw as { type: string; body: unknown };
+      raw.type = "text/csv";
+      raw.body = "a,b\n1,2";
+      ctx.reply.markSent();
+    });
+  const app = new Koa();
+  apiService.bind({ adapter: koaAdapter, app, router: KoaRouter });
+
+  it("raw 写 CSV + markSent → 响应体是原始 CSV，非信封", async () => {
+    const res = await request(app.callback()).get("/api/csv");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.text).toBe("a,b\n1,2");
   });
 });
 

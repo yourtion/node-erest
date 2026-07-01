@@ -152,7 +152,17 @@ export class TestAgent {
     return this;
   }
 
-  /** 添加输入参数 */
+  /**
+   * 添加输入参数。
+   *
+   * 方法归属约定（HTTP 语义 + 浏览器/fetch 兼容）：
+   * - GET / DELETE：归为 query（URL ?k=v）。HTTP DELETE 带 body 有争议，
+   *   fetch/浏览器/代理普遍不保证传递 DELETE body，故统一走 query。
+   * - POST / PUT / PATCH：归为 body（JSON）。
+   *
+   * 因此注册 DELETE 路由时，schema 应从 query 读取参数（非 body）：
+   *   api.delete('/items/:id').registerTyped({ query: z.object({ confirm: z.boolean() }) }, ...)
+   */
   public input(data: Record<string, unknown>) {
     this.debug("input: %j", data);
     Object.assign(this.options.agentInput, data);
