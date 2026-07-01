@@ -7,6 +7,7 @@
  * 内容被写入 swagger.json（与 swagger 插件冲突、互相覆盖）。
  */
 import { describe, expect, test } from "vitest";
+import { z } from "zod";
 import generateAxios from "../lib/plugin/generate_axios";
 import generatePostman from "../lib/plugin/generate_postman";
 import generateSwagger from "../lib/plugin/generate_swagger";
@@ -55,5 +56,54 @@ describe("文档插件文件名解析", () => {
 
     generatePostman(docData, "/out", { postman: true } as any, writer);
     expect(written[0]).toContain("postman.json");
+  });
+});
+
+describe("axios SDK 路径参数生成（issue #27）", () => {
+  function captureAxios(api: Record<string, unknown>) {
+    let captured = "";
+    const writer = (_p: string, data: string) => (captured = data);
+    generateAxios(
+      {
+        info: { title: "t", description: "d", host: "http://x", basePath: "" },
+        group: {},
+        types: {},
+        apis: { "get_/posts/:id": { method: "get", title: "t", ...api } },
+      } as any,
+      "/out",
+      { axios: "sdk.js" } as any,
+      writer
+    );
+    return captured;
+  }
+
+  test("声明了 paramsSchema 时，路径参数出现在函数签名里", () => {
+    const sdk = captureAxios({
+      realPath: "/posts/:id",
+      paramsSchema: z.object({ id: z.number() }),
+    });
+    // 函数签名应包含 id 参数
+    expect(sdk).toMatch(/getPostsId\(\s*id/);
+    // 请求路径应使用模板插值（生成器把 :id 转成 ${id}，输出带转义反斜杠）
+    expect(sdk).toContain("/posts/");
+    expect(sdk).toContain("id\\}");
+  });
+
+  test("路径含 :id 但未声明 paramsSchema 时，签名仍应补全路径参数（避免生成引用未定义变量的坏代码）", () => {
+    const sdk = captureAxios({
+      realPath: "/posts/:id",
+      // 没有 paramsSchema
+    });
+    expect(sdk).toMatch(/getPostsId\(\s*id/);
+    expect(sdk).toContain("/posts/");
+    expect(sdk).toContain("id\\}");
+  });
+
+  test("无路径参数时，签名不含多余的路径参数", () => {
+    const sdk = captureAxios({
+      realPath: "/posts",
+    });
+    expect(sdk).toMatch(/getPosts\(\s*\)/);
+    expect(sdk).toContain("'/posts'");
   });
 });
