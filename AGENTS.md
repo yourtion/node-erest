@@ -58,5 +58,11 @@ packages/             # v3.0：框架适配器实现独立子包（npm scope @er
 4. **hook 是观察者** —— 同步、不参与控制流、异常被吞掉。无订阅者时 dispatch 裁剪掉 hook 调用（零开销）。
 5. **breaking change 登记 MIGRATION.md** —— 公开 API 变动同步更新迁移指南。
 6. **`_def` 读取集中** —— Zod 内部结构（`_def.type`/`_def.typeName`/`_def.shape`）只在 `plugin/zod-meta.ts` 读取，且必须通过 `getZodTypeName`/`getZodShape`/`getZodInner`/`extractDocFields` 工具函数（双轨兼容 Zod 3 与 Zod 4）。其他文件禁止直接读 `_def`。
+7. **改了就 bump 版本** —— 任何涉及公开 API（接口/类型/行为/依赖声明）的改动，**必须同步 bump 版本号**，不能只改代码不留版本痕迹：
+   - 根包 `erest` 与受影响的子包（`packages/erest-{express,koa,leizmweb,gen}/`）的 `version` 字段一起改，保持一致（`pnpm publish -r` 整体发布，版本不齐会乱）。
+   - 语义化版本：bug 修复/文档/非 breaking 新增 → patch（x.y.Z）；新增向后兼容能力 → minor（x.Y.0）；breaking → major（X.0.0）。
+   - 同步在 `MIGRATION.md` 加对应版本章节（即使非 breaking 也要登记新增/修复项）。
+   - 发版用 `pnpm run publish:all`（`pnpm publish -r --no-git-checks`，`prepublishOnly` 会先跑 format + test）。
+   - 反例：只改了 `Reply.markSent()` 实现 + MIGRATION 登记，却忘了把 `3.2.0` 改成 `3.2.1` —— 这种「代码动了版本没动」会让下游无法通过版本号判断是否包含修复，必须避免。
 
 > API 用法（registerTyped/bind/hooks/schema.register 等）与测试/构建命令见 README.md，此处不再重复。
