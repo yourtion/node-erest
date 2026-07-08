@@ -21,6 +21,7 @@
 | `response()` schema | `src/api.js` | 用户列表 API 声明响应 schema |
 | 分层参数 | `src/api.js` | `PUT /posts/:id` 的 path id 与 body 互不覆盖 |
 | 文档生成 `genDocs` | `docs/generate.js` | swagger / postman / markdown / axios SDK |
+| 测试驱动文档 `takeExample` + `genDocs` | `docs/generate-from-test.js` | test-agent 跑真实请求 → 文档 ✅ + 真实示例 |
 | 测试集成 `initTest` + `api.test` | `test/api.test.js` | vitest 写 success / error / takeExample |
 
 ## 目录结构
@@ -38,7 +39,8 @@ examples/
 │       ├── express.js  # Express 入口
 │       └── koa.js      # Koa 入口
 ├── docs/
-│   └── generate.js     # 文档生成脚本（npm run docs）
+│   ├── generate.js           # 文档生成脚本（npm run docs，mock 模式）
+│   └── generate-from-test.js # 测试驱动文档（npm run docs:test，✅ + 真实示例）
 ├── test/
 │   └── api.test.js     # vitest 测试套件（npm test）
 ├── types/
@@ -113,6 +115,20 @@ pnpm --filter erest-example docs   # 生成到 docs/out/
 - `postman.json` — Postman Collection
 - `Home.md` + 各组 `.md` + `errors.md` / `schema.md` / `types.md` — Markdown 文档
 - `sdk.js` — 基于 axios 的前端 SDK
+
+> 上面的 `npm run docs` 不跑测试，markdown 里所有 API 显示 ❌、无示例（mock 模式）。
+
+### 测试驱动文档（✅ + 真实示例）
+
+```bash
+pnpm --filter erest-example docs:test   # 生成到 docs/out-from-test/
+```
+
+用 test-agent 跑真实请求（`.success().takeExample()`），让文档通过测试变绿：
+
+- 被测路由显示 **✅**（`tested` 标记翻转），未测的保持 ❌
+- 「使用示例」段落的 `output` 是 **真实响应**（非 mock）
+- 详见 [docs/generate-from-test.js](./docs/generate-from-test.js)，根 README 的「测试驱动的文档」章节有原理说明
 
 ## 设计说明：handler 与 hooks 均框架无关
 
