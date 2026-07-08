@@ -402,6 +402,64 @@ it('应拒绝未成年用户', async () => {
 });
 ```
 
+`.takeExample(name)` 在 `.success()` 前调用，会把这次请求的真实 `input`/`headers`/`output` 回填为该路由的文档示例（见下节「测试驱动的文档」）：
+
+```typescript
+it('创建用户并记录示例', async () => {
+  await api.test.post('/api/users')
+    .input({ name: 'Tom', email: 'tom@example.com', age: 20 })
+    .takeExample('正常创建')   // 真实响应被存为该路由的文档示例
+    .success();
+});
+```
+
+## 测试驱动的文档
+
+测试脚手架与文档生成是**联动**的——这是 erest「测试即文档」的设计：用 test-agent 跑过的路由，
+生成的 markdown 文档里会显示 ✅（而非 ❌），`.takeExample()` 记录的真实请求/响应会成为文档示例。
+
+**两个标记的来源：**
+
+| 行为 | 效果 | 对应 API |
+|------|------|----------|
+| `.success()` / `.error()` / `.raw()` 读取响应 | 该路由 `tested = true` → markdown 标题显示 ✅ | `agent.output()` 内部设置 |
+| `.takeExample(name)`（`.success()` 前） | 真实 input/headers/output 存为该路由 example → 文档「使用示例」段落 | `agent.saveExample()` |
+
+不跑任何测试、直接 `genDocs()` 时，所有路由是 ❌、无示例（`generate.js` 的 mock 模式）；
+跑过 test-agent 后，被测路由变 ✅ 且带真实数据。
+
+**完整示例**（[examples/docs/generate-from-test.js](./examples/docs/generate-from-test.js)）：
+
+```typescript
+const api = new ERest({
+  info: { /* ... */ },
+  groups: { /* ... */ },
+  docs: { markdown: true, wiki: true, index: true },  // 开启 markdown 文档生成
+});
+registerApi(api, store, { /* hooks */ });
+api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
+api.initTest(app);
+
+// 用 test-agent 跑真实请求：翻转 tested(✅) + 回填真实示例
+await api.test.get('/public/posts').takeExample('文章列表').success();
+await api.test.post('/posts/posts')
+  .headers({ 'X-Admin-Token': 'user-token' })
+  .input({ slug: 'new', title: '新文章', content: '内容' })
+  .takeExample('创建文章')
+  .success();
+
+// 落盘：✅ 标记与真实示例一并写入 markdown
+api.genDocs('./docs/out-from-test/', false);
+```
+
+**运行：**
+
+```bash
+pnpm --filter erest-example docs:test    # 测试驱动文档（✅ + 真实示例）
+pnpm --filter erest-example docs         # 对比：mock 文档（全 ❌、无示例）
+```
+
+
 ## 类型安全的 Handler：`registerTyped`
 
 `register()` 的 handler 入参无类型，需要手动断言。`registerTyped()` 基于 Zod schema 自动推导
