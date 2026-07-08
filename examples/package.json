@@ -12,7 +12,8 @@
     "dev:express": "node --watch src/entries/express.js",
     "dev:koa": "node --watch src/entries/koa.js",
     "test": "vitest run",
-    "docs": "node docs/generate.js"
+    "docs": "node docs/generate.js",
+    "docs:test": "node docs/generate-from-test.js"
   },
   "dependencies": {
     "@leizm/web": "^2.7.0",
