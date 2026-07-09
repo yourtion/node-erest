@@ -350,3 +350,9 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 ### 影响范围
 
 仅文档生成器（`generate_swagger` / `generate_postman`），不涉及运行时校验、路由绑定或类型推导。已声明 response schema 的项目重新生成文档即可看到变化；未声明的项目输出与之前完全一致。
+
+## v3.2.5 — Markdown 文档展示中间件（issue #4）
+
+### 新增（非 breaking）
+
+- **Markdown 文档输出路由的中间件函数名列表**：`middlewares` 此前已通过 `.middlewares()` 注册并经 `DOC_FIELD` 采集进文档数据，但四个生成器无一渲染。现 Markdown 在「请求地址」行下方输出 `中间件：`<fn1>`, `<fn2>``（取具名函数的 `fn.name`，匿名函数跳过），便于在文档中看到路由的处理链。Swagger/Postman 不受影响（OpenAPI 标准无中间件字段，强行加入反而不被消费方识别）。
