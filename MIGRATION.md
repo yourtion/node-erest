@@ -338,3 +338,15 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 ### Breaking
 
 - **`zod` 从 `dependencies` 改为 `peerDependencies`**：作为 schema 校验库，erest 不应硬钉死 zod 版本，应由宿主项目统一提供。此前 erest 把 `zod@^4.0.5` 列为 hard dependency，导致任何 link/依赖 erest 的项目出现两份 zod 副本（erest 自带的 + 宿主的），TS 因 zod 版本字面量标记不同而报类型不兼容。**迁移**：宿主项目须在自身 `dependencies` 显式声明 `zod`（版本 `^4.0.0`）。adapter 子包（`@erest/express` 等）不直接依赖 zod，无需改动。
+
+
+## v3.2.2 — 文档展示返回结果 schema（Swagger / Postman）
+
+### 新增（非 breaking）
+
+- **Swagger 文档的 `responses.200` 输出 response schema**：此前 Swagger 的 responses 写死为 `{ 200: { description: "请求成功" } }`，完全忽略 builder 声明的 `.response()` / `registerTyped({ response })`。现在当 API 声明了 response schema 时，`responses.200.schema` 会输出标准的 Swagger 2.0 schema（含 `type/properties/required`，支持 string/number/boolean/array/enum/date 等 Zod 类型推断）；未声明时保持原有占位行为不变。复用 `extractDocFields`，与参数提取保持一致。
+- **Postman 文档的 item 输出 response 示例**：此前 Postman Collection 只生成 request，不输出 response。现在当 API 声明了 response schema 时，每个 item 会带一个 `response` 数组，含按 schema 字段名 + 类型推断生成的占位示例 body（Postman 可直接用作 mock）；未声明时不输出 `response` 字段。
+
+### 影响范围
+
+仅文档生成器（`generate_swagger` / `generate_postman`），不涉及运行时校验、路由绑定或类型推导。已声明 response schema 的项目重新生成文档即可看到变化；未声明的项目输出与之前完全一致。
