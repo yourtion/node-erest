@@ -350,3 +350,9 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 ### 影响范围
 
 仅文档生成器（`generate_swagger` / `generate_postman`），不涉及运行时校验、路由绑定或类型推导。已声明 response schema 的项目重新生成文档即可看到变化；未声明的项目输出与之前完全一致。
+
+## v3.2.4 — Markdown 文档展示源码位置（issue #5）
+
+### 新增（非 breaking）
+
+- **Markdown 文档在每个 API 标题块下输出源码位置**：`sourceFile`（含 `relative`/`absolute`，由 `getCallerSourceLine` 在路由注册时解析 Error.stack 采集）此前已在 API 构造时记录，但未纳入 `DOC_FIELD`，文档生成器拿不到。现将其加入 `DOC_FIELD`，并在 Markdown 的「请求地址」行下方输出 `源码位置：`<relative>``，便于从文档快速定位到定义代码。无 `sourceFile` 时不输出该行，行为与之前一致。

@@ -109,6 +109,12 @@ export default function apiDocs(data: IDocData) {
     const line = [`## ${tit} ${tested}`];
     line.push(`\n请求地址：**${method}** \`${item.realPath}\``);
 
+    // 源码位置（issue #5）：sourceFile 由 getCallerSourceLine 在注册时采集
+    const sourceRel = (item.sourceFile as { relative?: string } | undefined)?.relative;
+    if (sourceRel) {
+      line.push(`\n源码位置：\`${sourceRel}\``);
+    }
+
     if (item.description) {
       line.push(
         (item.description as string)
