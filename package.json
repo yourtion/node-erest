@@ -86,7 +86,7 @@
     "koa-router": "^13.1.1",
     "lint-staged": "^17.0.8",
     "memfs": "^4.36.0",
-    "oxfmt": "0.56.0",
+    "oxfmt": "0.67.0",
     "oxlint": "1.71.0",
     "typedoc": "^0.28.19",
     "typescript": "^5.8.3",
