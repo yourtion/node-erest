@@ -3,7 +3,7 @@
   "testRunner": "vitest",
   "plugins": ["@stryker-mutator/vitest-runner"],
   "mutate": ["src/lib/**/*.ts"],
-  "reporters": ["html", "clear-text", "progress"],
+  "reporters": ["html", "clear-text", "progress", "json"],
   "ignorePatterns": ["coverage", "dist", "docs", "examples", "packages"],
   "timeoutMS": 10000
 }

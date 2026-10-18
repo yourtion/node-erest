@@ -163,3 +163,158 @@ describe("zod-meta: extractDocFields", () => {
     expect(extractDocFields(z.string(), "body")).toEqual([]);
   });
 });
+
+// ============ 以下为 Stryker mutant 补测（源自 test-mutation-params-misc.ts 迁移） ============
+
+/** 构造带任意 _def 的假 schema（顶层需通过 isZodSchema：有 _def + parse 函数） */
+const fakeSchema = (def: unknown) => ({ _def: def, parse: () => ({ success: true }) }) as never;
+
+/** 构造带指定 shape 的假 ZodObject */
+const fakeObject = (shape: Record<string, unknown>) => fakeSchema({ type: "object", shape });
+
+/** 从假对象提取单字段（便捷断言） */
+const oneField = (fieldDef: unknown, place = "body") => {
+  const [field] = extractDocFields(fakeObject({ f: { _def: fieldDef } }), place);
+  return field;
+};
+
+describe("zod-meta: getEnumEntries 双轨（values/entries）", () => {
+  test("Zod 4 entries 对象 → Object.keys", () => {
+    expect(oneField({ type: "enum", entries: { RED: 0, GREEN: 1 } }).enumValues).toEqual(["RED", "GREEN"]);
+  });
+
+  test("entries 为非对象（字符串）时忽略，回退 values → undefined", () => {
+    const field = oneField({ type: "enum", entries: "abc" });
+    expect(field.type).toBe("enum");
+    expect(field.enumValues).toBeUndefined();
+  });
+
+  test("Zod 3 values 数组 → map(String)", () => {
+    expect(oneField({ type: "enum", values: ["x", "y"] }).enumValues).toEqual(["x", "y"]);
+  });
+
+  test("Zod 3 values 对象（nativeEnum 形态）→ Object.keys", () => {
+    expect(oneField({ type: "enum", values: { A: 1, B: 2 } }).enumValues).toEqual(["A", "B"]);
+  });
+
+  test("Zod 3 typeName=ZodEnum + entries → enum 类型 + 取值", () => {
+    const field = oneField({ typeName: "ZodEnum", entries: { RED: 0 } });
+    expect(field.type).toBe("enum");
+    expect(field.enumValues).toEqual(["RED"]);
+  });
+
+  test("真实 z.enum 仍正常", () => {
+    const [field] = extractDocFields(z.object({ c: z.enum(["a", "b"]) }), "query");
+    expect(field.type).toBe("enum");
+    expect(field.enumValues).toEqual(["a", "b"]);
+  });
+});
+
+describe("zod-meta: inferTypeName 字面量/包装类型分支", () => {
+  test("literal → string（Zod 3 与 Zod 4 双轨）", () => {
+    expect(oneField({ typeName: "ZodLiteral" }).type).toBe("string");
+    expect(oneField({ type: "literal" }).type).toBe("string");
+    const [field] = extractDocFields(z.object({ l: z.literal("v") }), "body");
+    expect(field.type).toBe("string");
+  });
+
+  test("ZodDate → date + format date-time（Zod 3 大驼峰）", () => {
+    const field = oneField({ typeName: "ZodDate" });
+    expect(field.type).toBe("date");
+    expect(field.format).toBe("date-time");
+  });
+
+  test("optional/default/nullable 递归内层类型（Zod 3 大驼峰）", () => {
+    expect(oneField({ typeName: "ZodOptional", innerType: z.string() }).type).toBe("string");
+    expect(oneField({ typeName: "ZodDefault", innerType: z.number() }).type).toBe("number");
+    expect(oneField({ typeName: "ZodNullable", innerType: z.boolean() }).type).toBe("boolean");
+  });
+
+  test("真实 zod4 default 字段类型取内层（不再 'default'）", () => {
+    const [field] = extractDocFields(z.object({ d: z.string().default("x") }), "body");
+    expect(field.type).toBe("string");
+    expect(field.required).toBe(false);
+  });
+
+  test("effects/pipeline 递归输入 schema（Zod 3 大驼峰 + Zod 4 小写）", () => {
+    expect(oneField({ typeName: "ZodEffects", schema: z.number() }).type).toBe("number");
+    expect(oneField({ type: "effects", in: z.date() }).type).toBe("date");
+    expect(oneField({ typeName: "ZodPipeline", in: z.array(z.string()) }).type).toBe("array");
+    expect(oneField({ type: "pipe", in: z.string() }).type).toBe("string");
+  });
+
+  test("union 取首个分支类型（Zod 3 大驼峰）", () => {
+    expect(oneField({ typeName: "ZodUnion", options: [z.number(), z.string()] }).type).toBe("number");
+  });
+
+  test("optional 无 innerType → unknown（不抛错）", () => {
+    expect(oneField({ type: "optional" }).type).toBe("unknown");
+    expect(oneField({ typeName: "ZodDefault" }).type).toBe("unknown");
+  });
+
+  test("effects/pipe 无目标 schema → unknown（不抛错）", () => {
+    expect(oneField({ type: "pipe" }).type).toBe("unknown");
+    expect(oneField({ typeName: "ZodEffects" }).type).toBe("unknown");
+  });
+
+  test("union 无 options 或空 options → unknown（不抛错）", () => {
+    expect(oneField({ type: "union" }).type).toBe("unknown");
+    expect(oneField({ type: "union", options: [] }).type).toBe("unknown");
+  });
+
+  test("字段 schema 缺 _def → unknown（不抛 TypeError）", () => {
+    const [field] = extractDocFields(fakeObject({ f: {} }), "body");
+    expect(field.type).toBe("unknown");
+    expect(field.required).toBe(true);
+  });
+});
+
+describe("zod-meta: inferTypeName default 兜底归一化", () => {
+  test("未识别的 Zod 4 小写类型名原样返回", () => {
+    const [field] = extractDocFields(z.object({ big: z.bigint() }), "body");
+    expect(field.type).toBe("bigint");
+  });
+
+  test("Zod 3 大驼峰类型名去掉 Zod 前缀 + 小写", () => {
+    expect(oneField({ typeName: "ZodBigInt" }).type).toBe("bigint");
+  });
+
+  test("仅去掉开头的 Zod 前缀（正则锚定 ^）", () => {
+    expect(oneField({ typeName: "MyZodType" }).type).toBe("myzodtype");
+  });
+
+  test("typeName 缺失 → unknown", () => {
+    expect(oneField({}).type).toBe("unknown");
+  });
+});
+
+describe("zod-meta: 空对象与形状读取", () => {
+  test("getZodShape：缺 _def / shape 为函数 → undefined（不抛错）", () => {
+    expect(getZodShape({})).toBeUndefined();
+    expect(getZodShape(fakeSchema({ shape: () => ({}) }))).toBeUndefined();
+  });
+
+  test("getZodInner：缺 _def → undefined（不抛错）", () => {
+    expect(getZodInner({} as never)).toBeUndefined();
+  });
+
+  test("extractDocFields：非对象 schema 返回 []", () => {
+    expect(extractDocFields(z.string(), "body")).toEqual([]);
+    expect(extractDocFields({ parse: () => ({}) } as never, "body")).toEqual([]);
+  });
+
+  test("extractDocFields 字段全形状（含 Zod 3 typeName）", () => {
+    const fields = extractDocFields(fakeObject({ s: { _def: { typeName: "ZodString" } } }), "query");
+    expect(fields).toStrictEqual([
+      {
+        name: "s",
+        place: "query",
+        type: "string",
+        required: true,
+        comment: undefined,
+        enumValues: undefined,
+        format: undefined,
+      },
+    ]);
+  });
+});

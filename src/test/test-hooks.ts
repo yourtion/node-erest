@@ -3,6 +3,7 @@ import { expressAdapter } from "./adapters";
 import express from "express";
 import { describe, test, expect } from "vitest";
 import { z } from "zod";
+import { hasHooks } from "../lib/hooks.js";
 import lib from "./lib.js";
 
 /** 启动 express 服务并发起请求的辅助 */
@@ -90,5 +91,30 @@ describe("Lifecycle Hooks", () => {
     // hook 抛错被吞掉，请求正常完成
     expect(ret.status).toBe(200);
     expect(ret.body).toBe("ok");
+  });
+});
+
+describe("hasHooks 空订阅裁剪（单元级）", () => {
+  test("undefined 与空对象返回 false", () => {
+    expect(hasHooks(undefined)).toBe(false);
+    expect(hasHooks({})).toBe(false);
+  });
+
+  test("仅注册单个 hook 也返回 true", () => {
+    expect(hasHooks({ onRequest: () => {} })).toBe(true);
+    expect(hasHooks({ onValidate: () => {} })).toBe(true);
+    expect(hasHooks({ onError: () => {} })).toBe(true);
+    expect(hasHooks({ onResponse: () => {} })).toBe(true);
+  });
+
+  test("全部注册返回 true", () => {
+    expect(
+      hasHooks({
+        onRequest: () => {},
+        onValidate: () => {},
+        onError: () => {},
+        onResponse: () => {},
+      })
+    ).toBe(true);
   });
 });
