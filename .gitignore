@@ -20,6 +20,10 @@ packages/*/src/*.d.ts
 coverage/
 .nyc_output/
 
+# 变异测试（Stryker）
+.stryker-tmp/
+reports/
+
 # 日志
 *.log
 npm-debug.log*

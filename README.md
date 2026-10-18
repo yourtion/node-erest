@@ -693,6 +693,20 @@ examples 作为 pnpm workspace 子包，通过 `erest: workspace:*` 引用本地
 自定义错误注册、自定义 type/schema 注册、`define()` 声明式、`mock()`、`response()` schema、
 分层参数、文档生成、测试集成。详见 `examples/README.md`。
 
+## 开发
+
+```bash
+pnpm install
+pnpm run test:lib     # 直接跑源码测试（ISLIB=1，无需先 build）
+pnpm run test:cov     # 覆盖率报告
+pnpm run mutation     # 变异测试（Stryker + vitest），全量约 20-40 分钟
+pnpm run mutation:incremental  # 增量模式：只测上次以来变动的代码
+```
+
+变异测试基于 [StrykerJS](https://stryker-mutator.io/)（配置见 `stryker.config.json`，变异范围为
+`src/lib/**`），HTML 报告输出到 `reports/mutation/mutation.html`。变异分数衡量「测试集能否杀死
+被注入的缺陷」，用于发现覆盖漏网与断言不足；分数参考即可，不必追求 100%。
+
 ## API 文档
 
 线上文档站（typedoc 产物）由 CI 自动构建部署：
