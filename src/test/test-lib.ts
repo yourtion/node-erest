@@ -438,6 +438,15 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
       expect(absolute).toBeUndefined();
     });
 
+    test("getCallerSourceLine：ESM/vitest 无括号栈帧（file:// URL）也能定位到源文件", () => {
+      // ESM 栈帧形如 `at /abs/path/file.ts:1:1`（无圆括号），修复前恒返回 undefined。
+      // 传调用者所在目录（与 index.ts 内 getCallerSourceLine(__dirname) 用法一致），
+      // 跳过 utils.ts 自身帧后命中本测试文件。
+      const { relative, absolute } = getCallerSourceLine(`${process.cwd()}/src/test`);
+      expect(absolute).toMatch(/src[/\\]test[/\\]test-lib\.ts$/);
+      expect(relative).toBe("test-lib.ts");
+    });
+
     test("getPath", () => {
       const p = getPath("Yourtion", "/a");
       expect(p).toBe("/a");

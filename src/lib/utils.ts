@@ -3,6 +3,7 @@
  * @author Yourtion Guo <yourtion@gmail.com>
  */
 import { resolve as pathResolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export interface ISupportMethds<T> {
   get: T;
@@ -25,8 +26,13 @@ export function getCallerSourceLine(dir: string): SourceResult {
   for (let line of stack) {
     line = line.trim();
     if (line.replace(/\\/g, "/").indexOf(resolvedDir) !== -1) {
-      const s = line.match(/\((.*)\)\s*$/);
-      if (s) return { relative: s[1].slice(resolvedDir.length + 1), absolute: s[1] };
+      // CJS 风格栈帧：`at fn (/path/file.ts:1:1)`（取括号内）；
+      // ESM 栈帧无括号：`at file:///path/file.ts:1:1`（取行尾 URL，去 file:// 前缀统一为纯路径）
+      const s = line.match(/\((.*):\d+:\d+\)\s*$/) || line.match(/^(?:at\s+)?(\S+):\d+:\d+$/);
+      if (s) {
+        const absolute = s[1].startsWith("file://") ? fileURLToPath(s[1]) : s[1];
+        return { relative: absolute.slice(resolvedDir.length + 1), absolute };
+      }
     }
   }
   return { relative: undefined, absolute: undefined };
@@ -40,17 +46,7 @@ export function getSchemaKey(method: string, path: string, prefix?: string): str
 
 /** 返回安全的JSON字符串 */
 export function jsonStringify(data: object, space: string | number) {
-  // const seen: any[] = [];
-  return JSON.stringify(
-    data,
-    (_, val) => {
-      if (!val || typeof val !== "object") return val;
-      // if (seen.indexOf(val) !== -1) return "[Circular]";
-      // seen.push(val);
-      return val;
-    },
-    space
-  );
+  return JSON.stringify(data, undefined, space);
 }
 
 /** 获取路径 */

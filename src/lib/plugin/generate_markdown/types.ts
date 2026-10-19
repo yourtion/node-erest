@@ -23,9 +23,6 @@ export default function typeDocs(data: IDocData) {
     }
   }
 
-  defaultTypes.sort();
-  customTypes.sort();
-
   const typeList: string[] = [];
 
   const tableHead = tableHeader(["类型", "描述", "检查", "格式化", "解析"]);

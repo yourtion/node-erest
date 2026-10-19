@@ -9,7 +9,18 @@
  */
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
-import { extractDocFields, getZodInner, getZodShape, getZodTypeName } from "../lib/plugin/zod-meta";
+import {
+  extractDocFields,
+  getZodDefaultValue,
+  getZodElement,
+  getZodEnumValues,
+  getZodInner,
+  getZodLazyGetter,
+  getZodOptions,
+  getZodShape,
+  getZodTypeName,
+  resolveZodShape,
+} from "../lib/plugin/zod-meta";
 
 describe("zod-meta: getZodTypeName", () => {
   test("读取各基础类型的规范化类型名", () => {
@@ -316,5 +327,60 @@ describe("zod-meta: 空对象与形状读取", () => {
         format: undefined,
       },
     ]);
+  });
+});
+
+describe("zod-meta: 新增访问器（_def 读取集中的配套导出）", () => {
+  const obj = z.object({ a: z.string(), b: z.number().optional() });
+  // Zod 3 风格的函数形态 shape（getter 惰性求值）
+  const fnShapeObj = { _def: { typeName: "ZodObject", shape: () => ({ x: { _def: { typeName: "ZodString" } } }) } };
+
+  test("resolveZodShape：对象形态直接返回，函数形态调用求值，非对象返回 undefined", () => {
+    expect(Object.keys(resolveZodShape(obj) ?? {})).toEqual(["a", "b"]);
+    expect(Object.keys(resolveZodShape(fnShapeObj) ?? {})).toEqual(["x"]);
+    expect(resolveZodShape(z.string())).toBeUndefined();
+    expect(resolveZodShape(undefined)).toBeUndefined();
+    // getZodShape（保守版）对函数形态返回 undefined，与 resolve 行为形成对照
+    expect(getZodShape(fnShapeObj)).toBeUndefined();
+  });
+
+  test("getZodElement：读取数组元素 schema，非数组返回 undefined", () => {
+    expect(getZodTypeName(getZodElement(z.array(z.string())))).toBe("string");
+    expect(getZodElement(z.object({}))).toBeUndefined();
+    expect(getZodElement(undefined)).toBeUndefined();
+  });
+
+  test("getZodEnumValues：Zod 4 entries / Zod 3 values 数组 / values 对象 / 非枚举 undefined", () => {
+    expect(getZodEnumValues(z.enum(["red", "green"]))).toEqual(["red", "green"]);
+    expect(getZodEnumValues({ _def: { typeName: "ZodEnum", values: ["a", "b"] } })).toEqual(["a", "b"]);
+    expect(getZodEnumValues({ _def: { typeName: "ZodEnum", values: { A: 1, B: 2 } } })).toEqual(["A", "B"]);
+    expect(getZodEnumValues(z.string())).toBeUndefined();
+    expect(getZodEnumValues(undefined)).toBeUndefined();
+  });
+
+  test("getZodOptions：读取 union 分支，非 union 返回 undefined", () => {
+    const opts = getZodOptions(z.union([z.string(), z.number()]));
+    expect(opts?.map((o) => getZodTypeName(o))).toEqual(["string", "number"]);
+    expect(getZodOptions(z.object({}))).toBeUndefined();
+    expect(getZodOptions(undefined)).toBeUndefined();
+  });
+
+  test("getZodDefaultValue：读取默认值（含 falsy 0/false），函数默认值原样返回", () => {
+    expect(getZodDefaultValue(z.number().default(0))).toBe(0);
+    expect(getZodDefaultValue(z.boolean().default(false))).toBe(false);
+    expect(getZodDefaultValue(z.string().default("x"))).toBe("x");
+    // zod 4 的 .default(fn) 立即求值存结果；函数形态仅 Zod 3 伪造结构可达
+    expect(getZodDefaultValue(z.string().default(() => "lazy"))).toBe("lazy");
+    const fn = () => "lazy";
+    expect(getZodDefaultValue({ _def: { typeName: "ZodDefault", defaultValue: fn } })).toBe(fn);
+    expect(getZodDefaultValue(z.string())).toBeUndefined();
+    expect(getZodDefaultValue(undefined)).toBeUndefined();
+  });
+
+  test("getZodLazyGetter：读取 lazy 的 getter，非 lazy 返回 undefined", () => {
+    const inner = z.object({ a: z.string() });
+    expect(getZodTypeName(getZodLazyGetter(z.lazy(() => inner))?.())).toBe("object");
+    expect(getZodLazyGetter(z.string())).toBeUndefined();
+    expect(getZodLazyGetter(undefined)).toBeUndefined();
   });
 });

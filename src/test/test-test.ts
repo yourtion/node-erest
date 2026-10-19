@@ -453,7 +453,10 @@ describe("TestAgent 行为（fetch 驱动）", () => {
           res.end('{"a":1}');
           return;
         }
-        if (req.url!.includes("set-cookie")) {
+        if (req.url!.includes("multi-set-cookie")) {
+          // 数组形式下发两个独立 Set-Cookie 头（验证 agent 端不再相互覆盖）
+          res.setHeader("Set-Cookie", ["sid=abc; Path=/", "token=xyz; Path=/"]);
+        } else if (req.url!.includes("set-cookie")) {
           res.setHeader("Set-Cookie", "sid=abc; Path=/");
         }
         res.setHeader("content-type", "application/json");
@@ -501,17 +504,47 @@ describe("TestAgent 行为（fetch 驱动）", () => {
     expect(a.options.agentHeader).toEqual({ "x-t": "1" });
   });
 
-  test("attach 应把流写入 form、普通值字符串化且不丢失 agentInput", () => {
+  test("attach 应把普通值字符串化、流挂起待 request() 消费且不丢失 agentInput", () => {
     const a = makeAgent(erestA, "post", "/att", "POST_/att");
     const readable = new stream.Readable({ read() {} });
     a.attach({ f: "x", s: readable });
-    const form = (a as unknown as { state: { form: FormData } }).state.form;
+    const state = (a as unknown as { state: { form: FormData; pendingStreams: Array<[string, unknown]> } }).state;
     // 普通值走 String() 序列化分支
-    expect(form.get("f")).toBe("x");
-    // 流走 FormData 分支（非 null）
-    expect(form.get("s")).not.toBe(null);
+    expect(state.form.get("f")).toBe("x");
+    // 流不直接进 form（undici 会把非 Blob 对象隐式 String() 成 "[object Object]"），挂起待 request()
+    expect(state.form.get("s")).toBe(null);
+    expect(state.pendingStreams).toEqual([["s", readable]]);
     // 流字段被 delete，不进入 agentInput；普通字段保留
     expect(a.options.agentInput).toEqual({ f: "x" });
+  });
+
+  test("attach 流端到端：POST 后服务端收到流的完整内容（读尽为 Blob，不再丢失）", async () => {
+    const a = makeAgent(erestA, "post", "/upload", "POST_/upload");
+    const rs = stream.Readable.from(["hello ", "stream"]);
+    await a.attach({ f: "x", s: rs }).success();
+    const rec = last();
+    // multipart 请求：content-type 带 boundary
+    expect(String(rec.headers["content-type"])).toContain("multipart/form-data; boundary=");
+    // 请求体包含流字段的真实内容与普通字段值（修复前流被 String() 成 "[object Object]"）
+    expect(rec.body).toContain("hello stream");
+    expect(rec.body).toContain('name="f"');
+  });
+
+  test("GET + attach 应在请求时报错（GET 不能携带 body）", async () => {
+    const a = makeAgent(erestA, "get", "/att", "GET_/att");
+    a.attach({ f: "x" });
+    await expect(a.success()).rejects.toThrow(/attach\(\) 不支持 GET/);
+  });
+
+  test("多个 Set-Cookie 响应头不相互覆盖（getSetCookie 合并）", async () => {
+    let captured: Record<string, string> = {};
+    const a = makeAgent(erestA, "get", "/multi-set-cookie", "GET_/msc", undefined, (h) => {
+      captured = h;
+    });
+    await a.success();
+    // 修复前 forEach 逐条覆盖，jar 只剩最后一个；现在两个 cookie 都在合并后的头里
+    expect(captured["set-cookie"]).toContain("sid=abc");
+    expect(captured["set-cookie"]).toContain("token=xyz");
   });
 
   test("未注册 key 上 saveExample 应安全跳过", () => {

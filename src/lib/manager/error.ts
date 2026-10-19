@@ -38,7 +38,7 @@ export class ErrorManager extends Manager<IError> {
 
     assert(!this.codes.has(code), `code already exits: ${code}`);
 
-    debug("register: %s %j", name, error);
+    debug("register: %s %o", name, error);
     this.codes.add(code);
     this.map.set(name, { name, code, description, status, isDefault, isShow, isLog });
 
@@ -51,7 +51,12 @@ export class ErrorManager extends Manager<IError> {
     const old = this.map.get(name);
     assert(old?.isDefault, "only modify default error");
 
-    if (data.code) this.codes.add(data.code);
+    if (data.code) {
+      // 换新 code：校验不与其他错误冲突（排除自身旧 code），并释放旧 code 使其可被再次注册
+      assert(!this.codes.has(data.code) || data.code === old.code, `code already exits: ${data.code}`);
+      this.codes.delete(old.code);
+      this.codes.add(data.code);
+    }
     data.isDefault = false;
     this.map.set(name, Object.assign(old, data));
 

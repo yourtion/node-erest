@@ -10,7 +10,7 @@ import { plugin as debug } from "../../debug.js";
 import type { IDocData, IDocWritter } from "../../extend/docs.js";
 import type { IDocOptions } from "../../index.js";
 import { isZodSchema } from "../../params.js";
-import { extractDocFields } from "../zod-meta.js";
+import { extractDocFields, getZodInner, getZodTypeName, resolveZodShape } from "../zod-meta.js";
 import * as utils from "../../utils.js";
 
 type SCHEMA = "http" | "https" | "ws" | "wss";
@@ -101,15 +101,7 @@ function generateSwaggerSchemaDefinitions(data: IDocData, result: ISwaggerResult
   if (schemaRegistry && schemaRegistry.size > 0) {
     for (const [schemaName, zodSchema] of schemaRegistry.entries()) {
       if (isZodSchema(zodSchema)) {
-        const swaggerSchema = convertZodSchemaToSwagger(zodSchema);
-        // 确保对象类型能正确转换
-        if (swaggerSchema.type === "object" && Object.keys(swaggerSchema.properties).length === 0) {
-          // 如果是空对象，尝试重新解析
-          const reprocessedSchema = convertZodSchemaToSwagger(zodSchema);
-          result.definitions[schemaName] = reprocessedSchema;
-        } else {
-          result.definitions[schemaName] = swaggerSchema;
-        }
+        result.definitions[schemaName] = convertZodSchemaToSwagger(zodSchema);
       }
     }
   }
@@ -142,12 +134,10 @@ function convertZodSchemaToSwagger(zodSchema: ZodType): ISwaggerModels {
     return swaggerSchema;
   }
 
-  const typeName =
-    (zodSchema._def as { typeName?: string; type?: string }).typeName ||
-    (zodSchema._def as { typeName?: string; type?: string }).type;
+  const typeName = getZodTypeName(zodSchema);
 
   if (typeName === "ZodObject" || typeName === "object") {
-    const shape = (zodSchema as ZodType & { _def: { shape: Record<string, ZodType> } })._def.shape;
+    const shape = resolveZodShape(zodSchema) ?? {};
     const requiredFields: string[] = [];
 
     for (const [fieldName, fieldSchema] of Object.entries(shape)) {
@@ -179,7 +169,7 @@ function convertZodSchemaToSwagger(zodSchema: ZodType): ISwaggerModels {
 /**
  * 将 Zod 字段转换为 Swagger 属性
  */
-function convertZodFieldToSwagger(zodSchema: ZodType): {
+function convertZodFieldToSwagger(zodSchema: ZodType | undefined): {
   property: { type: string; format?: string; description: string };
   required: boolean;
 } {
@@ -192,9 +182,7 @@ function convertZodFieldToSwagger(zodSchema: ZodType): {
     return result;
   }
 
-  const typeName =
-    (zodSchema._def as { typeName?: string; type?: string }).typeName ||
-    (zodSchema._def as { typeName?: string; type?: string }).type;
+  const typeName = getZodTypeName(zodSchema);
 
   switch (typeName) {
     case "ZodString":
@@ -236,16 +224,14 @@ function convertZodFieldToSwagger(zodSchema: ZodType): {
       break;
     case "ZodOptional":
     case "optional": {
-      const innerInfo = convertZodFieldToSwagger((zodSchema._def as unknown as { innerType: ZodType }).innerType);
+      const innerInfo = convertZodFieldToSwagger(getZodInner(zodSchema));
       result.property = innerInfo.property;
       result.required = false;
       break;
     }
     case "ZodDefault":
     case "default": {
-      const defaultInnerInfo = convertZodFieldToSwagger(
-        (zodSchema._def as unknown as { innerType: ZodType }).innerType
-      );
+      const defaultInnerInfo = convertZodFieldToSwagger(getZodInner(zodSchema));
       result.property = defaultInnerInfo.property;
       result.required = false;
       break;
@@ -322,7 +308,7 @@ export function buildSwagger(data: IDocData) {
 
   const paths = result.paths as Record<string, unknown>;
   for (const [key, api] of Object.entries(data.apis)) {
-    const newPath = utils.getRealPath(key).replace(/:(\w+)/, "{$1}");
+    const newPath = utils.getRealPath(key).replace(/:(\w+)/g, "{$1}");
     if (!paths[newPath]) {
       paths[newPath] = {};
     }
@@ -340,6 +326,7 @@ export function buildSwagger(data: IDocData) {
 
     (sc[api.method as string] as Record<string, unknown>).parameters = [];
     const bodySchema: Record<string, unknown> = {};
+    const bodyRequired: string[] = [];
     let example = api.examples?.[0];
     if (api.examples && api.examples.length > 1) {
       for (const item of api.examples) {
@@ -385,9 +372,7 @@ export function buildSwagger(data: IDocData) {
           delete obj.name;
           delete obj.required;
           bodySchema[f.name] = obj;
-          if (f.required && Array.isArray(bodySchema.required)) {
-            bodySchema.required.push(f.name);
-          }
+          if (f.required) bodyRequired.push(f.name);
         } else {
           ((sc[api.method as string] as Record<string, unknown>).parameters as unknown[]).push(obj);
         }
@@ -396,7 +381,6 @@ export function buildSwagger(data: IDocData) {
 
     // POST 请求体汇总为单个 in:body 参数
     if (api.method === "post" && api.bodySchema) {
-      const required = Object.keys(bodySchema).filter((k) => k !== "required");
       ((sc[api.method as string] as Record<string, unknown>).parameters as unknown[]).push({
         in: "body",
         name: "body",
@@ -405,9 +389,10 @@ export function buildSwagger(data: IDocData) {
         schema: {
           type: "object",
           properties: bodySchema,
+          // 字段级必填信息收集进 schema.required（JSON Schema 语义），不再丢弃
+          ...(bodyRequired.length > 0 ? { required: bodyRequired } : {}),
         },
       });
-      void required;
     }
   }
   return result;

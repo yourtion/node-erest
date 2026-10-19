@@ -340,6 +340,42 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 - **`zod` 从 `dependencies` 改为 `peerDependencies`**：作为 schema 校验库，erest 不应硬钉死 zod 版本，应由宿主项目统一提供。此前 erest 把 `zod@^4.0.5` 列为 hard dependency，导致任何 link/依赖 erest 的项目出现两份 zod 副本（erest 自带的 + 宿主的），TS 因 zod 版本字面量标记不同而报类型不兼容。**迁移**：宿主项目须在自身 `dependencies` 显式声明 `zod`（版本 `^4.0.0`）。adapter 子包（`@erest/express` 等）不直接依赖 zod，无需改动。
 
 
+## v3.2.3 — 变异测试驱动的缺陷修复（文档生成器 / TestAgent / 工具函数）
+
+接入 StrykerJS 变异测试（`pnpm run mutation`）后，补测过程中发现并修复以下问题：
+
+### 修复（非 breaking）
+
+**文档生成器（生成物正确性）：**
+
+- **`generate_axios`：路径参数模板转义错误** —— 生成的 SDK 中 `` `/user/\$\{id\}` `` 因 `\$` 转义使插值退化为字面量文本，**所有路径参数方法的 URL 参数实际不生效**。修复后生成 `` `/user/${id}` ``，参数正常插值。
+- **`generate_swagger`：多参数路径只转换第一个占位符** —— `/:a/:b` 类路径的 `replace` 缺 `/g` 标志，只有 `:a` 变成 `{a}`。修复后全部转换。
+- **`generate_swagger`：POST body 字段级 required 信息丢失** —— 此前字段必填信息被 `delete` 丢弃（相关收集代码为死代码）。修复后聚合进 body 参数的 `schema.required`（JSON Schema 语义）。
+- **`generate_markdown`（schema）：zod 4 下数组元素恒显示 `unknown[]`、枚举取值恒为空** —— 直接读 `_def.type`/`_def.values`（zod 3 形态）导致。已改走 `zod-meta.ts` 双轨访问器（`_def.element` / `entries`），Zod 3 与 Zod 4 下均正确渲染 `string[]` 与枚举值列表。
+- **`generate_markdown`（schema）：falsy 默认值渲染为空** —— `z.number().default(0)` / `z.boolean().default(false)` 的默认值列此前显示为空，现在如实展示 `0` / `false`。
+- **`generate_markdown`（apis）：无 input 的示例渲染出字面量 `undefined` 文本** —— 已修复为不渲染该行。
+
+**TestAgent（测试代理）：**
+
+- **多个 `Set-Cookie` 响应头相互覆盖** —— `headers.forEach` 逐条回调使后值覆盖前值，session cookie 丢失。修复后用 `getSetCookie()` 取完整数组再合并（逗号拼接，与 cookie jar 解析约定一致）。
+- **`attach()` 传流时内容不传输** —— Readable 直接 `form.append` 会被 undici FormData 隐式 `String()` 成 `[object Object]`。修复后流在请求时读尽为 Blob 再传输（multipart 文件名取字段名）。
+- **GET/DELETE + `attach()` 直接抛 fetch 底层错误** —— 现在提前断言并给出中文提示（GET 不能携带 body，建议改用 POST/PUT/PATCH 或 `input()` 传 query）。
+
+**工具函数：**
+
+- **`getCallerSourceLine` 在 ESM 下恒返回空** —— 栈帧正则只匹配 CJS 括号风格，ESM/现代 V8 无括号帧（`at /path/file.ts:1:1`，且为 `file://` URL）永不匹配，API 文档的 sourceFile 字段静默失效。修复后双风格兼容并统一去掉 `file://` 前缀。
+- **`jsonStringify` 的 replacer 为死代码** —— 防循环引用逻辑早已被注释，两分支行为恒同，已简化为直接 `JSON.stringify`。
+- **`ErrorManager.modify()` 换 code 后旧 code 永久占用** —— 修复后旧 code 释放（可被再次注册），且新 code 若与其他错误冲突会立即报错（此前静默成功、错误暴露点错位）。
+
+### 约定收敛
+
+- **`_def` 读取全部集中到 `plugin/zod-meta.ts`**（AGENTS.md 约定 6）：`generate_axios` / `generate_swagger` / `generate_postman` 此前的直读 `_def.typeName` / `_def.shape` / `_def.innerType` 已迁移到统一双轨访问器，并新增 `resolveZodShape` / `getZodElement` / `getZodEnumValues` / `getZodOptions` / `getZodDefaultValue` / `getZodLazyGetter` 导出。
+
+### 变异测试基础设施
+
+- 新增 `stryker.config.json` 与 `pnpm run mutation` / `mutation:incremental` 脚本（vitest runner + perTest 覆盖分析）。
+- 变异分数从 44.93% 提升至 89.7%+（新增约 270 个内容级断言用例，全部融入现有测试文件）。
+
 ## v3.2.2 — 文档展示返回结果 schema（Swagger / Postman）
 
 ### 新增（非 breaking）

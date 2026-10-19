@@ -31,6 +31,8 @@ interface AgentState {
   query: Record<string, unknown>;
   body: unknown;
   form?: FormData;
+  /** attach() 收到的流字段，request() 时读尽为 Blob 再进 form */
+  pendingStreams?: Array<[string, stream.Readable]>;
   /** 最终请求 URL 的 path（供 saveExample 记录） */
   reqPath: string;
 }
@@ -180,7 +182,9 @@ export class TestAgent {
     const form = this.state.form ?? new FormData();
     for (const i in data) {
       if (data[i] instanceof stream.Readable) {
-        form.append(i, data[i] as never);
+        // 流不能直接 append（undici FormData 会把非 Blob 对象隐式 String()），
+        // 挂起并在 request() 中读尽为 Blob；同时不进入 agentInput（文档示例不序列化流）
+        (this.state.pendingStreams ??= []).push([i, data[i] as stream.Readable]);
         delete data[i];
       } else {
         form.append(i, String(data[i]));
@@ -227,6 +231,24 @@ export class TestAgent {
 
     let body: string | FormData | undefined;
     if (this.state.form) {
+      // GET/DELETE 不能携带 body（fetch 会直接抛错），attach() 只适用于 POST/PUT/PATCH
+      assert(
+        this.state.method !== "get" && this.state.method !== "delete",
+        `attach() 不支持 ${this.state.method.toUpperCase()} 请求（不能携带 body），请改用 POST/PUT/PATCH 或 input() 传 query`
+      );
+      // 把挂起的流字段读尽为 Blob 再进 form（流本身不能作为 FormData 部件传输）
+      if (this.state.pendingStreams?.length) {
+        for (const [field, rs] of this.state.pendingStreams) {
+          const chunks: Buffer[] = [];
+          try {
+            for await (const chunk of rs) chunks.push(Buffer.from(chunk as Buffer));
+          } catch (e) {
+            throw new Error(`attach() 读取流字段 "${field}" 失败：${e instanceof Error ? e.message : String(e)}`, { cause: e });
+          }
+          this.state.form.append(field, new Blob(chunks), field);
+        }
+        this.state.pendingStreams = [];
+      }
       body = this.state.form;
       // FormData 的 boundary 由 fetch 自动设置，不要手动 Content-Type
     } else if (this.state.body !== undefined && this.state.method !== "get" && this.state.method !== "delete") {
@@ -250,6 +272,11 @@ export class TestAgent {
     res.headers.forEach((v, k) => {
       respHeaders[k] = v;
     });
+    // 多个 Set-Cookie 响应头在 forEach 中会相互覆盖，用 getSetCookie() 取完整数组后合并
+    const setCookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
+    if (setCookies.length > 0) {
+      respHeaders["set-cookie"] = setCookies.join(", ");
+    }
     return { status: res.status, text, body: parsed, headers: respHeaders };
   }
 

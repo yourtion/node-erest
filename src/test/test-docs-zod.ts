@@ -780,15 +780,16 @@ describe("Markdown 生成器 - Schema 文档（schema.ts）", () => {
         "age | number | 数字类型 | 是 |  | 否 |\n" +
         "vip | boolean | 布尔类型 | 是 |  | 是 |\n" +
         "born | Date | 日期类型 | 是 |  | 是 |\n" +
-        // zod 4 数组元素在 _def.element，旧实现读 _def.type 得标量，渲染为 unknown[]
-        "tags | unknown[] | 数组类型 | 是 |  | 是 |\n" +
+        // 数组元素在 _def.element（Zod 3/4 同名），渲染为 string[]
+        "tags | string[] | 数组类型 | 是 |  | 是 |\n" +
         "meta | object | 对象类型 | 是 |  | 是 |\n" +
-        "color | enum | 枚举类型 | 是 |  | 是 |\n" +
+        // 枚举取值走 zod-meta 双轨（Zod 4 entries / Zod 3 values）
+        "color | enum | 枚举类型 | 是 |  | 是 | red, green\n" +
         // default：默认值列输出 "active"，必填为否
         "status | string | 字符串类型 | 是 | active | 否 |\n" +
-        // falsy 默认值（0/false）渲染为空
-        "score | number | 数字类型 | 是 |  | 否 |\n" +
-        "flag | boolean | 布尔类型 | 是 |  | 否 |\n" +
+        // falsy 默认值（0/false）如实展示（?? 而非 ||）
+        "score | number | 数字类型 | 是 | 0 | 否 |\n" +
+        "flag | boolean | 布尔类型 | 是 | false | 否 |\n" +
         "mix | string | number | 联合类型 | 是 |  | 是 |\n" +
         // describe 覆盖默认描述
         "note | string | 自定义备注 | 是 |  | 是 |\n" +

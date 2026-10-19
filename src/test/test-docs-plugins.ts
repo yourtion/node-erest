@@ -494,6 +494,23 @@ describe("swagger paths 与参数提取", () => {
     expect(Object.keys(r.paths as any)).toEqual(["/users/{userId}"]);
   });
 
+  test("多参数路径的占位符全部转换（/:a/:b → /{a}/{b}）", () => {
+    const multi = buildSwagger(
+      makeDocData({
+        group: { G: "G" },
+        apis: {
+          "delete_/org/:oid/user/:uid": makeApi({
+            method: "delete",
+            path: "/org/:oid/user/:uid",
+            realPath: "/org/:oid/user/:uid",
+            title: "删成员",
+          }),
+        },
+      })
+    );
+    expect(Object.keys(multi.paths as any)).toEqual(["/org/{oid}/user/{uid}"]);
+  });
+
   test("GET 操作对象完整断言", () => {
     const op = (r.paths as any)["/users/{userId}"].get;
     expect(op.tags).toEqual(["G"]);
@@ -657,6 +674,7 @@ describe("swagger examples 选择与 POST 请求体聚合", () => {
             name: { description: "名字", type: "string", example: "小明" },
             age: { description: "", type: "number", example: 18 },
           },
+          required: ["name"],
         },
       },
     ]);
@@ -1008,7 +1026,7 @@ describe("generateAxios 生成 SDK 内容", () => {
       "      id,",
       "      { name, age }) {",
       "      return this.instance.post(",
-      "        `/user/\\$\\{id\\}`",
+      "        `/user/${id}`",
       "        , { name, age })",
       "    },",
       "",
@@ -1017,7 +1035,7 @@ describe("generateAxios 生成 SDK 内容", () => {
       "      oid,",
       "      { sku, num }) {",
       "      return this.instance.put(",
-      "        `/order/\\$\\{oid\\}`",
+      "        `/order/${oid}`",
       "        , { sku, num })",
       "    },",
       "",
@@ -1026,7 +1044,7 @@ describe("generateAxios 生成 SDK 内容", () => {
       "      ",
       "      { name }) {",
       "      return this.instance.patch(",
-      "        `/user/\\$\\{id\\}/name`",
+      "        `/user/${id}/name`",
       "        , { name })",
       "    },",
       "",
@@ -1063,7 +1081,7 @@ describe("generateAxios 生成 SDK 内容", () => {
     // 无 URL 参数的路径用单引号，含 :param 的用模板字符串
     expect(content).toContain("        '/user/list'");
     expect(content).toContain("        '/health'");
-    expect(content).toContain("        `/user/\\$\\{id\\}`");
+    expect(content).toContain("        `/user/${id}`");
     // 头尾结构
     expect(content).toContain("    import axios from 'axios';");
     expect(content).toContain('    const BASE = "http://h/b";');

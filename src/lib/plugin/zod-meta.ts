@@ -41,6 +41,10 @@ interface ZodDefLike {
   options?: ZodTypeAny[] | readonly ZodTypeAny[];
   /** array 的元素 schema（两版同名） */
   element?: ZodTypeAny;
+  /** ZodDefault 的默认值（两版同名） */
+  defaultValue?: unknown;
+  /** ZodLazy 的 getter（两版同名） */
+  getter?: () => ZodTypeAny;
 }
 
 /** 读取 Zod schema 的规范化类型名（兼容 Zod 3 的 typeName 与 Zod 4 的 type） */
@@ -56,6 +60,15 @@ export function getZodShape(schema: unknown): Record<string, ZodTypeAny> | undef
   const def = (schema as { _def?: ZodDefLike })._def;
   const shape = def?.shape;
   return typeof shape === "function" ? undefined : shape;
+}
+
+/** 解析 ZodObject 的 shape（函数形态会调用之），非 ZodObject 返回 undefined */
+export function resolveZodShape(schema: unknown): Record<string, ZodTypeAny> | undefined {
+  if (!schema || typeof schema !== "object") return undefined;
+  const def = (schema as { _def?: ZodDefLike })._def;
+  const shape = def?.shape;
+  if (!shape) return undefined;
+  return typeof shape === "function" ? shape() : shape;
 }
 
 /** 获取 ZodOptional/ZodDefault/ZodNullable 的内层 schema */
@@ -75,6 +88,37 @@ function getEnumEntries(def: ZodDefLike | undefined): string[] | undefined {
   if (Array.isArray(values)) return values.map(String);
   if (values && typeof values === "object") return Object.keys(values as Record<string, unknown>);
   return undefined;
+}
+
+/** 读取 enum 取值（公开访问器：兼容 Zod 3 的 values 与 Zod 4 的 entries） */
+export function getZodEnumValues(schema: unknown): string[] | undefined {
+  if (!schema || typeof schema !== "object") return undefined;
+  return getEnumEntries((schema as { _def?: ZodDefLike })._def);
+}
+
+/** 获取 ZodArray 的元素 schema */
+export function getZodElement(schema: unknown): ZodTypeAny | undefined {
+  if (!schema || typeof schema !== "object") return undefined;
+  return (schema as { _def?: ZodDefLike })._def?.element;
+}
+
+/** 获取 ZodUnion 的分支列表 */
+export function getZodOptions(schema: unknown): ZodTypeAny[] | undefined {
+  if (!schema || typeof schema !== "object") return undefined;
+  const options = (schema as { _def?: ZodDefLike })._def?.options;
+  return Array.isArray(options) ? options : undefined;
+}
+
+/** 获取 ZodDefault 的默认值（函数形态返回函数本身，由调用方决定如何展示） */
+export function getZodDefaultValue(schema: unknown): unknown {
+  if (!schema || typeof schema !== "object") return undefined;
+  return (schema as { _def?: ZodDefLike })._def?.defaultValue;
+}
+
+/** 获取 ZodLazy 的 getter */
+export function getZodLazyGetter(schema: unknown): (() => ZodTypeAny) | undefined {
+  if (!schema || typeof schema !== "object") return undefined;
+  return (schema as { _def?: ZodDefLike })._def?.getter;
 }
 
 /** 文档字段元信息 */

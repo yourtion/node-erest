@@ -4,6 +4,7 @@ import { plugin as debug } from "../../debug.js";
 import type { IDocData, IDocWritter } from "../../extend/docs.js";
 import type { IDocOptions } from "../../index.js";
 import * as utils from "../../utils.js";
+import { resolveZodShape } from "../zod-meta.js";
 
 export default function generateAxios(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
   debug("generateAxios: %s - %o", dir, options);
@@ -25,8 +26,7 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
   // Stage 1：从预编译的 Zod schema 提取字段名（替代旧 ISchemaType Record 的 keys）
   function schemaFieldNames(schema: unknown): string[] {
     if (!schema) return [];
-    const def = (schema as { _def?: { shape?: Record<string, unknown> } })._def;
-    return def?.shape ? Object.keys(def.shape) : [];
+    return Object.keys(resolveZodShape(schema) ?? {});
   }
 
   function getFuncParams(req: APIOption<unknown>) {
@@ -43,7 +43,8 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
 
   function getReqSendPath(path: string) {
     if (hasUrlParam(path)) {
-      return `\`${path.replace(/:([a-z]+)/gi, "\\$\\{$1\\}")}\``;
+      // 生成模板字符串插值（注意：替换串不能带反斜杠转义，否则 \$ 使插值退化为字面量文本）
+      return `\`${path.replace(/:([a-z]+)/gi, "${$1}")}\``;
     }
     return `'${path}'`;
   }
