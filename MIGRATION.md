@@ -376,6 +376,15 @@ instead」）。`@koa/router` 是官方维护的继任包，API 与 koa-router *
 - 新增 `stryker.config.json` 与 `pnpm run mutation` / `mutation:incremental` 脚本（vitest runner + perTest 覆盖分析）。
 - 变异分数从 44.93% 提升至 89.7%+（新增约 270 个内容级断言用例，全部融入现有测试文件）。
 
+### 发布与验证
+
+- 根包 `erest` 与 `@erest/express`、`@erest/koa`、`@erest/leizmweb`、`@erest/gen` 统一为 `3.2.3`，按仓库约定整体发布；adapter 的 `workspace:^` peer 在 pnpm 打包时转换为 `erest: ^3.2.3`。
+- 新增增量变异测试 CI：PR 读取兼容主分支基线，主分支成功后保存；`pnpm run mutation:full` 可强制全量重建。
+- 源码测试在 `ISLIB` 模式将 adapter 的 `erest` 导入解析到源码，支持无 `dist` 的洁净环境。
+- 已合入代码通过 604 个库测试、13 个示例测试和覆盖率门槛；完整 3,070 个变异的分数为 90.10%，无超时或运行错误。
+- 新增 tag 触发的 npm OIDC 自动发布：校验统一版本及 `main` 归属，验证五个 tarball 和消费端导入，按依赖顺序发布，全部成功后完成 GitHub Release；重跑跳过已发布的精确版本。
+- 四个子包补齐仓库元数据以支持 provenance。移除 `postpublish` 自动推送分支/tag 的副作用，维护者按 `RELEASING.md` 配置每个包的 Trusted Publisher 后显式推送发版 tag。
+
 ## v3.2.2 — 文档展示返回结果 schema（Swagger / Postman）
 
 ### 新增（非 breaking）

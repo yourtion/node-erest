@@ -62,7 +62,9 @@ packages/             # v3.0：框架适配器实现独立子包（npm scope @er
    - 根包 `erest` 与受影响的子包（`packages/erest-{express,koa,leizmweb,gen}/`）的 `version` 字段一起改，保持一致（`pnpm publish -r` 整体发布，版本不齐会乱）。
    - 语义化版本：bug 修复/文档/非 breaking 新增 → patch（x.y.Z）；新增向后兼容能力 → minor（x.Y.0）；breaking → major（X.0.0）。
    - 同步在 `MIGRATION.md` 加对应版本章节（即使非 breaking 也要登记新增/修复项）。
-   - 发版用 `pnpm run publish:all`（`pnpm publish -r --no-git-checks`，`prepublishOnly` 会先跑 format + test）。
+   - 默认通过 `.github/workflows/release.yml` 自动发版：版本 PR 合入 `main` 且 CI 通过后，维护者推送匹配的 `vX.Y.Z` tag。每个 npm 包须先绑定 Trusted Publisher，详见 `RELEASING.md`。
+   - `publish:all` 仅保留为有发布凭据的明确手动操作；不要通过 `postpublish` 自动推 Git 分支或 tag。自动流程显式执行 `prepublishOnly`，再发布验证过的同一批 workspace-aware tarball。
+   - 接入或修改 CI 不代表获准实际发版；只有用户明确授权后才推送发布 tag 或调用真实 publish。
    - 反例：只改了 `Reply.markSent()` 实现 + MIGRATION 登记，却忘了把 `3.2.0` 改成 `3.2.1` —— 这种「代码动了版本没动」会让下游无法通过版本号判断是否包含修复，必须避免。
 
 > API 用法（registerTyped/bind/hooks/schema.register 等）与测试/构建命令见 README.md，此处不再重复。

@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  # Serialize versions as well as retries; never cancel a partial npm release.
+  group: npm-release
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.ref_name }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Validate tag, release set and main ancestry
+        run: |
+          git merge-base --is-ancestor HEAD origin/main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
+          node scripts/npm-release.mjs check "$RELEASE_TAG"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - run: pnpm run test:release
+      # Preserve the project's prepublishOnly work: format, tsc, adapters,
+      # library tests against dist, and the three-framework example suite.
+      - run: pnpm run prepublishOnly
+      - run: pnpm run test:cov
+      - name: Pack workspace protocols and validate all public entries
+        run: node scripts/npm-release.mjs pack "$RELEASE_TAG" "$RUNNER_TEMP/npm-release"
+      - name: Install tarballs in a clean consumer and smoke test
+        run: node scripts/npm-release-smoke.mjs "$RELEASE_TAG" "$RUNNER_TEMP/npm-release"
+      - name: Verify lifecycle did not modify tagged sources
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-release
+          path: ${{ runner.temp }}/npm-release/
+          overwrite: true
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          # Omit registry-url: OIDC needs no token placeholder or NPM_TOKEN.
+          node-version: '24'
+      - name: Check npm OIDC support and release commit
+        run: |
+          git merge-base --is-ancestor HEAD origin/main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")"
+          node scripts/npm-release.mjs runtime
+          node scripts/npm-release.mjs check "$RELEASE_TAG"
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-release
+          path: ${{ runner.temp }}/npm-release/
+      # Each of the five npm packages must trust yourtion/node-erest/release.yml.
+      # No GitHub environment is used; leave that npm field blank.
+      - name: Publish validated tarballs, then complete GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/npm-release.mjs publish "$RELEASE_TAG" "$RUNNER_TEMP/npm-release"
