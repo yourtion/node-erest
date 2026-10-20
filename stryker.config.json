@@ -2,8 +2,15 @@
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "testRunner": "vitest",
   "plugins": ["@stryker-mutator/vitest-runner"],
-  "mutate": ["src/lib/**/*.ts"],
+  "vitest": {
+    "configFile": "./vitest.config.ts",
+    "related": false
+  },
+  "mutate": ["src/lib/**/*.ts", "!src/lib/**/*.d.ts"],
   "reporters": ["html", "clear-text", "progress", "json"],
-  "ignorePatterns": ["coverage", "dist", "docs", "examples", "packages"],
+  "ignorePatterns": ["coverage", "dist", "docs", "examples"],
+  "incremental": true,
+  "incrementalFile": "reports/stryker-incremental.json",
+  "concurrency": 4,
   "timeoutMS": 10000
 }

@@ -243,7 +243,9 @@ export class TestAgent {
           try {
             for await (const chunk of rs) chunks.push(Buffer.from(chunk as Buffer));
           } catch (e) {
-            throw new Error(`attach() 读取流字段 "${field}" 失败：${e instanceof Error ? e.message : String(e)}`, { cause: e });
+            throw new Error(`attach() 读取流字段 "${field}" 失败：${e instanceof Error ? e.message : String(e)}`, {
+              cause: e,
+            });
           }
           this.state.form.append(field, new Blob(chunks), field);
         }

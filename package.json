@@ -22,6 +22,7 @@
     "test:lib": "export ISLIB=1 && vitest run",
     "test:cov": "export ISLIB=1 && vitest run --coverage",
     "mutation": "export ISLIB=1 && stryker run",
+    "mutation:full": "export ISLIB=1 && stryker run --force",
     "mutation:incremental": "export ISLIB=1 && stryker run --incremental",
     "test:examples": "pnpm --filter erest-example test",
     "bench": "export ISLIB=1 && vitest bench --config vitest.bench.config.ts",

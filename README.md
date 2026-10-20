@@ -699,13 +699,29 @@ examples 作为 pnpm workspace 子包，通过 `erest: workspace:*` 引用本地
 pnpm install
 pnpm run test:lib     # 直接跑源码测试（ISLIB=1，无需先 build）
 pnpm run test:cov     # 覆盖率报告
-pnpm run mutation     # 变异测试（Stryker + vitest），全量约 20-40 分钟
-pnpm run mutation:incremental  # 增量模式：只测上次以来变动的代码
+pnpm run mutation     # 变异测试（Stryker + vitest），默认增量；首次全量约 20-40 分钟
+pnpm run mutation:incremental  # 保留的增量命令，与 mutation 相同
+pnpm run mutation:full  # 忽略历史结果，强制全量重建基线
 ```
 
 变异测试基于 [StrykerJS](https://stryker-mutator.io/)（配置见 `stryker.config.json`，变异范围为
 `src/lib/**`），HTML 报告输出到 `reports/mutation/mutation.html`。变异分数衡量「测试集能否杀死
 被注入的缺陷」，用于发现覆盖漏网与断言不足；分数参考即可，不必追求 100%。
+
+变异测试需要 Node.js 22+（Stryker 10），本地增量基线保存到
+`reports/stryker-incremental.json`。增量运行仍会先执行原始测试收集覆盖信息，再比较源码与测试变化。
+修改依赖、配置、测试辅助文件或运行环境后，本地可用 `pnpm run mutation:full` 重建基线。
+
+GitHub Actions 的 `Mutation Testing` 工作流使用 Node.js 24 和 pnpm 9：面向 `main` 的 PR
+只读取兼容的主分支基线；推送到 `main` 后增量运行，成功才保存新基线。缓存键包含依赖、配置、
+测试辅助文件及未参与变异的 adapter 源码，并为每次运行保存独立版本。基线缺失或兼容性输入变化时
+自动全量执行，因此首次合并前的 PR 可能较慢；合并后首次成功的主分支 CI 才会建立完整共享基线。
+PR 不写共享基线，主分支运行不会被后续提交主动取消。
+
+需要强制重建时，在 Actions 中手动运行该工作流并勾选 `full`；仅在 `main` 成功运行时更新共享基线。
+成功或失败时的可用 HTML、JSON 报告均上传为 `mutation-reports-*` artifact，保留 14 天。
+静态变异或未跟踪的环境变化可能需要手动全量重跑。当前未设置最低变异分数门禁，作业成功仍可能
+存在存活变异；此工作流也不会自动配置分支保护或 required status check。
 
 ## API 文档
 
