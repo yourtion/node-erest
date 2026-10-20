@@ -35,6 +35,9 @@ jobs:
     - name: Run code format check
       run: pnpm run check
 
+    - name: Test release validation and retry behavior
+      run: pnpm run test:release
+
     - name: Build project
       run: pnpm run build
 
@@ -48,6 +51,13 @@ jobs:
 
     - name: Run examples tests
       run: pnpm --filter erest-example test
+
+    - name: Validate publishable tarballs and consumer imports
+      if: matrix.node-version == '24.x'
+      run: |
+        RELEASE_TAG="v$(node --print "require('./package.json').version")"
+        node scripts/npm-release.mjs pack "$RELEASE_TAG" "$RUNNER_TEMP/npm-release"
+        node scripts/npm-release-smoke.mjs "$RELEASE_TAG" "$RUNNER_TEMP/npm-release"
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5

@@ -21,6 +21,7 @@
     "test": "npm run build && npm run build:packages && vitest run && pnpm --filter erest-example test",
     "test:lib": "export ISLIB=1 && vitest run",
     "test:cov": "export ISLIB=1 && vitest run --coverage",
+    "test:release": "node --test scripts/npm-release.test.mjs",
     "mutation": "export ISLIB=1 && stryker run",
     "mutation:full": "export ISLIB=1 && stryker run --force",
     "mutation:incremental": "export ISLIB=1 && stryker run --incremental",
@@ -34,7 +35,6 @@
     "build:packages": "pnpm --filter @erest/express --filter @erest/koa --filter @erest/leizmweb --filter @erest/gen build",
     "publish:all": "pnpm publish -r --no-git-checks --access public",
     "prepublishOnly": "npm run format && npm run test",
-    "postpublish": "npm run tag && git push && git push --tags",
     "prepare": "husky"
   },
   "repository": {

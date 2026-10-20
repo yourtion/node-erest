@@ -1,6 +1,11 @@
 {
   "name": "@erest/koa",
   "version": "3.2.3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourtion/node-erest.git",
+    "directory": "packages/erest-koa"
+  },
   "description": "Koa adapter for erest",
   "type": "module",
   "main": "./dist/index.js",

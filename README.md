@@ -723,6 +723,14 @@ PR 不写共享基线，主分支运行不会被后续提交主动取消。
 静态变异或未跟踪的环境变化可能需要手动全量重跑。当前未设置最低变异分数门禁，作业成功仍可能
 存在存活变异；此工作流也不会自动配置分支保护或 required status check。
 
+## 自动发布
+
+推送与五个包版本一致、且指向 `main` 提交的 `vX.Y.Z` tag 后，GitHub Actions 会检查、构建、
+打包并通过 npm Trusted Publishing（OIDC）发布，全部 npm 包成功后创建 GitHub Release。
+正式版走 `latest`，预发布走 `next`；普通 PR 不发布，不需要 `NPM_TOKEN`。
+维护者需先为每个 npm 包绑定 `yourtion/node-erest` 的 `release.yml`，environment 留空。
+一次性配置、发版命令、产物校验和失败重跑见 [RELEASING.md](RELEASING.md)。
+
 ## API 文档
 
 线上文档站（typedoc 产物）由 CI 自动构建部署：
