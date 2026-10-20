@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "description": "Framework-agnostic REST API framework with Zod validation, auto docs & test scaffolding. Express/Koa/@leizm/web adapters as separate packages.",
   "type": "module",
   "main": "dist/lib/index.js",
@@ -21,6 +21,9 @@
     "test": "npm run build && npm run build:packages && vitest run && pnpm --filter erest-example test",
     "test:lib": "export ISLIB=1 && vitest run",
     "test:cov": "export ISLIB=1 && vitest run --coverage",
+    "mutation": "export ISLIB=1 && stryker run",
+    "mutation:full": "export ISLIB=1 && stryker run --force",
+    "mutation:incremental": "export ISLIB=1 && stryker run --incremental",
     "test:examples": "pnpm --filter erest-example test",
     "bench": "export ISLIB=1 && vitest bench --config vitest.bench.config.ts",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
@@ -71,6 +74,8 @@
   },
   "devDependencies": {
     "@leizm/web": "^2.7.3",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@types/debug": "^4.1.12",
     "@types/express": "^5.0.0",
     "@types/koa": "^2.15.0",
@@ -92,11 +97,6 @@
     "typescript": "^5.8.3",
     "vitest": "^3.2.4",
     "zod": "^4.4.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   },
   "lint-staged": {
     "*.{ts,js}": [

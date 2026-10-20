@@ -2,7 +2,7 @@ import * as path from "node:path";
 import { plugin as debug } from "../../debug.js";
 import type { IDocData, IDocWritter } from "../../extend/docs.js";
 import type { IDocOptions } from "../../index.js";
-import { extractDocFields, type DocField } from "../zod-meta.js";
+import { extractDocFields, type DocField, resolveZodShape } from "../zod-meta.js";
 import * as utils from "../../utils.js";
 
 /** 按 Zod 推断类型生成 Postman 示例占位值 */
@@ -121,7 +121,7 @@ export default function generatePostman(data: IDocData, dir: string, options: ID
         urlencoded: [],
       };
       // Stage 1：从预编译的 Zod bodySchema 提取字段名
-      const bodyShape = (item.bodySchema as { _def?: { shape?: Record<string, unknown> } })?._def?.shape;
+      const bodyShape = resolveZodShape(item.bodySchema);
       if (bodyShape) {
         for (const sKey of Object.keys(bodyShape)) {
           req.request.body.urlencoded?.push({

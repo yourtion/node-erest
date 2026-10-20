@@ -375,7 +375,7 @@ class API<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unkno
     // 校验已由 checker 完成（填入 ctx.$validated），wrapper 从中读取分层校验参数，
     // 组装类型安全的 req 调用用户 handler。响应经 ctx.reply 写入。
     const wrappedHandler: Middleware = async (ctx) => {
-      const validated = ctx.$validated ?? { params: {}, query: {}, body: {}, headers: {} };
+      const validated = (ctx.$validated ?? {}) as Partial<Record<"params" | "query" | "body" | "headers", unknown>>;
 
       // 组装类型安全的 req：缺失的层级补空对象，保证 handler 内字段访问安全。
       // 此处运行时值已由 checker 校验，仅做拼装；类型断言对齐 handler 期望的推导类型。

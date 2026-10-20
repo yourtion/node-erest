@@ -1,0 +1,96 @@
+name: Mutation Testing
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Force a full mutation run and rebuild the baseline
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      MUTATION_NODE_VERSION: '24'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.MUTATION_NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run source tests
+        run: pnpm run test:lib
+
+      # Stryker tracks src/lib and test*.ts. Hash helpers, adapters and configs
+      # separately so changes outside the mutation scope invalidate the baseline.
+      - name: Compute baseline compatibility key
+        id: baseline-key
+        env:
+          INPUTS_HASH: >-
+            ${{ hashFiles('pnpm-lock.yaml', 'package.json', 'pnpm-workspace.yaml',
+            '.npmrc', 'stryker.config.*', 'vitest.config.*', 'tsconfig*.json',
+            '.github/workflows/mutation.yml', 'packages/**/package.json',
+            'packages/**/tsconfig*.json', 'packages/**/src/**', 'src/test/**',
+            'src/**/*.d.ts', '!src/test/test*.ts') }}
+        run: echo "prefix=mutation-core-v1-${RUNNER_OS}-node${MUTATION_NODE_VERSION}-${INPUTS_HASH}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore main mutation baseline
+        id: baseline
+        uses: actions/cache/restore@v4
+        with:
+          path: reports/stryker-incremental.json
+          key: ${{ steps.baseline-key.outputs.prefix }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ steps.baseline-key.outputs.prefix }}-
+
+      - name: Run mutation tests
+        env:
+          FORCE_FULL: ${{ inputs.full == true }}
+        run: |
+          if [ "$FORCE_FULL" = "true" ]; then
+            pnpm run mutation:full
+          else
+            # Missing or incompatible baseline naturally falls back to a full run.
+            pnpm run mutation
+          fi
+
+      - name: Save main mutation baseline
+        if: success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: reports/stryker-incremental.json
+          key: ${{ steps.baseline.outputs.cache-primary-key }}
+
+      - name: Upload mutation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 14

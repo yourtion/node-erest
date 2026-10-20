@@ -1,6 +1,16 @@
 import type { ZodType } from "zod";
 import type { IDocData, IDocTypes } from "../../extend/docs.js";
 import { isZodSchema } from "../../params.js";
+import {
+  getZodDefaultValue,
+  getZodElement,
+  getZodEnumValues,
+  getZodInner,
+  getZodLazyGetter,
+  getZodOptions,
+  getZodTypeName,
+  resolveZodShape,
+} from "../zod-meta.js";
 import { fieldString, itemTF, stringOrEmpty, tableHeader } from "./utils.js";
 
 export default function schemaDocs(data: IDocData) {
@@ -30,34 +40,17 @@ export default function schemaDocs(data: IDocData) {
       const tableHead = tableHeader(["字段", "类型", "备注", "格式化", "默认值", "必填", "参数"]);
       res.push(tableHead);
 
-      const typeName =
-        (zodSchema as ZodType & { _def: { typeName?: string; type?: string; shape?: Record<string, ZodType> } })._def
-          .typeName ||
-        (zodSchema as ZodType & { _def: { typeName?: string; type?: string; shape?: Record<string, ZodType> } })._def
-          .type;
+      const typeName = getZodTypeName(zodSchema);
       // 处理lazy类型
-      const typeValue = (zodSchema._def as { type?: string }).type;
-      if (typeName === "ZodLazy" || typeName === "lazy" || typeValue === "lazy") {
-        const getter = (zodSchema._def as unknown as { getter?: () => ZodType }).getter;
+      if (typeName === "ZodLazy" || typeName === "lazy") {
+        const getter = getZodLazyGetter(zodSchema);
         if (getter) {
           try {
             const innerSchema = getter();
-            const innerTypeName =
-              (innerSchema._def as { typeName?: string; type?: string }).typeName ||
-              (innerSchema._def as { typeName?: string; type?: string }).type;
-            if (
-              (innerTypeName === "ZodObject" || innerTypeName === "object") &&
-              (innerSchema as ZodType & { _def: { shape?: Record<string, ZodType> | (() => Record<string, ZodType>) } })
-                ._def.shape
-            ) {
-              let shape = (
-                innerSchema as ZodType & { _def: { shape: Record<string, ZodType> | (() => Record<string, ZodType>) } }
-              )._def.shape;
-              // 如果shape是函数，调用它获取实际的shape
-              if (typeof shape === "function") {
-                shape = shape();
-              }
-              for (const [fieldName, fieldSchema] of Object.entries(shape as Record<string, ZodType>)) {
+            const innerTypeName = getZodTypeName(innerSchema);
+            if (innerTypeName === "ZodObject" || innerTypeName === "object") {
+              const shape = resolveZodShape(innerSchema);
+              for (const [fieldName, fieldSchema] of Object.entries(shape ?? {})) {
                 const fieldInfo = extractZodFieldInfo(fieldName, fieldSchema);
                 res.push(
                   fieldString([
@@ -102,11 +95,24 @@ export default function schemaDocs(data: IDocData) {
             );
           }
         }
-      } else if (
-        (typeName === "ZodObject" || typeName === "object") &&
-        (zodSchema as ZodType & { _def: { shape?: Record<string, ZodType> } })._def.shape
-      ) {
-        const shape = (zodSchema as ZodType & { _def: { shape: Record<string, ZodType> } })._def.shape;
+      } else if (typeName === "ZodObject" || typeName === "object") {
+        const shape = resolveZodShape(zodSchema);
+        if (!shape) {
+          // 缺失 shape 的 object：按非对象类型渲染单行
+          const fieldInfo = extractZodFieldInfo(schemaName, zodSchema);
+          res.push(
+            fieldString([
+              stringOrEmpty(schemaName),
+              stringOrEmpty(fieldInfo.type),
+              stringOrEmpty(fieldInfo.description),
+              itemTF(true),
+              stringOrEmpty(fieldInfo.defaultValue),
+              itemTF(fieldInfo.required),
+              stringOrEmpty(fieldInfo.params),
+            ])
+          );
+          return res.join("\n");
+        }
         for (const [fieldName, fieldSchema] of Object.entries(shape)) {
           const fieldInfo = extractZodFieldInfo(fieldName, fieldSchema);
           res.push(
@@ -160,11 +166,7 @@ export default function schemaDocs(data: IDocData) {
       info.description = zodSchemaWithDescription.description;
     }
 
-    const typeName =
-      (zodSchema._def as { typeName?: string; type?: string }).typeName ||
-      (zodSchema._def as { typeName?: string; type?: string }).type;
-
-    const typeValue = (zodSchema.def as { type?: string }).type;
+    const typeName = getZodTypeName(zodSchema);
     switch (typeName) {
       case "ZodString":
       case "string":
@@ -188,8 +190,9 @@ export default function schemaDocs(data: IDocData) {
         break;
       case "ZodArray":
       case "array": {
-        const typeField = (zodSchema._def as unknown as { type?: ZodType }).type;
-        const innerType = typeField ? extractZodFieldInfo("", typeField) : { type: "unknown" };
+        // 数组元素 schema 在 _def.element（Zod 3 与 Zod 4 同名；_def.type 在 Zod 4 是判别字符串）
+        const element = getZodElement(zodSchema);
+        const innerType = element ? extractZodFieldInfo("", element) : { type: "unknown" };
         info.type = `${innerType.type}[]`;
         if (!info.description) info.description = "数组类型";
         break;
@@ -203,17 +206,16 @@ export default function schemaDocs(data: IDocData) {
       case "enum":
         info.type = "enum";
         if (!info.description) info.description = "枚举类型";
-        if ((zodSchema._def as { values?: unknown }).values) {
-          const values = (zodSchema._def as unknown as { values: unknown }).values;
-          info.params = Array.isArray(values) ? values.join(", ") : String(values);
+        {
+          // 枚举取值：Zod 3 用 _def.values，Zod 4 用 _def.entries（统一走 zod-meta 双轨）
+          const values = getZodEnumValues(zodSchema);
+          if (values) info.params = values.join(", ");
         }
         break;
       case "ZodOptional":
       case "optional": {
-        const innerInfo = extractZodFieldInfo(
-          fieldName,
-          (zodSchema._def as unknown as { innerType: ZodType }).innerType
-        );
+        const inner = getZodInner(zodSchema);
+        const innerInfo = inner ? extractZodFieldInfo(fieldName, inner) : info;
         info.type = innerInfo.type;
         info.description = info.description || innerInfo.description;
         info.required = false;
@@ -222,14 +224,12 @@ export default function schemaDocs(data: IDocData) {
       }
       case "ZodDefault":
       case "default": {
-        const defaultInnerInfo = extractZodFieldInfo(
-          fieldName,
-          (zodSchema._def as unknown as { innerType: ZodType }).innerType
-        );
+        const inner = getZodInner(zodSchema);
+        const defaultInnerInfo = inner ? extractZodFieldInfo(fieldName, inner) : info;
         info.type = defaultInnerInfo.type;
         info.description = info.description || defaultInnerInfo.description;
         info.required = false;
-        const defValue = (zodSchema._def as { defaultValue?: unknown }).defaultValue;
+        const defValue = getZodDefaultValue(zodSchema);
         if (typeof defValue === "function") {
           try {
             info.defaultValue = String(defValue());
@@ -237,14 +237,15 @@ export default function schemaDocs(data: IDocData) {
             info.defaultValue = "[default value]";
           }
         } else {
-          info.defaultValue = String(defValue || "");
+          // ?? 而非 ||：0/false/"" 等 falsy 默认值也要如实展示
+          info.defaultValue = String(defValue ?? "");
         }
         info.params = defaultInnerInfo.params;
         break;
       }
       case "ZodUnion":
       case "union": {
-        const options = (zodSchema._def as unknown as { options: ZodType[] }).options;
+        const options = getZodOptions(zodSchema);
         if (options && options.length > 0) {
           const types = options.map((opt) => extractZodFieldInfo("", opt).type);
           info.type = types.join(" | ");
@@ -256,25 +257,22 @@ export default function schemaDocs(data: IDocData) {
       }
       case "ZodLazy":
       case "lazy": {
-        // 检查是否为lazy类型
-        if (typeValue === "lazy" || typeName === "ZodLazy" || typeName === "lazy") {
-          // 对于lazy类型，尝试获取内部的getter函数返回的schema
-          const getter = (zodSchema.def as unknown as { getter?: () => ZodType }).getter;
-          if (getter) {
-            try {
-              const innerSchema = getter();
-              const innerInfo = extractZodFieldInfo(fieldName, innerSchema);
-              info.type = innerInfo.type;
-              info.description = info.description || innerInfo.description;
-              info.params = innerInfo.params;
-            } catch (_e) {
-              info.type = "lazy";
-              if (!info.description) info.description = "延迟类型";
-            }
-          } else {
+        // 对于lazy类型，尝试获取内部的getter函数返回的schema
+        const getter = getZodLazyGetter(zodSchema);
+        if (getter) {
+          try {
+            const innerSchema = getter();
+            const innerInfo = extractZodFieldInfo(fieldName, innerSchema);
+            info.type = innerInfo.type;
+            info.description = info.description || innerInfo.description;
+            info.params = innerInfo.params;
+          } catch (_e) {
             info.type = "lazy";
             if (!info.description) info.description = "延迟类型";
           }
+        } else {
+          info.type = "lazy";
+          if (!info.description) info.description = "延迟类型";
         }
         break;
       }

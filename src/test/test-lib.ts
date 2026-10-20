@@ -1,10 +1,20 @@
 import { expressAdapter } from "./adapters";
 
 import express from "express";
+import { vi } from "vitest";
 import { z } from "zod";
-import type { IApiOption } from "../lib";
+import type { FrameworkAdapter, IApiOption } from "../lib";
 import ERest, { ERestError } from "../lib";
-import { getCallerSourceLine, getPath } from "../lib/utils";
+import { buildHandlerChain } from "../lib/adapters/utils";
+import { Manager } from "../lib/manager/manager";
+import {
+  camelCase2underscore,
+  getCallerSourceLine,
+  getPath,
+  getRealPath,
+  getSchemaKey,
+  jsonStringify,
+} from "../lib/utils";
 import lib, { GROUPS, INFO } from "./lib";
 
 describe("ERest - 基础测试", () => {
@@ -428,6 +438,15 @@ describe("ERest - 更多测试（完善覆盖率）", () => {
       expect(absolute).toBeUndefined();
     });
 
+    test("getCallerSourceLine：ESM/vitest 无括号栈帧（file:// URL）也能定位到源文件", () => {
+      // ESM 栈帧形如 `at /abs/path/file.ts:1:1`（无圆括号），修复前恒返回 undefined。
+      // 传调用者所在目录（与 index.ts 内 getCallerSourceLine(__dirname) 用法一致），
+      // 跳过 utils.ts 自身帧后命中本测试文件。
+      const { relative, absolute } = getCallerSourceLine(`${process.cwd()}/src/test`);
+      expect(absolute).toMatch(/src[/\\]test[/\\]test-lib\.ts$/);
+      expect(relative).toBe("test-lib.ts");
+    });
+
     test("getPath", () => {
       const p = getPath("Yourtion", "/a");
       expect(p).toBe("/a");
@@ -509,5 +528,377 @@ describe("ERestError - 自定义错误类", () => {
     const error = new ERestError("MISSING_PARAM", "test");
     expect(error instanceof Error).toBe(true);
     expect(error instanceof ERestError).toBe(true);
+  });
+});
+
+describe("ERest - 默认错误工厂", () => {
+  test("missingParameter 默认工厂应生成 MISSING_PARAM 错误", () => {
+    const s = new ERest({});
+    const err = s.getError().missingParameter("'name'") as ERestError;
+    expect(err).toBeInstanceOf(ERestError);
+    expect(err.code).toBe("MISSING_PARAM");
+    expect(err.message).toBe("missing required parameter 'name'");
+    expect(err.details).toEqual({ field: "name" });
+  });
+
+  test("invalidParameter 默认工厂应提取首个字段名", () => {
+    const s = new ERest({});
+    const err = s.getError().invalidParameter("'age' should be valid") as ERestError;
+    expect(err.code).toBe("INVALID_PARAM");
+    expect(err.message).toBe("incorrect parameter 'age' should be valid");
+    expect(err.details).toEqual({ field: "age" });
+  });
+
+  test("internalError 默认工厂应生成 500 错误", () => {
+    const s = new ERest({});
+    const err = s.getError().internalError("boom") as ERestError;
+    expect(err.code).toBe("INTERNAL_ERROR");
+    expect(err.message).toBe("internal error boom");
+    expect(err.statusCode).toBe(500);
+  });
+});
+
+describe("ERest - 门面行为与文档惰性初始化", () => {
+  test("未配置 hooks 时 hasHooks 应返回 false", () => {
+    const s = new ERest({});
+    expect(s.hasHooks()).toBe(false);
+  });
+
+  test("groups 配置对象缺 name 时应归一化为空字符串", () => {
+    const s = new ERest({ groups: { Weird: {} } });
+    expect(s.getInternalGroups().Weird).toBe("");
+  });
+
+  test("groups 值为 undefined 时应归一化为空字符串与空初始结构", () => {
+    const s = new ERest({ groups: { U: undefined } });
+    expect(s.getInternalGroups().U).toBe("");
+    expect(s.getDocsView().groupInfo.U).toEqual({ middleware: [], before: [] });
+  });
+
+  test("type.value 对未注册类型应返回失败信息", () => {
+    const s = new ERest({});
+    const r = s.type.value("NoSuchType", 42);
+    expect(r.ok).toBe(false);
+    expect(r.message).toBe("Unknown type: NoSuchType");
+    expect(r.value).toBe(42);
+  });
+
+  test("docs 选项应按默认值归一化", () => {
+    const s = new ERest({ docs: { markdown: "custom.md", index: true } });
+    expect(s.getDocsView().docsOptions).toEqual({
+      markdown: "custom.md",
+      wiki: "./",
+      index: true,
+      home: true,
+      swagger: false,
+      postman: false,
+      json: false,
+      axios: false,
+      all: false,
+    });
+  });
+
+  test("重复注册相同 key 的 API 应报错并指明已注册", () => {
+    const s = new ERest({});
+    s.api.get("/dup").register(() => {});
+    expect(() => s.api.get("/dup").register(() => {})).toThrow(/失败，因为该API已在文件/);
+    s.api.define({ method: "get", path: "/dup2", title: "d", handler: () => {} });
+    expect(() => s.api.define({ method: "get", path: "/dup2", title: "d", handler: () => {} })).toThrow(
+      /失败，因为该API已在文件/
+    );
+  });
+
+  test("initTest 二次调用应保持首次的 app 与 docs 实例", () => {
+    const s = new ERest({});
+    const app1 = express();
+    s.initTest(app1, "/tmp", "/tmp");
+    const docs1 = s.api.docs;
+    const app2 = express();
+    s.initTest(app2, "/tmp", "/tmp");
+    expect(s.getTestView().app).toBe(app1);
+    expect(s.api.docs).toBe(docs1);
+  });
+
+  test("setResponseEnvelopers 应注册 testUnwrapper 到 formatOutputReverse", () => {
+    const s = new ERest({});
+    const success = vi.fn();
+    const errorFn = vi.fn();
+    const unwrap = vi.fn();
+    s.setResponseEnvelopers({ success, error: errorFn, testUnwrapper: unwrap });
+    expect(s.api.formatOutputReverse).toBe(unwrap);
+    expect(s.api.successEnveloper).toBe(success);
+    expect(s.api.errorEnveloper).toBe(errorFn);
+    // 不带 testUnwrapper 时不应覆盖 formatOutputReverse
+    const s2 = new ERest({});
+    s2.setResponseEnvelopers({ success: vi.fn(), error: vi.fn() });
+    expect(s2.api.formatOutputReverse).toBeUndefined();
+  });
+
+  test("docs 未初始化时 setDocWritter 与 addDocPlugin 应安全跳过", () => {
+    const s = new ERest({});
+    expect(() => s.setDocWritter(vi.fn())).not.toThrow();
+    expect(() => s.addDocPlugin("p", vi.fn())).not.toThrow();
+  });
+
+  test("buildSwagger 应复用已初始化的 docs 实例", () => {
+    const s = new ERest({});
+    const stub = { getSwaggerInfo: vi.fn(() => ({ stub: true })) };
+    s.api.docs = stub as never;
+    expect(s.buildSwagger()).toEqual({ stub: true });
+    expect(s.api.docs).toBe(stub);
+  });
+
+  test("genDocs 默认保存路径应为 cwd/docs/ 且走 saveOnExit", () => {
+    const s = new ERest({});
+    const saveOnExit = vi.fn();
+    const save = vi.fn();
+    s.api.docs = { genDocs: vi.fn(), saveOnExit, save } as never;
+    s.genDocs();
+    expect(saveOnExit).toHaveBeenCalledTimes(1);
+    expect(saveOnExit).toHaveBeenCalledWith(`${process.cwd()}/docs/`);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  test("genDocs onExit=false 时应立即 save 到指定目录", () => {
+    const s = new ERest({});
+    const saveOnExit = vi.fn();
+    const save = vi.fn();
+    s.api.docs = { genDocs: vi.fn(), saveOnExit, save } as never;
+    s.genDocs("/custom/docs", false);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith("/custom/docs");
+    expect(saveOnExit).not.toHaveBeenCalled();
+  });
+});
+
+describe("ERest - group 注册与 bind 装配", () => {
+  test("group 传描述字符串应写入 groups 与 groupInfo 初始结构", () => {
+    const s = new ERest({ forceGroup: true });
+    s.group("DescG", "描述分组");
+    expect(s.getInternalGroups().DescG).toBe("描述分组");
+    expect(s.getDocsView().groupInfo.DescG).toEqual({
+      name: "描述分组",
+      prefix: "",
+      middleware: [],
+      before: [],
+    });
+  });
+
+  test("group 无 prefix 时注册 key 应派生自驼峰转下划线的组名", () => {
+    const s = new ERest({ forceGroup: true });
+    s.group("DescG", "描述分组")
+      .get("/k1")
+      .register(() => {});
+    expect(s.api.$apis.has("GET_/desc_g/k1")).toBe(true);
+  });
+
+  test("forceGroup 模式 bind 时 API 缺 handler 应抛错", () => {
+    const s = new ERest({ forceGroup: true, groups: { g1: "G1" } });
+    s.group("g1").get("/no-handler");
+    expect(() => s.bind({ adapter: expressAdapter, app: express(), router: express.Router() })).toThrow(
+      /没有注册处理函数/
+    );
+  });
+
+  test("forceGroup 模式 bind 应按 group prefix 派生子路由并挂载", () => {
+    const route = { marker: "route" };
+    const createGroupRouter = vi.fn(() => route);
+    const attachGroupRouter = vi.fn();
+    const bindRoute = vi.fn();
+    const adapter = {
+      name: "mock",
+      createGroupRouter,
+      attachGroupRouter,
+      bindRoute,
+      makeParamsChecker: () => vi.fn(),
+    } as unknown as FrameworkAdapter<unknown>;
+    const s = new ERest({
+      forceGroup: true,
+      groups: { g1: "G1", u: { name: "U", prefix: "/users" } },
+    });
+    s.group("g1")
+      .get("/a")
+      .register(() => {});
+    s.group("u")
+      .post("/b")
+      .register(() => {});
+    const app = {};
+    const router = {};
+    s.bind({ adapter, app, router });
+    // 无 prefix 的 g1 派生为 camelCase2underscore("g1")；u 用显式 prefix "/users"
+    expect(createGroupRouter.mock.calls.map((c) => c[1])).toEqual(["g1", "/users"]);
+    expect(attachGroupRouter).toHaveBeenCalledTimes(2);
+    expect(attachGroupRouter.mock.calls.map((c) => c[0])).toEqual([app, app]);
+    expect(attachGroupRouter.mock.calls.map((c) => c[1])).toEqual([route, route]);
+    expect(attachGroupRouter.mock.calls.map((c) => c[2])).toEqual(["g1", "/users"]);
+    expect(bindRoute).toHaveBeenCalledTimes(2);
+  });
+
+  test("非 forceGroup 模式 bind 缺 router 应抛错", () => {
+    const s = new ERest({});
+    expect(() => s.bind({ adapter: expressAdapter })).toThrow("非 forceGroup 模式需要提供 router");
+  });
+
+  test("非 forceGroup 模式 bind 时 API 缺 handler 应抛错", () => {
+    const s = lib();
+    s.api.get("/no-handler-2").group("Index");
+    expect(() => s.bind({ adapter: expressAdapter, router: express.Router() })).toThrow(/没有注册处理函数/);
+  });
+});
+
+// ---- utils / adapters / manager 补测 ----
+
+describe("utils: getSchemaKey", () => {
+  test("无 prefix：method 大写 + path", () => {
+    expect(getSchemaKey("get", "/path")).toBe("GET_/path");
+    expect(getSchemaKey("delete", "/x")).toBe("DELETE_/x");
+  });
+
+  test("prefix 不以 / 开头：转下划线并补 /", () => {
+    expect(getSchemaKey("post", "/path", "v1")).toBe("POST_/v1/path");
+    expect(getSchemaKey("get", "/p", "apiV2")).toBe("GET_/api_v2/p");
+  });
+
+  test("prefix 以 / 开头：原样使用", () => {
+    expect(getSchemaKey("get", "/path", "/v2")).toBe("GET_/v2/path");
+  });
+
+  test("双斜杠合并、尾斜杠去除、根路径回退 /", () => {
+    expect(getSchemaKey("get", "/a//b")).toBe("GET_/a/b");
+    expect(getSchemaKey("get", "/a/")).toBe("GET_/a");
+    expect(getSchemaKey("get", "/")).toBe("GET_/");
+  });
+});
+
+describe("utils: camelCase2underscore", () => {
+  test("常规转换", () => {
+    expect(camelCase2underscore("camelCase")).toBe("camel_case");
+    expect(camelCase2underscore("aB")).toBe("a_b");
+    expect(camelCase2underscore("v1")).toBe("v1");
+    expect(camelCase2underscore("X")).toBe("x");
+    expect(camelCase2underscore("")).toBe("");
+  });
+
+  test("连续大写逐个加下划线", () => {
+    expect(camelCase2underscore("APIV2")).toBe("a_p_i_v2");
+  });
+
+  test("首字符仅匹配非空白（前导空格保留原样）", () => {
+    expect(camelCase2underscore(" AbC")).toBe(" _ab_c");
+  });
+});
+
+describe("utils: jsonStringify", () => {
+  test("紧凑输出", () => {
+    expect(jsonStringify({ a: 1 }, 0)).toBe('{"a":1}');
+  });
+
+  test("缩进输出与 JSON.stringify 一致", () => {
+    expect(jsonStringify({ a: { b: [1] } }, 2)).toBe('{\n  "a": {\n    "b": [\n      1\n    ]\n  }\n}');
+  });
+
+  test("数组与 null 值", () => {
+    expect(jsonStringify([1, "x", null], 0)).toBe('[1,"x",null]');
+  });
+});
+
+describe("utils: getPath / getRealPath", () => {
+  test("getPath：string 覆盖默认值，boolean 用默认值", () => {
+    expect(getPath("def")).toBe("def");
+    expect(getPath("def", "opt")).toBe("opt");
+    expect(getPath("def", true)).toBe("def");
+    expect(getPath("def", false)).toBe("def");
+    expect(getPath("def", undefined)).toBe("def");
+  });
+
+  test("getRealPath：截取第一个 _ 后的路径", () => {
+    expect(getRealPath("GET_/a/b")).toBe("/a/b");
+    expect(getRealPath("GET_/")).toBe("/");
+  });
+});
+
+// ============ error.ts ============
+
+// ============ adapters/utils.ts ============
+
+/** handler 链各位置的共享 no-op 桩（引用相等断言用） */
+const chainStub = {
+  globalBefore: () => {},
+  groupBefore: () => {},
+  apiBefore: () => {},
+  checker: () => {},
+  groupMiddleware: () => {},
+  apiMiddleware: () => {},
+  middleware: () => {},
+  handler: () => {},
+};
+
+describe("adapters/utils: buildHandlerChain", () => {
+  test("完整顺序：全局 before → 组 before → API before → checker → 组 middleware → API middleware → handler", () => {
+    const { globalBefore, groupBefore, apiBefore, checker, groupMiddleware, apiMiddleware, handler } = chainStub;
+    const chain = buildHandlerChain({
+      beforeHooks: new Set([globalBefore]),
+      api: { options: { beforeHooks: new Set([apiBefore]), middlewares: [apiMiddleware], handler } } as never,
+      checker,
+      groupInfo: { before: [groupBefore], middleware: [groupMiddleware] } as never,
+    });
+    expect(chain).toEqual([globalBefore, groupBefore, apiBefore, checker, groupMiddleware, apiMiddleware, handler]);
+  });
+
+  test("无 groupInfo：仅全局 before + checker + API 中间件 + handler", () => {
+    const { globalBefore, apiBefore, checker, middleware, handler } = chainStub;
+    const chain = buildHandlerChain({
+      beforeHooks: new Set([globalBefore]),
+      api: { options: { beforeHooks: new Set([apiBefore]), middlewares: [middleware], handler } } as never,
+      checker,
+    });
+    expect(chain).toEqual([globalBefore, apiBefore, checker, middleware, handler]);
+  });
+
+  test("非函数项（undefined/字符串）被过滤", () => {
+    const { checker, middleware, handler } = chainStub;
+    const chain = buildHandlerChain({
+      beforeHooks: new Set(),
+      api: {
+        options: {
+          beforeHooks: new Set([undefined as never, "str" as never]),
+          middlewares: [null as never, middleware],
+          handler,
+        },
+      } as never,
+      checker,
+      groupInfo: { before: [123 as never], middleware: [] } as never,
+    });
+    expect(chain).toEqual([checker, middleware, handler]);
+    expect(chain.every((h) => typeof h === "function")).toBe(true);
+  });
+});
+
+// ============ manager/manager.ts ============
+
+describe("manager: Manager get/forEach", () => {
+  class TestManager extends Manager<string> {
+    public set(key: string, value: string) {
+      (this as unknown as { map: Map<string, string> }).map.set(key, value);
+    }
+  }
+
+  test("get 按名读取，不存在返回 undefined", () => {
+    const m = new TestManager();
+    m.set("a", "1");
+    expect(m.get("a")).toBe("1");
+    expect(m.get("missing")).toBeUndefined();
+  });
+
+  test("forEach 按 Map 插入顺序遍历", () => {
+    const m = new TestManager();
+    m.set("a", "1");
+    m.set("b", "2");
+    const seen: Array<[string, string]> = [];
+    m.forEach((value, key) => seen.push([key, value]));
+    expect(seen).toEqual([
+      ["a", "1"],
+      ["b", "2"],
+    ]);
   });
 });
