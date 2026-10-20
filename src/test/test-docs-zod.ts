@@ -711,6 +711,22 @@ describe("Markdown 生成器 - 类型文档（types.ts）", () => {
 });
 
 describe("Markdown 生成器 - Schema 文档（schema.ts）", () => {
+  test.each([{ type: "object" }, { typeName: "ZodObject" }])(
+    "object schema 缺少 shape 时保留定义并回退为单行对象：%j",
+    (def) => {
+      const out = schemaDocs({
+        types: {},
+        schema: { registry: new Map([["IncompleteObject", fakeZod(def)]]) },
+      } as any);
+      expect(out).toBe(
+        "# 数据类型\n\n## Schema定义\n## IncompleteObject\n" +
+          "字段 | 类型 | 备注 | 格式化 | 默认值 | 必填 | 参数 \n" +
+          "---|---|---|---|---|---|---\n" +
+          "IncompleteObject | object | 对象类型 | 是 |  | 是 |"
+      );
+    }
+  );
+
   test("真实 zod 4 schema：注册类型表 + 对象/标量/枚举/默认值/联合/懒加载全量渲染", () => {
     resetRegistries();
     app.type.register("UserName", z.string().min(1));

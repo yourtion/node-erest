@@ -453,6 +453,11 @@ describe("TestAgent 行为（fetch 驱动）", () => {
           res.end('{"a":1}');
           return;
         }
+        if (req.url!.includes("invalid-json")) {
+          res.setHeader("content-type", "application/json");
+          res.end('{"unfinished":');
+          return;
+        }
         if (req.url!.includes("multi-set-cookie")) {
           // 数组形式下发两个独立 Set-Cookie 头（验证 agent 端不再相互覆盖）
           res.setHeader("Set-Cookie", ["sid=abc; Path=/", "token=xyz; Path=/"]);
@@ -534,6 +539,25 @@ describe("TestAgent 行为（fetch 驱动）", () => {
     const a = makeAgent(erestA, "get", "/att", "GET_/att");
     a.attach({ f: "x" });
     await expect(a.success()).rejects.toThrow(/attach\(\) 不支持 GET/);
+  });
+
+  test.each([
+    ["Error", new Error("stream aborted")],
+    ["string", "stream aborted"],
+  ])("attach 流读取失败（%s）应保留字段名和 cause，且不发送部分请求", async (_kind, reason) => {
+    const a = makeAgent(erestA, "post", "/upload", "POST_/upload-error");
+    const rs = stream.Readable.from(
+      (async function* () {
+        yield Buffer.from("partial content");
+        throw reason;
+      })()
+    );
+    const requestCount = seen.length;
+    await expect(a.attach({ upload: rs }).raw()).rejects.toMatchObject({
+      message: 'attach() 读取流字段 "upload" 失败：stream aborted',
+      cause: reason,
+    });
+    expect(seen).toHaveLength(requestCount);
   });
 
   test("多个 Set-Cookie 响应头不相互覆盖（getSetCookie 合并）", async () => {
@@ -648,6 +672,14 @@ describe("TestAgent 行为（fetch 驱动）", () => {
     expect(raw.status).toBe(200);
     expect(raw.body.url).toBe("/echo");
     expect(raw.headers["content-type"]).toBe("application/json");
+  });
+
+  test("损坏的 JSON 响应应保留原始文本，body 回退为空对象", async () => {
+    const a = makeAgent(erestA, "get", "/invalid-json", "GET_/invalid-json");
+    const raw = (await a.raw()) as { status: number; text: string; body: unknown };
+    expect(raw.status).toBe(200);
+    expect(raw.text).toBe('{"unfinished":');
+    expect(raw.body).toEqual({});
   });
 
   test("请求后应把对应 API 标记为 tested", async () => {
