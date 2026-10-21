@@ -1,7 +1,7 @@
 # erest 架构导航（给 AI 与新人）
 
-> 面向**修改 erest 代码**的开发者（人与 AI）的架构地图与红线。面向使用者的内容见 README.md。
-> 最后更新：v3.0 重构完成后（Stage 1-3）。
+> 面向**修改 erest 代码**的开发者（人与 AI）的架构地图与红线。面向使用者的入口见 [README.md](README.md)，详细用法见 [guides/](guides/)。
+> 架构涵盖 Zod、插件化适配器、文档生成与测试系统；开发流程见 [贡献指南](CONTRIBUTING.md)。
 
 ## 一图看懂
 
@@ -23,13 +23,13 @@ src/lib/
 │   └── test.ts       # 测试引擎（fetch 驱动）
 └── plugin/           # 文档/SDK 生成插件
     ├── zod-meta.ts   # ★ Zod→文档元信息统一提取（extractDocFields 等，兼容 Zod 3/4）
-    ├── generate_swagger/   # OpenAPI/Swagger
+    ├── generate_swagger/   # Swagger 2.0
     ├── generate_markdown/  # Markdown
     ├── generate_postman/   # Postman Collection
     └── generate_axios/     # Axios SDK
 
 packages/             # v3.0：框架适配器实现独立子包（npm scope @erest/*，目录名仍为 erest-*）
-├── erest-express/    # @erest/express — ExpressAdapter（Express 4）
+├── erest-express/    # @erest/express — ExpressAdapter（Express 4/5）
 ├── erest-koa/        # @erest/koa — KoaAdapter（Koa 3）
 ├── erest-leizmweb/   # @erest/leizmweb — LeizmWebAdapter（@leizm/web 2）
 └── erest-gen/        # @erest/gen — codegen CLI（命令名 erest-gen）
@@ -67,4 +67,4 @@ packages/             # v3.0：框架适配器实现独立子包（npm scope @er
    - 接入或修改 CI 不代表获准实际发版；只有用户明确授权后才推送发布 tag 或调用真实 publish。
    - 反例：只改了 `Reply.markSent()` 实现 + MIGRATION 登记，却忘了把 `3.2.0` 改成 `3.2.1` —— 这种「代码动了版本没动」会让下游无法通过版本号判断是否包含修复，必须避免。
 
-> API 用法（registerTyped/bind/hooks/schema.register 等）与测试/构建命令见 README.md，此处不再重复。
+> API 用法见 [API 定义](guides/api.md)、[框架接入](guides/adapters.md)和[文档与 SDK](guides/documentation.md)；测试/构建命令见 [贡献指南](CONTRIBUTING.md)。

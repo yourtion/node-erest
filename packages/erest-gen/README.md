@@ -1,69 +1,48 @@
 # @erest/gen
 
-erest codegen CLI：从 Zod schema 生成 handler 骨架等。
+从 Zod schema 源码生成 `registerTyped` handler 骨架。当前只支持 `handler` 命令。
 
-> npm 包名为 `@erest/gen`，安装后通过 `erest-gen` 命令调用。
+## 安装与运行
 
-## 安装
+npm 包名是 `@erest/gen`，命令名是 `erest-gen`：
 
 ```bash
 pnpm add -D @erest/gen
+pnpm exec erest-gen handler --from schemas/user.ts --group user
+pnpm exec erest-gen handler --from schemas/user.ts --group user --out handlers/user.ts
 ```
 
-## 用法
+省略 `--out` 时输出到 stdout；输出目录须预先创建。省略 `--group` 时分组为 `Index`。
 
-### handler 命令
+## 输入与结果
 
-从 Zod schema 文件生成 `registerTyped` handler 骨架。
-
-**约定**：schema 文件中以 `export const XxxSchema = z.object({...})` 形式导出的 schema 会被识别，每个生成一个 handler 骨架。
-
-```bash
-# 输出到 stdout
-npx erest-gen handler --from ./schemas/user.ts --group user
-
-# 输出到文件
-npx erest-gen handler --from ./schemas/user.ts --group user --out ./handlers/user.ts
-```
-
-**示例输入** `schemas/user.ts`：
+输入文件采用以下导出形式：
 
 ```typescript
-import { z } from "zod";
+import { z } from 'zod';
 
 export const UserCreateSchema = z.object({
   name: z.string(),
   age: z.number().int(),
 });
-
-export const UserUpdateSchema = z.object({
-  name: z.string().optional(),
-});
 ```
 
-**生成输出**：
+每个识别到的 schema 会生成一个 POST handler，如 `UserCreateSchema` → `/user-create`：
 
 ```typescript
-import type ERest from "erest";
-import { UserCreateSchema } from "./schemas/user.js";
-import { UserUpdateSchema } from "./schemas/user.js";
-
-export function registerUserHandlers(api: ERest["api"]) {
-  api
-    .post("/user-create")
-    .group("user")
-    .registerTyped(
-      { body: UserCreateSchema },
-      (req, ctx) => {
-        // TODO: 实现 user-create 处理逻辑
-        return ctx.reply.json({ ok: true });
-      }
-    );
-  // ...
-}
+api.post('/user-create').group('user').registerTyped(
+  { body: UserCreateSchema },
+  (req, ctx) => {
+    // req.body 的类型由 schema 推导
+    return ctx.reply.json({ ok: true });
+  },
+);
 ```
 
-## 后续计划
+生成物是待编辑的骨架：补充路由标题和业务逻辑，将 schema import 调整为相对输出文件的路径。
+例如输出到 `handlers/user.ts` 时，schema import 应指向 `../schemas/user.js`。
 
-- `test` 命令：为已注册 API 生成测试样板
-- `docs` 命令：从 ERest 实例导出 markdown
+识别使用源码正则，要求名称以大写字母开头、以 `Schema` 结尾，并直接赋值为 `z.object(...)`。
+它不会执行输入文件，也不解析重导出或任意 schema 工厂调用。
+
+完整 API 写法见[API 定义](../../guides/api.md)，仓库开发流程见[贡献指南](../../CONTRIBUTING.md)。
