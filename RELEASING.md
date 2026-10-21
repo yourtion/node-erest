@@ -1,5 +1,7 @@
 # npm 自动发布
 
+[返回首页](README.md) · [贡献指南](CONTRIBUTING.md)
+
 仓库通过 GitHub 托管 runner 的 `.github/workflows/release.yml` 使用 npm Trusted Publishing（OIDC）。
 不需要 `NPM_TOKEN`，也不在 GitHub 保存 npm 长期凭据。workflow 使用 Node 24，并检查实际 npm
 版本至少为 11.5.1（OIDC 要求 Node 至少 22.14.0）。公开仓库的公开包通过 OIDC 发布时，npm 自动生成 provenance。
@@ -35,10 +37,11 @@ workflow 名称填写文件名 `release.yml`，不要填写显示名称 `Release
    git switch main
    git pull --ff-only
    pnpm run tag
-   git push origin v3.2.3
+   RELEASE_VERSION="$(node --print "require('./package.json').version")"
+   git push origin "v${RELEASE_VERSION}"
    ```
 
-   示例用于 `3.2.3`；以后将推送的 tag 替换为五个 manifest 中的实际版本。`pnpm run tag`
+   `RELEASE_VERSION` 读取当前 manifest 版本；推送前核对五个包的版本一致。`pnpm run tag`
    只创建本地 tag，不执行 npm 发布。也可用 `git tag v<version>` 创建 tag。
 3. 在 Actions → Release 查看结果。只有推送 tag 触发发布，普通 PR/main push 不发布。
 
