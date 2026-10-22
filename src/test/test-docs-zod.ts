@@ -188,13 +188,11 @@ describe("Zod Documentation Generation Tests", () => {
       expect(swaggerDoc.definitions).toBeDefined();
       expect(swaggerDoc.definitions.UserName).toEqual({
         type: "string",
-        properties: {},
         description: "字符串类型",
       });
 
       expect(swaggerDoc.definitions.UserAge).toEqual({
         type: "number",
-        properties: {},
         description: "数字类型",
       });
     });
@@ -220,19 +218,15 @@ describe("Zod Documentation Generation Tests", () => {
       expect(userDef.properties).toBeDefined();
       expect(userDef.properties.name).toEqual({
         type: "string",
-        description: "字符串类型",
       });
       expect(userDef.properties.age).toEqual({
         type: "number",
-        description: "数字类型",
       });
       expect(userDef.properties.email).toEqual({
         type: "string",
-        description: "字符串类型",
       });
       expect(userDef.properties.isActive).toEqual({
         type: "boolean",
-        description: "布尔类型",
       });
 
       // 检查必填字段
@@ -262,22 +256,25 @@ describe("Zod Documentation Generation Tests", () => {
 
       expect(complexDef.properties.id).toEqual({
         type: "string",
-        description: "字符串类型",
       });
 
       expect(complexDef.properties.tags).toEqual({
         type: "array",
-        description: "数组类型",
+        items: { type: "string" },
       });
 
       expect(complexDef.properties.metadata).toEqual({
         type: "object",
-        description: "对象类型",
+        properties: {
+          created: { type: "string", format: "date-time" },
+          updated: { type: "string", format: "date-time" },
+        },
+        required: ["created"],
       });
 
       expect(complexDef.properties.status).toEqual({
         type: "string",
-        description: "枚举类型",
+        enum: ["active", "inactive", "pending"],
       });
     });
   });

@@ -591,6 +591,7 @@ describe("ERest - 门面行为与文档惰性初始化", () => {
       index: true,
       home: true,
       swagger: false,
+      openapi: false,
       postman: false,
       json: false,
       axios: false,
