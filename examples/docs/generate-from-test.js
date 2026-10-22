@@ -3,7 +3,7 @@
  *
  * 与 generate.js 的区别：
  *   - generate.js：只装配实例 + genDocs，不跑请求 → 所有 API 在文档里显示 ❌、无真实示例
- *   - 本脚本：用 test-agent 跑真实请求（.success().takeExample()）→ 文档显示 ✅ + 真实示例
+ *   - 本脚本：用 test-agent 跑真实请求（.takeExample(name).success()）→ 文档显示 ✅ + 真实示例
  *
  * 原理（同一 ERest 实例上完成全链路）：
  *   1. .success() / .error() / .raw() 读取响应输出 → 翻转对应路由的 tested 标记 → markdown 标题显示 ✅
@@ -37,7 +37,7 @@ const api = new ERest({
   groups: GROUPS,
   forceGroup: true,
   // wiki: 每个分组生成独立 .md（public.md/post.md/admin.md）；index: 生成目录页
-  docs: { markdown: true, wiki: true, index: true },
+  docs: { markdown: true, wiki: true, index: true, openapi: true },
 });
 
 registerApi(api, store, {

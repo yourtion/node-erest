@@ -18,6 +18,13 @@ try {
     import { spawnSync } from 'node:child_process';
     const core = await import('erest');
     assert.equal(typeof core.ERest, 'function');
+    const api = new core.ERest({ groups: { demo: 'demo' } });
+    api.api.post('/items').group('demo').title('items').registerTyped({
+      body: core.z.object({ id: core.z.union([core.z.string(), core.z.number()]) }),
+    }, () => {});
+    const document = api.buildOpenAPI();
+    assert.equal(document.openapi, '3.0.3');
+    assert.equal(document.paths['/items'].post.requestBody.content['application/json'].schema.$ref.startsWith('#/components/schemas/'), true);
     assert.equal(core.z.string().parse('published package'), 'published package');
     for (const name of ['@erest/express', '@erest/koa', '@erest/leizmweb']) {
       const adapter = await import(name);

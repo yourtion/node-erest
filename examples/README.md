@@ -67,12 +67,12 @@ pnpm --filter erest-example docs       # examples/docs/out/
 pnpm --filter erest-example docs:test  # examples/docs/out-from-test/
 ```
 
-[docs/generate.js](docs/generate.js) 直接生成 `swagger.json`（Swagger 2.0）、`postman.json`、
-`sdk.js` 和 Markdown 分组页面。
+[docs/generate.js](docs/generate.js) 直接生成 `openapi.json`（OpenAPI 3.0.3）、
+`swagger.json`（Swagger 2.0）、`postman.json`、`sdk.js` 和 Markdown 分组页面。
 未执行请求的路由显示未测试标记，无真实请求示例。
 
 [docs/generate-from-test.js](docs/generate-from-test.js) 启动临时测试服务，发出真实请求，
-通过 `.takeExample(name).success()` 记录请求与响应，再生成 Markdown。
+通过 `.takeExample(name).success()` 记录请求与响应，再生成 Markdown 和 OpenAPI 3。
 执行过的路由显示已测试标记；该标记不替代业务断言。
 
 格式选项见[文档与 SDK](../guides/documentation.md)，示例记录见[API 测试](../guides/testing.md#保存真实示例)。

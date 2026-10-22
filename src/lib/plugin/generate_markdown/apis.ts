@@ -41,7 +41,7 @@ export default function apiDocs(data: IDocData) {
         }
       }
       const comment = f.enumValues ? `${f.comment ?? ""} (${f.enumValues.join(",")})` : f.comment;
-      const type = f.enumValues ? `enum` : f.type;
+      const type = (f.enumValues ? `enum` : (f.typeText ?? f.type)).replaceAll("|", "\\|");
       paramsList.push(
         fieldString([stringOrEmpty(f.name, true), f.place, type, itemTF(undefined), required, stringOrEmpty(comment)])
       );
@@ -74,7 +74,14 @@ export default function apiDocs(data: IDocData) {
     paramsList.push(tableHeader(["参数名", "类型", "必填", "说明"]));
     for (const f of fields) {
       const comment = f.enumValues ? `${f.comment ?? ""} (${f.enumValues.join(",")})` : f.comment;
-      paramsList.push(fieldString([stringOrEmpty(f.name, true), f.type, itemTF(f.required), stringOrEmpty(comment)]));
+      paramsList.push(
+        fieldString([
+          stringOrEmpty(f.name, true),
+          (f.typeText ?? f.type).replaceAll("|", "\\|"),
+          itemTF(f.required),
+          stringOrEmpty(comment),
+        ])
+      );
     }
     if (paramsList.length === 1) return;
     return paramsList.join("\n");
@@ -125,7 +132,7 @@ export default function apiDocs(data: IDocData) {
       line.push("\n参数：无参数");
     }
 
-    const responseDoc = responseTable(item.response);
+    const responseDoc = responseTable(item.response ?? item.responseSchema);
     if (responseDoc) {
       line.push(`\n### 返回结果：\n\n${responseDoc}`);
     }

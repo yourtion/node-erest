@@ -124,6 +124,8 @@ export interface IDocOptions extends Record<string, unknown> {
   home?: string | boolean;
   /** 生成 swagger.json */
   swagger?: string | boolean;
+  /** 生成 OpenAPI 3.0.3 文档 openapi.json */
+  openapi?: string | boolean;
   /** 生成 postman.json */
   postman?: string | boolean;
   /** 生成 docs.json */
@@ -406,6 +408,7 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unk
       index: getDocOpt("index", false),
       home: getDocOpt("home", true),
       swagger: getDocOpt("swagger", false),
+      openapi: getDocOpt("openapi", false),
       postman: getDocOpt("postman", false),
       json: getDocOpt("json", false),
       axios: getDocOpt("axios", false),
@@ -496,6 +499,12 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unk
       this.api.docs = new IAPIDoc(this as ERest<unknown>);
     }
     return this.api.docs.getSwaggerInfo();
+  }
+
+  /** 从当前 API 定义构建 OpenAPI 3.0.3 文档。 */
+  public buildOpenAPI() {
+    if (!this.api.docs) this.api.docs = new IAPIDoc(this as ERest<unknown>);
+    return this.api.docs.getOpenAPIInfo();
   }
 
   /**

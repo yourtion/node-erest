@@ -24,6 +24,7 @@ src/lib/
 └── plugin/           # 文档/SDK 生成插件
     ├── zod-meta.ts   # ★ Zod→文档元信息统一提取（extractDocFields 等，兼容 Zod 3/4）
     ├── generate_swagger/   # Swagger 2.0
+    ├── generate_openapi/   # OpenAPI 3.0.3（Zod JSON Schema → 标准组件/组合类型）
     ├── generate_markdown/  # Markdown
     ├── generate_postman/   # Postman Collection
     └── generate_axios/     # Axios SDK
