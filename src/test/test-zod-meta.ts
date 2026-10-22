@@ -11,6 +11,7 @@ import { describe, expect, test } from "vitest";
 import { z } from "zod";
 import {
   extractDocFields,
+  extractDocSchema,
   getZodDefaultValue,
   getZodElement,
   getZodEnumValues,
@@ -152,12 +153,13 @@ describe("zod-meta: extractDocFields", () => {
     expect(field.type).toBe("string");
   });
 
-  test("union 字段简化为首个分支类型", () => {
+  test("union 字段的展示类型保留全部分支", () => {
     const schema = z.object({
       id: z.union([z.string(), z.number()]),
     });
     const [field] = extractDocFields(schema, "body");
     expect(field.type).toBe("string");
+    expect(field.typeText).toBe("string | number");
   });
 
   test("describe() 描述被提取", () => {
@@ -172,6 +174,76 @@ describe("zod-meta: extractDocFields", () => {
     expect(extractDocFields(null, "body")).toEqual([]);
     expect(extractDocFields({}, "body")).toEqual([]);
     expect(extractDocFields(z.string(), "body")).toEqual([]);
+  });
+});
+
+describe("zod-meta: 递归文档结构", () => {
+  test("数组保留对象元素、嵌套 union 和字段必填", () => {
+    expect(
+      extractDocSchema(
+        z.array(
+          z.object({
+            value: z.union([z.number(), z.boolean()]),
+            note: z.string().optional().nullable(),
+          })
+        )
+      )
+    ).toEqual({
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          value: { "x-anyOf": [{ type: "number" }, { type: "boolean" }] },
+          note: { type: "string", "x-nullable": true },
+        },
+        required: ["value"],
+      },
+    });
+  });
+
+  test("literal union 合并为 enum，数值 literal 保留类型", () => {
+    expect(extractDocSchema(z.union([z.literal("on"), z.literal("off")]))).toEqual({
+      type: "string",
+      enum: ["on", "off"],
+    });
+    expect(extractDocSchema(z.literal(7))).toEqual({ type: "number", enum: [7] });
+    expect(extractDocSchema(z.enum({ Ready: 1, Done: 2 }))).toEqual({ type: "number", enum: [1, 2] });
+  });
+
+  test("默认值 0/false 和 nullable 保留，不把包装层误判必填", () => {
+    const schema = z.object({
+      count: z.number().default(0),
+      enabled: z.boolean().default(false),
+      name: z.string().optional().nullable(),
+    });
+    expect(extractDocSchema(schema)).toEqual({
+      type: "object",
+      properties: {
+        count: { type: "number", default: 0 },
+        enabled: { type: "boolean", default: false },
+        name: { type: "string", "x-nullable": true },
+      },
+    });
+  });
+
+  test("复用同一 schema 的字段都能展开，循环结构显式标记边界", () => {
+    const shared = z.object({ id: z.number() });
+    const result = extractDocSchema(z.object({ a: shared, b: shared }));
+    expect(result.properties?.a).toEqual(result.properties?.b);
+    expect(result.properties?.b.properties?.id).toEqual({ type: "number" });
+    const recursive: z.ZodType = z.lazy(() => z.object({ next: recursive.optional() }));
+    expect(extractDocSchema(recursive).properties?.next).toEqual({ "x-zod-type": "recursive" });
+  });
+
+  test("Zod 3 数组元素结构与 Zod 4 一致", () => {
+    const legacy = { _def: { typeName: "ZodArray", type: z.number() } };
+    expect(getZodTypeName(getZodElement(legacy))).toBe("number");
+    expect(extractDocSchema(legacy)).toEqual({ type: "array", items: { type: "number" } });
+  });
+
+  test("Markdown 展示 union 数组的全部元素分支", () => {
+    const [field] = extractDocFields(z.object({ choices: z.array(z.union([z.string(), z.number()])) }), "body");
+    expect(field.typeText).toBe("(string | number)[]");
   });
 });
 

@@ -1,409 +1,123 @@
-/**
- * @file API plugin generate-swagger
- * @author Yourtion Guo <yourtion@gmail.com>
- */
-
+/** Swagger 2 文档生成：请求、响应和注册类型共用递归 schema 提取。 */
 import * as path from "node:path";
 import { URL } from "node:url";
-import type { ZodType } from "zod";
 import { plugin as debug } from "../../debug.js";
 import type { IDocData, IDocWritter } from "../../extend/docs.js";
 import type { IDocOptions } from "../../index.js";
 import { isZodSchema } from "../../params.js";
-import { extractDocFields, getZodInner, getZodTypeName, resolveZodShape } from "../zod-meta.js";
 import * as utils from "../../utils.js";
+import { extractDocFields, extractDocSchema, resolveZodShape, type DocSchema } from "../zod-meta.js";
 
-type SCHEMA = "http" | "https" | "ws" | "wss";
-
-interface ISwaggerResult {
-  // 指定swagger spec版本，2.0
-  swagger: string;
-  // 提供API的元数据
-  info: unknown;
-  // 主机，如果没有提供，则使用文档所在的host
-  host?: string;
-  // 相对于host的路径
-  basePath: string;
-  schemes: SCHEMA[];
-  // 补充的元数据，在swagger ui中，用于作为api的分组标签
-  tags: Array<{ name: string; description: string }>;
-  definitions: Record<string, ISwaggerModels>;
-  paths: unknown;
+/** 兼容只提供 tsType 的第三方文档数据；正常生成使用注册表的 Zod schema。 */
+function typeSchema(tsType: string): DocSchema {
+  if (tsType.endsWith("[]")) return { type: "array", items: typeSchema(tsType.slice(0, -2)) };
+  if (tsType.includes(" | ")) return { "x-anyOf": tsType.split(" | ").map(typeSchema) };
+  if (tsType === "Date") return { type: "string", format: "date-time" };
+  if (["string", "number", "boolean", "object"].includes(tsType)) return { type: tsType };
+  return {};
 }
 
-interface ISwaggerResultParams {
-  name?: string;
-  in?: string;
-  description: string;
-  type?: string;
-  required?: string[] | boolean;
-  example?: unknown;
-  enum?: string[];
-  items?: unknown;
-  format?: string;
-  $ref?: string;
-}
-
-interface ISwaggerModels {
-  type: string;
-  properties: Record<string, { type: string; format?: string; description: string }>;
-  required?: string[];
-}
-
-/**
- * 生成 Swagger Schema 定义
- */
-function generateSwaggerSchemaDefinitions(data: IDocData, result: ISwaggerResult) {
-  // 从类型注册表生成定义
-  if (data.types && Object.keys(data.types).length > 0) {
-    for (const [typeName, typeDoc] of Object.entries(data.types)) {
-      const swaggerSchema: ISwaggerModels = {
-        type: convertTypeToSwaggerType(typeDoc.tsType || "unknown"),
-        properties: {},
-      };
-
-      // 简单类型直接使用类型信息
-      if (typeDoc.description) {
-        (swaggerSchema as { description?: string }).description = typeDoc.description;
-      }
-
-      result.definitions[typeName] = swaggerSchema;
-    }
-  }
-
-  // 从schema注册表生成定义
-  const schemaManager = data.schema as {
-    get?: (name: string) => ZodType | undefined;
-    has?: (name: string) => boolean;
-    [key: string]: unknown;
-  };
-
-  // 尝试通过ERest实例直接访问schemaRegistry
-  const erestInstance =
-    (data as { erest?: unknown; instance?: unknown }).erest ||
-    (data as { erest?: unknown; instance?: unknown }).instance;
-  let schemaRegistry: Map<string, ZodType> | null = null;
-
-  if (erestInstance && (erestInstance as { schemaRegistry?: Map<string, ZodType> }).schemaRegistry instanceof Map) {
-    schemaRegistry = (erestInstance as { schemaRegistry: Map<string, ZodType> }).schemaRegistry;
-  } else if (schemaManager && typeof schemaManager === "object") {
-    // 如果无法直接访问，尝试通过反射获取
-    const keys = Object.getOwnPropertyNames(schemaManager);
-    for (const key of keys) {
-      const value = schemaManager[key];
-      if (value instanceof Map) {
-        schemaRegistry = value;
-        break;
-      }
-    }
-  }
-
-  if (schemaRegistry && schemaRegistry.size > 0) {
-    for (const [schemaName, zodSchema] of schemaRegistry.entries()) {
-      if (isZodSchema(zodSchema)) {
-        result.definitions[schemaName] = convertZodSchemaToSwagger(zodSchema);
-      }
-    }
-  }
-}
-
-/**
- * 将 TypeScript 类型转换为 Swagger 类型
- */
-function convertTypeToSwaggerType(tsType: string): string {
-  if (tsType.includes("string")) return "string";
-  if (tsType.includes("number")) return "number";
-  if (tsType.includes("boolean")) return "boolean";
-  if (tsType.includes("Date")) return "string";
-  if (tsType.includes("[]")) return "array";
-  if (tsType.includes("object")) return "object";
-  return "string"; // 默认为字符串
-}
-
-/**
- * 将 Zod Schema 转换为 Swagger Schema
- */
-function convertZodSchemaToSwagger(zodSchema: ZodType): ISwaggerModels {
-  const swaggerSchema: ISwaggerModels = {
-    type: "object",
-    properties: {},
-    required: [],
-  };
-
-  if (!zodSchema || !zodSchema._def) {
-    return swaggerSchema;
-  }
-
-  const typeName = getZodTypeName(zodSchema);
-
-  if (typeName === "ZodObject" || typeName === "object") {
-    const shape = resolveZodShape(zodSchema) ?? {};
-    const requiredFields: string[] = [];
-
-    for (const [fieldName, fieldSchema] of Object.entries(shape)) {
-      const fieldInfo = convertZodFieldToSwagger(fieldSchema);
-      swaggerSchema.properties[fieldName] = fieldInfo.property;
-
-      if (fieldInfo.required) {
-        requiredFields.push(fieldName);
-      }
-    }
-
-    if (requiredFields.length > 0) {
-      swaggerSchema.required = requiredFields;
-    }
-  } else {
-    // 非对象类型
-    const fieldInfo = convertZodFieldToSwagger(zodSchema);
-    return {
-      type: fieldInfo.property.type,
-      properties: {},
-      ...(fieldInfo.property.format && { format: fieldInfo.property.format }),
-      ...(fieldInfo.property.description && { description: fieldInfo.property.description }),
-    } as ISwaggerModels;
-  }
-
-  return swaggerSchema;
-}
-
-/**
- * 将 Zod 字段转换为 Swagger 属性
- */
-function convertZodFieldToSwagger(zodSchema: ZodType | undefined): {
-  property: { type: string; format?: string; description: string };
-  required: boolean;
-} {
-  const result = {
-    property: { type: "string", description: "" },
-    required: true,
-  };
-
-  if (!zodSchema || !zodSchema._def) {
-    return result;
-  }
-
-  const typeName = getZodTypeName(zodSchema);
-
-  switch (typeName) {
-    case "ZodString":
-    case "string":
-      result.property.type = "string";
-      result.property.description = "字符串类型";
-      break;
-    case "ZodNumber":
-    case "number":
-      result.property.type = "number";
-      result.property.description = "数字类型";
-      break;
-    case "ZodBoolean":
-    case "boolean":
-      result.property.type = "boolean";
-      result.property.description = "布尔类型";
-      break;
-    case "ZodDate":
-    case "date":
-      result.property.type = "string";
-      (result.property as { format?: string }).format = "date-time";
-      result.property.description = "日期类型";
-      break;
-    case "ZodArray":
-    case "array":
-      result.property.type = "array";
-      result.property.description = "数组类型";
-      // 可以进一步处理数组项类型
-      break;
-    case "ZodObject":
-    case "object":
-      result.property.type = "object";
-      result.property.description = "对象类型";
-      break;
-    case "ZodEnum":
-    case "enum":
-      result.property.type = "string";
-      result.property.description = "枚举类型";
-      break;
-    case "ZodOptional":
-    case "optional": {
-      const innerInfo = convertZodFieldToSwagger(getZodInner(zodSchema));
-      result.property = innerInfo.property;
-      result.required = false;
-      break;
-    }
-    case "ZodDefault":
-    case "default": {
-      const defaultInnerInfo = convertZodFieldToSwagger(getZodInner(zodSchema));
-      result.property = defaultInnerInfo.property;
-      result.required = false;
-      break;
-    }
-    case "ZodUnion":
-    case "union":
-      result.property.type = "string"; // 联合类型简化为字符串
-      result.property.description = "联合类型";
-      break;
-    default:
-      result.property.type = "string";
-      result.property.description = `${typeName} 类型`;
-  }
-
-  return result;
-}
-
-/**
- * 构造 Swagger 2.0 的 200 响应对象。
- * 当 API 声明了 responseSchema（init 阶段解析后的最终 Zod schema）时，输出标准 schema；
- * 否则保持原有占位（仅 description）。复用 extractDocFields，与参数提取保持一致。
- */
-function response200(api: { responseSchema?: unknown }): { description: string; schema?: unknown } {
-  const fields = extractDocFields(api.responseSchema, "body");
-  if (fields.length === 0) return { description: "请求成功" };
-  const properties: Record<string, unknown> = {};
-  const required: string[] = [];
-  for (const f of fields) {
-    const prop: { type: string; format?: string; description?: string; enum?: string[]; items?: unknown } = {
-      type: f.enumValues ? "string" : f.type,
-      ...(f.comment ? { description: f.comment } : {}),
-      ...(f.format ? { format: f.format } : {}),
-      ...(f.enumValues ? { enum: f.enumValues } : {}),
+function generateDefinitions(data: IDocData): Record<string, DocSchema> {
+  const definitions: Record<string, DocSchema> = {};
+  const schemas = data.schema as { get?: (name: string) => unknown } | undefined;
+  const types = data.typeManager as { get?: (name: string) => unknown } | undefined;
+  for (const [name, doc] of Object.entries(data.types ?? {})) {
+    // 使用受控管理器访问器，不反射私有注册表。
+    const schema = schemas?.get?.(name) ?? types?.get?.(name);
+    const generated = isZodSchema(schema) ? extractDocSchema(schema) : typeSchema(doc.tsType ?? "unknown");
+    const description = generated.description ?? doc.description;
+    definitions[name] = {
+      ...generated,
+      ...(description ? { description } : {}),
     };
-    if (f.type === "array") prop.items = { type: "string" };
-    properties[f.name] = prop;
-    if (f.required) required.push(f.name);
   }
+  return definitions;
+}
+
+/** Swagger 2 的非 body 参数必须有 type；异构 union 在 URL 上按字符串传输。 */
+function parameterSchema(schema: DocSchema): DocSchema {
   return {
-    description: "请求成功",
-    schema: {
-      type: "object",
-      properties,
-      ...(required.length > 0 ? { required } : {}),
-    },
+    ...schema,
+    type: schema.type ?? "string",
+    ...(schema.items ? { items: parameterSchema(schema.items) } : {}),
   };
 }
 
 export function buildSwagger(data: IDocData) {
   const url = new URL(`${data.info.host || ""}${data.info.basePath || ""}`);
-
-  const result: ISwaggerResult = {
+  const paths: Record<string, Record<string, unknown>> = {};
+  const result = {
     swagger: "2.0",
     info: {
       title: data.info.title,
       description: data.info.description,
       version: data.info.version || "1.0.0",
     },
-    // host: url.host,
     basePath: url.pathname,
-    schemes: [url.protocol.replace(":", "") as SCHEMA],
-    tags: [],
-    definitions: {},
-    paths: {},
+    schemes: [url.protocol.replace(":", "")],
+    tags: Object.entries(data.group)
+      .map(([name, description]) => ({ name, description }))
+      .sort((a, b) => (a.name > b.name ? 1 : -1)),
+    definitions: generateDefinitions(data),
+    paths,
   };
 
-  for (const [k, g] of Object.entries(data.group)) {
-    result.tags.push({ name: k, description: g });
-  }
-  result.tags.sort((a, b) => (a.name > b.name ? 1 : -1));
-
-  // 生成 Schema 定义 - 支持新的 Zod 实现
-  generateSwaggerSchemaDefinitions(data, result);
-
-  const paths = result.paths as Record<string, unknown>;
   for (const [key, api] of Object.entries(data.apis)) {
     const newPath = utils.getRealPath(key).replace(/:(\w+)/g, "{$1}");
-    if (!paths[newPath]) {
-      paths[newPath] = {};
-    }
-    const sc = paths[newPath] as Record<string, unknown>;
-    sc[api.method as string] = {
+    const parameters: unknown[] = [];
+    const response = isZodSchema(api.responseSchema)
+      ? { description: "请求成功", schema: extractDocSchema(api.responseSchema) }
+      : { description: "请求成功" };
+    paths[newPath] ??= {};
+    paths[newPath][api.method as string] = {
       tags: [api.group],
       summary: api.title,
       description: api.description || "",
       consumes: ["application/json"],
       produces: ["application/json"],
-      responses: {
-        200: response200(api),
-      },
+      responses: { 200: response },
+      parameters,
     };
 
-    (sc[api.method as string] as Record<string, unknown>).parameters = [];
-    const bodySchema: Record<string, unknown> = {};
-    const bodyRequired: string[] = [];
-    let example = api.examples?.[0];
-    if (api.examples && api.examples.length > 1) {
-      for (const item of api.examples) {
-        if (item.output?.success) {
-          example = item;
-          break;
-        }
-      }
-    }
-    example = example || { input: {}, output: {} };
-
-    // Stage 1：从预编译的 Zod schema 提取参数（params/query/body）
-    const schemaMap = {
-      params: api.paramsSchema,
-      query: api.querySchema,
-      body: api.bodySchema,
-    } as Record<string, unknown>;
-
-    for (const place of ["params", "query", "body"]) {
-      const fields = extractDocFields(schemaMap[place], place);
-      for (const f of fields) {
-        const obj: ISwaggerResultParams = {
-          name: f.name,
-          in: place === "params" ? "path" : place,
-          description: f.comment || "",
-          required: place === "body" ? [] : false,
-          type: f.enumValues ? "string" : f.type,
-          example: place === "body" ? example.input?.[f.name] : undefined,
-        };
-        if (place === "params") obj.required = true;
-        if (place === "query" && f.required) obj.required = true;
-        if (f.enumValues) {
-          obj.enum = f.enumValues;
-        }
-        if (f.type === "array") {
-          obj.items = { type: "string" };
-        }
-        if (f.format) {
-          obj.format = f.format;
-        }
-        if (place === "body") {
-          delete obj.in;
-          delete obj.name;
-          delete obj.required;
-          bodySchema[f.name] = obj;
-          if (f.required) bodyRequired.push(f.name);
-        } else {
-          ((sc[api.method as string] as Record<string, unknown>).parameters as unknown[]).push(obj);
-        }
+    for (const [place, schema] of [
+      ["params", api.paramsSchema],
+      ["query", api.querySchema],
+      ["headers", api.headersSchema],
+    ] as const) {
+      const shape = resolveZodShape(schema) ?? {};
+      for (const field of extractDocFields(schema, place)) {
+        const doc = parameterSchema(extractDocSchema(shape[field.name]));
+        parameters.push({
+          ...doc,
+          name: field.name,
+          in: place === "params" ? "path" : place === "headers" ? "header" : "query",
+          description: field.comment || "",
+          required: place === "params" || field.required,
+          ...(doc.type === "array" && place === "query" ? { collectionFormat: "multi" } : {}),
+        });
       }
     }
 
-    // POST 请求体汇总为单个 in:body 参数
-    if (api.method === "post" && api.bodySchema) {
-      ((sc[api.method as string] as Record<string, unknown>).parameters as unknown[]).push({
-        in: "body",
-        name: "body",
-        description: "请求体",
-        required: true,
-        schema: {
-          type: "object",
-          properties: bodySchema,
-          // 字段级必填信息收集进 schema.required（JSON Schema 语义），不再丢弃
-          ...(bodyRequired.length > 0 ? { required: bodyRequired } : {}),
-        },
-      });
+    if (["post", "put", "patch"].includes(api.method as string) && api.bodySchema) {
+      const schema = extractDocSchema(api.bodySchema);
+      const examples = api.examples ?? [];
+      const example = examples.find((item) => item.output?.success) ?? examples[0];
+      // 示例是补充信息，不参与类型推断。
+      for (const [name, property] of Object.entries(schema.properties ?? {})) {
+        if (example?.input && name in example.input) {
+          (property as DocSchema & { example?: unknown }).example = example.input[name];
+        }
+      }
+      parameters.push({ in: "body", name: "body", description: "请求体", required: !!schema.required?.length, schema });
     }
   }
   return result;
 }
 
-export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions, writter: IDocWritter) {
+export default function generateSwagger(data: IDocData, dir: string, options: IDocOptions, writer: IDocWritter) {
   debug("generateSwagger: %s - %o", dir, options);
-
-  const result = buildSwagger(data);
-
-  const filename = utils.getPath("swagger.json", options.swagger);
-
-  writter(path.resolve(dir, filename), JSON.stringify(result, null, "  "));
+  writer(
+    path.resolve(dir, utils.getPath("swagger.json", options.swagger)),
+    JSON.stringify(buildSwagger(data), null, "  ")
+  );
 }

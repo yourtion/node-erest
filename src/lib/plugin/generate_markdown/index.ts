@@ -48,6 +48,10 @@ export default function generateMarkdown(data: IDocData, dir: string, options: I
   if (options.axios) indexDoc.push("JS-SDK（ 基于 axios ）：[jssdk.js](./jssdk.js)\n");
   if (options.postman) indexDoc.push("Postman 文件：[postman.json](./postman.json)\n");
   if (options.swagger) indexDoc.push("Swagger 文件：[swagger.json](./swagger.json)\n");
+  if (options.openapi) {
+    const filename = utils.getPath("openapi.json", options.openapi);
+    indexDoc.push(`OpenAPI 3 文件：[${filename}](./${filename})\n`);
+  }
   if (options.json) indexDoc.push(`JSON 描述文件：[doc.json](./doc.json)\n`);
 
   indexDoc.push("文档列表：\n");

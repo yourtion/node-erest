@@ -30,11 +30,23 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
   }
 
   function getFuncParams(req: APIOption<unknown>) {
-    const dataKeys = req.method === "get" ? schemaFieldNames(req.querySchema) : schemaFieldNames(req.bodySchema);
-    if (!dataKeys.length) {
-      return "";
+    const dataKeys = usesQueryInput(req) ? schemaFieldNames(req.querySchema) : schemaFieldNames(req.bodySchema);
+    const params = dataKeys.length ? [`{ ${dataKeys.join(", ")} } = {}`] : [];
+    if (!usesQueryInput(req) && schemaFieldNames(req.querySchema).length) {
+      params.push(`${queryArgument(req)} = {}`);
     }
-    return `{ ${dataKeys.join(", ")} }`;
+    return params.join(", ");
+  }
+
+  function usesQueryInput(req: APIOption<unknown>) {
+    return req.method === "get" || req.method === "delete";
+  }
+
+  function queryArgument(req: APIOption<unknown>) {
+    const keys = [...schemaFieldNames(req.paramsSchema), ...schemaFieldNames(req.bodySchema)];
+    let name = "query";
+    while (keys.includes(name)) name = `_${name}`;
+    return name;
   }
 
   function hasUrlParam(path: string) {
@@ -61,17 +73,19 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
   }
 
   function getReqSendData(req: APIOption<unknown>) {
-    const isGetReq = req.method === "get";
-    const dataKeys = isGetReq ? schemaFieldNames(req.querySchema) : schemaFieldNames(req.bodySchema);
-    if (!dataKeys.length) {
-      return "";
-    }
-    if (isGetReq) {
+    const isQueryReq = usesQueryInput(req);
+    const dataKeys = isQueryReq ? schemaFieldNames(req.querySchema) : schemaFieldNames(req.bodySchema);
+    if (isQueryReq) {
+      if (!dataKeys.length) return "";
       return `{
         params: { ${dataKeys.join(", ")} }
       }`;
     }
-    return `{ ${dataKeys.join(", ")} }`;
+    const body = dataKeys.length ? `{ ${dataKeys.join(", ")} }` : "";
+    if (schemaFieldNames(req.querySchema).length) {
+      return `${body || "undefined"}, { params: ${queryArgument(req)} }`;
+    }
+    return body;
   }
 
   const baseURL = `${data.info.host || ""}${data.info.basePath}`;
@@ -102,6 +116,7 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
     const api = {
       instance: axios.create({
         baseURL: BASE,
+        paramsSerializer: { indexes: null },
       }),
       ${request.join(",\n")}
     };

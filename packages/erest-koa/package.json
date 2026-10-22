@@ -1,6 +1,6 @@
 {
   "name": "@erest/koa",
-  "version": "3.2.6",
+  "version": "3.3.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yourtion/node-erest.git",
@@ -30,12 +30,8 @@
     "@koa/router": "^13.0.0"
   },
   "peerDependenciesMeta": {
-    "koa-router": {
-      "optional": true
-    },
-    "@koa/router": {
-      "optional": true
-    }
+    "koa-router": { "optional": true },
+    "@koa/router": { "optional": true }
   },
   "devDependencies": {
     "erest": "workspace:*",

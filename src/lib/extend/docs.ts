@@ -15,6 +15,7 @@ import type { IApiOptionInfo, IDocOptions } from "../index.js";
 import type { ErrorManager } from "../manager/index.js";
 import generateAxios from "../plugin/generate_axios/index.js";
 import generateMarkdown from "../plugin/generate_markdown/index.js";
+import generateOpenAPI, { buildOpenAPI } from "../plugin/generate_openapi/index.js";
 import generatePostman from "../plugin/generate_postman/index.js";
 import generateSwagger, { buildSwagger } from "../plugin/generate_swagger/index.js";
 
@@ -386,6 +387,9 @@ export default class IAPIDoc {
     if (this.docsOptions.swagger) {
       this.registerPlugin("swagger", generateSwagger);
     }
+    if (this.docsOptions.openapi) {
+      this.registerPlugin("openapi", generateOpenAPI);
+    }
     if (this.docsOptions.postman) {
       this.registerPlugin("postman", generatePostman);
     }
@@ -403,6 +407,10 @@ export default class IAPIDoc {
 
   public getSwaggerInfo() {
     return buildSwagger(this.buildDocData()) as unknown;
+  }
+
+  public getOpenAPIInfo() {
+    return buildOpenAPI(this.buildDocData());
   }
 
   public registerPlugin(name: string, plugin: IDocGeneratePlugin) {
