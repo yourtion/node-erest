@@ -25,9 +25,12 @@ jobs:
     timeout-minutes: 90
     env:
       MUTATION_NODE_VERSION: '24'
+      ISLIB: '1'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -46,24 +49,22 @@ jobs:
       - name: Run source tests
         run: pnpm run test:lib
 
-      # Stryker tracks src/lib and test*.ts. Hash helpers, adapters and configs
-      # separately so changes outside the mutation scope invalidate the baseline.
+      - name: Show baseline input manifest
+        run: node .github/scripts/baseline-inputs.mjs .github/mutation-cache-inputs.json --list
+
       - name: Compute baseline compatibility key
         id: baseline-key
-        env:
-          INPUTS_HASH: >-
-            ${{ hashFiles('pnpm-lock.yaml', 'package.json', 'pnpm-workspace.yaml',
-            '.npmrc', 'stryker.config.*', 'vitest.config.*', 'tsconfig*.json',
-            '.github/workflows/mutation.yml', 'packages/**/package.json',
-            'packages/**/tsconfig*.json', 'packages/**/src/**', 'src/test/**',
-            'src/**/*.d.ts', '!src/test/test*.ts') }}
-        run: echo "prefix=mutation-core-v1-${RUNNER_OS}-node${MUTATION_NODE_VERSION}-${INPUTS_HASH}" >> "$GITHUB_OUTPUT"
+        run: |
+          INPUTS_HASH="$(node .github/scripts/baseline-inputs.mjs .github/mutation-cache-inputs.json)"
+          echo "prefix=mutation-node-erest-v3-${RUNNER_OS}-${INPUTS_HASH}" >> "$GITHUB_OUTPUT"
 
       - name: Restore main mutation baseline
         id: baseline
         uses: actions/cache/restore@v4
         with:
-          path: reports/stryker-incremental.json
+          path: |
+            reports/stryker-incremental.json
+            reports/stryker-incremental.json.inputs.json
           key: ${{ steps.baseline-key.outputs.prefix }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             ${{ steps.baseline-key.outputs.prefix }}-
@@ -83,7 +84,9 @@ jobs:
         if: success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4
         with:
-          path: reports/stryker-incremental.json
+          path: |
+            reports/stryker-incremental.json
+            reports/stryker-incremental.json.inputs.json
           key: ${{ steps.baseline.outputs.cache-primary-key }}
 
       - name: Upload mutation reports
