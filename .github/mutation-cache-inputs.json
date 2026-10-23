@@ -1,0 +1,19 @@
+{
+  "schema": 3,
+  "trackedByStryker": [],
+  "alwaysHash": [],
+  "nonSemanticFiles": [
+    {
+      "path": "README.md",
+      "reason": "Reviewed maintainer documentation; not consumed by mutation tests or runtime."
+    }
+  ],
+  "packageVersionFiles": [
+    {
+      "path": "package.json",
+      "reason": "Reviewed mutation source and Vitest test/config imports do not consume root package version; source aliases bypass published metadata. Only root version is normalized; dependency declarations and lockfiles remain semantic."
+    }
+  ],
+  "npmLockVersionFiles": [],
+  "environment": []
+}
