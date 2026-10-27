@@ -4,7 +4,7 @@
 
 ## 环境与构建
 
-建议使用 Node.js 24、pnpm 9。仓库是 pnpm workspace，核心包和四个公开子包一起构建。
+建议使用 Node.js 24、pnpm 9。仓库是 pnpm workspace，核心包和五个公开子包一起构建。
 
 ```bash
 pnpm install --frozen-lockfile
@@ -13,7 +13,7 @@ pnpm run build:packages
 ```
 
 源码修改位置、Zod 内部结构访问和版本约定见 [AGENTS.md](AGENTS.md)。
-涉及公开 API/行为/依赖的修改，同步更新五个包的版本和 [MIGRATION.md](MIGRATION.md)。
+涉及公开 API/行为/依赖的修改，同步更新六个包的版本和 [MIGRATION.md](MIGRATION.md)。
 
 ## 常用检查
 
@@ -25,6 +25,7 @@ pnpm run build:packages
 | `pnpm run test:contract` | OpenAPI、SDK、运行时的合约专项 |
 | `pnpm run test:cov` | 源码测试与覆盖率门槛 |
 | `pnpm test` | 构建核心/子包，验证发布产物并运行示例测试 |
+| `pnpm run test:h3-types` | H3 handler 的 Raw/State 与适配器兼容性类型检查 |
 | `pnpm run test:release` | 发布工具的校验、模拟发布及失败重跑测试 |
 | `pnpm run bench` | 性能基准 |
 
@@ -33,7 +34,7 @@ pnpm run build:packages
 
 ## 合约专项
 
-`test:contract` 在 Express、Koa、LeizmWeb 下执行同一套 GET/POST/PUT/PATCH/DELETE 定义。
+`test:contract` 在 Express、Koa、LeizmWeb、H3 下执行同一套 GET/POST/PUT/PATCH/DELETE 定义。
 测试经公开入口生成 OpenAPI 3、Swagger 2 和完整 Axios ESM SDK，再发起真实 HTTP 请求：
 
 - Swagger Parser 检查文档规范；独立 Ajv 校验实际参数与响应。

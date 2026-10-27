@@ -4,7 +4,9 @@
 import { ExpressAdapter } from "../../packages/erest-express/src/index.js";
 import { KoaAdapter } from "../../packages/erest-koa/src/index.js";
 import { LeizmWebAdapter } from "../../packages/erest-leizmweb/src/index.js";
+import { H3Adapter } from "../../packages/erest-h3/src/index.js";
 
 export const expressAdapter = new ExpressAdapter();
 export const koaAdapter = new KoaAdapter();
 export const leizmwebAdapter = new LeizmWebAdapter();
+export const h3Adapter = new H3Adapter();

@@ -170,7 +170,7 @@ export function completeRelease(info, repository, run = execute) {
 // Explicit public release set: examples is private and is never published.
 export const packageDirectories = [
   '.', 'packages/erest-express', 'packages/erest-koa',
-  'packages/erest-leizmweb', 'packages/erest-gen',
+  'packages/erest-leizmweb', 'packages/erest-h3', 'packages/erest-gen',
 ];
 const repositoryUrl = 'git+https://github.com/yourtion/node-erest.git';
 const dependencyFields = ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies'];

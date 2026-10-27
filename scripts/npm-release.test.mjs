@@ -225,7 +225,7 @@ test('create or complete GitHub release with the matching prerelease state', () 
 });
 
 const repository = { type: 'git', url: 'git+https://github.com/yourtion/node-erest.git' };
-const names = ['erest', '@erest/express', '@erest/koa', '@erest/leizmweb', '@erest/gen'];
+const names = ['erest', '@erest/express', '@erest/koa', '@erest/leizmweb', '@erest/h3', '@erest/gen'];
 
 function fixture(t, version = '3.2.3') {
   const root = mkdtempSync(join(tmpdir(), 'erest-release-test-'));
@@ -237,7 +237,7 @@ function fixture(t, version = '3.2.3') {
       name: names[index], version, repository, type: 'module',
       main: './dist/index.js', types: './dist/index.d.ts',
     };
-    if (index > 0 && index < 4) manifest.peerDependencies = { erest: 'workspace:^' };
+    if (index > 0 && index < 5) manifest.peerDependencies = { erest: 'workspace:^' };
     writeFileSync(join(path, 'package.json'), JSON.stringify(manifest));
   }
   mkdirSync(join(root, 'examples'));
@@ -269,7 +269,7 @@ function localPacker(root, changeManifest = (value) => value) {
   };
 }
 
-test('release set includes exactly five public packages, matching versions and repository metadata', (t) => {
+test('release set includes exactly six public packages, matching versions and repository metadata', (t) => {
   const root = fixture(t);
   const packages = workspaceRelease('v3.2.3', root);
   assert.deepEqual(packages.map((pkg) => pkg.name), names);
@@ -301,7 +301,7 @@ test('workspace-aware pack checks real tarball contents and records integrity fo
   const root = fixture(t);
   const destination = join(root, '.bundle');
   const bundle = packWorkspace('v3.2.3', destination, root, localPacker(root));
-  assert.equal(bundle.packages.length, 5);
+  assert.equal(bundle.packages.length, 6);
   const restored = readBundle('v3.2.3', destination, root);
   assert.deepEqual(restored.map((pkg) => pkg.name), names);
   const adapter = inspectTarball(restored[1].tarball);
@@ -365,7 +365,7 @@ test('release publication resumes after a partial npm failure and completes GitH
   assert.equal(githubCalls, 0);
   failPackage = undefined;
   publishReleaseSet(packages, 'yourtion/node-erest', run);
-  assert.equal(published.size, 5);
+  assert.equal(published.size, 6);
   assert.equal(npmCalls.filter((name) => name === 'erest').length, 1);
   assert.equal(githubCalls, 2);
 });

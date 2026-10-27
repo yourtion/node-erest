@@ -574,12 +574,12 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unk
 
   /**
    * 统一绑定 API 到应用（推荐使用）
-   * 支持 Express、Koa 和 @leizm/web 框架
+   * 支持 Express、Koa、@leizm/web 和 H3 框架
    *
    * @param options 绑定选项
    */
   public bind(options: {
-    /** 框架适配器实例（由 @erest/express / @erest/koa / @erest/leizmweb 子包提供，或用户自定义） */
+    /** 框架适配器实例（由 @erest/express / @erest/koa / @erest/leizmweb / @erest/h3 子包提供，或用户自定义） */
     adapter: FrameworkAdapter<T>;
     /** 应用实例 */
     app?: unknown;
