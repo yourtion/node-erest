@@ -24,7 +24,8 @@ coverage/
 .stryker-tmp/
 reports/
 # 本地性能评测数据与生成报告
-/benchmarks/results/
+/benchmarks/results/*
+!/benchmarks/results/mac-post.json
 
 # 日志
 *.log
