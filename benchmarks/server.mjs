@@ -2,15 +2,9 @@
 import { createServer } from "node:http";
 import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { expectedGet, output, schemas, validate } from "./fixture.mjs";
 
 const [framework, mode, scenario] = process.argv.slice(2);
-const runtimeRoot = process.env.BENCH_RUNTIME_ROOT
-  ? pathToFileURL(`${resolve(process.env.BENCH_RUNTIME_ROOT)}/`)
-  : new URL("../", import.meta.url);
-const runtime = (path) => new URL(path, runtimeRoot).href;
 const isGet = scenario === "get";
 const method = isGet ? "get" : "post";
 const route = isGet ? "/ping" : "/users/:id";
@@ -31,7 +25,7 @@ if (framework === "express") {
   router = app;
   server = createServer(app);
   if (mode === "erest") {
-    const mod = await import(runtime("packages/erest-express/dist/index.js"));
+    const mod = await import("../packages/erest-express/dist/index.js");
     adapter = new mod.ExpressAdapter();
   } else {
     router[method](
@@ -52,7 +46,7 @@ if (framework === "express") {
   router = new Router();
   app.use(bodyParser());
   if (mode === "erest") {
-    const mod = await import(runtime("packages/erest-koa/dist/index.js"));
+    const mod = await import("../packages/erest-koa/dist/index.js");
     adapter = new mod.KoaAdapter();
   } else {
     const input = (ctx) => checked({ params: ctx.params, query: ctx.query, body: ctx.request.body });
@@ -71,7 +65,7 @@ if (framework === "express") {
   router = new Router();
   app.use("/", component.bodyParser.json());
   if (mode === "erest") {
-    const mod = await import(runtime("packages/erest-leizmweb/dist/index.js"));
+    const mod = await import("../packages/erest-leizmweb/dist/index.js");
     adapter = new mod.LeizmWebAdapter();
   } else {
     router[method](
@@ -91,7 +85,7 @@ if (framework === "express") {
   app = new H3({ silent: true });
   router = app;
   if (mode === "erest") {
-    const mod = await import(runtime("packages/erest-h3/dist/index.js"));
+    const mod = await import("../packages/erest-h3/dist/index.js");
     adapter = new mod.H3Adapter();
   } else {
     const send = (event, result) => {
@@ -120,7 +114,7 @@ if (framework === "express") {
 }
 
 if (mode === "erest") {
-  const { ERest } = await import(runtime("dist/lib/index.js"));
+  const { ERest } = await import("../dist/lib/index.js");
   const service = new ERest({ info: { basePath: "" }, groups: { bench: "Benchmark" }, docs: { markdown: false } });
   const api = service.api[method](route).group("bench");
   if (isGet) api.register((ctx) => ctx.reply.json(expectedGet));

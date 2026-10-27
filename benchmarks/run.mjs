@@ -40,14 +40,6 @@ assert(
 assert(!config.serverCpu || process.platform === "linux", "BENCH_SERVER_CPU uses Linux taskset; omit it on macOS");
 const destination = resolve(root, process.env.BENCH_OUT || "benchmarks/results/latest.json");
 mkdirSync(dirname(destination), { recursive: true });
-const experiments = process.env.BENCH_VARIANTS_FILE
-  ? JSON.parse(readFileSync(resolve(process.env.BENCH_VARIANTS_FILE), "utf8"))
-  : null;
-const selectedVariants = experiments
-  ? list("BENCH_VARIANTS", Object.keys(experiments.variants).join(","))
-  : [];
-assert(selectedVariants.every((name) => experiments.variants[name]), "Unknown BENCH_VARIANTS value");
-if (process.env.BENCH_PROFILE_DIR) mkdirSync(resolve(process.env.BENCH_PROFILE_DIR), { recursive: true });
 function read(filePath) {
   try {
     return readFileSync(filePath, "utf8").trim();
@@ -97,7 +89,6 @@ const result = {
     ),
   },
   config,
-  ...(experiments ? { experiments, selectedVariants } : {}),
   samples: [],
 };
 function save() {
@@ -127,17 +118,12 @@ function message(child, type, send) {
   });
 }
 async function sample(framework, scenario, concurrency, mode, round) {
-  const variant = experiments?.variants[mode];
-  const profileArgs = process.env.BENCH_PROFILE_DIR
-    ? ["--cpu-prof", `--cpu-prof-dir=${resolve(process.env.BENCH_PROFILE_DIR)}`, `--cpu-prof-name=${framework}-${scenario}-c${concurrency}-${mode}-r${round}.cpuprofile`]
-    : [];
-  assert(!config.serverCpu || !profileArgs.length, "Use profiling separately from CPU affinity runs");
-  const child = fork(resolve(root, "benchmarks/server.mjs"), [framework, variant ? "erest" : mode, scenario], {
+  const child = fork(resolve(root, "benchmarks/server.mjs"), [framework, mode, scenario], {
     cwd: root,
     ...(config.serverCpu
       ? { execPath: "/usr/bin/taskset", execArgv: ["-c", config.serverCpu, process.execPath, "--expose-gc"] }
-      : { execArgv: ["--expose-gc", ...profileArgs] }),
-    env: { ...process.env, BENCH_RUNTIME_ROOT: variant ? resolve(root, variant.runtimeRoot) : "", NODE_ENV: "production", DEBUG: "" },
+      : { execArgv: ["--expose-gc"] }),
+    env: { ...process.env, NODE_ENV: "production", DEBUG: "" },
     stdio: ["ignore", "ignore", "inherit", "ipc"],
   });
   try {
@@ -201,9 +187,8 @@ for (let round = 1; round <= config.rounds; round++) {
   const offset = (round - 1) % config.frameworks.length;
   for (const framework of [...config.frameworks.slice(offset), ...config.frameworks.slice(0, offset)]) {
     for (const scenario of config.scenarios) {
-      const modes = experiments
-        ? ["native-zod", "erest", ...selectedVariants.filter((name) => experiments.variants[name].frameworks.includes(framework))]
-        : scenario === "get"
+      const modes =
+        scenario === "get"
           ? ["native", "erest"]
           : scenario === "io5"
             ? ["native-zod", "erest"]
