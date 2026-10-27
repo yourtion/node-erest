@@ -23,6 +23,8 @@ coverage/
 # 变异测试（Stryker）
 .stryker-tmp/
 reports/
+# 本地性能评测数据与生成报告
+/benchmarks/results/
 
 # 日志
 *.log
