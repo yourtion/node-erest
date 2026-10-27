@@ -146,7 +146,6 @@ if (framework === "express") {
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 global.gc?.();
 const idleMemory = process.memoryUsage();
-process.send({ type: "ready", port: server.address().port, idleMemory });
 let cpuStart, wallStart;
 let heapSession;
 if (process.env.BENCH_HEAP_PROFILE_PATH) {
@@ -186,3 +185,4 @@ process.on("message", async (message) => {
     server.closeAllConnections();
   }
 });
+process.send({ type: "ready", port: server.address().port, idleMemory });
