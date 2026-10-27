@@ -32,6 +32,54 @@ pnpm run build:packages
 完整 PR 检查的定义以 [test.yml](.github/workflows/test.yml) 为准。
 文档修改重点检查命令、示例和相对链接；无需为纯文字改动重复运行全部运行时测试。
 
+## HTTP 接入性能评测
+
+`pnpm run bench` 测参数校验。比较接入 erest 前后的 HTTP 开销，先按上面的环境准备步骤
+安装依赖并构建核心包与适配器，再执行以下命令（macOS、Linux 均可）：
+
+```bash
+node benchmarks/run.mjs
+node benchmarks/report.mjs benchmarks/results/latest.json
+```
+
+脚本对 Express、Koa、@leizm/web、H3 分别比较原生路由、原生路由加同等 Zod 校验、erest，
+覆盖无 schema 的 GET、带路径/query/body 校验的 POST，以及增加 5ms 异步等待的 POST。
+默认单并发与 50 并发、预热 1.5 秒、采样 3 秒、重复三轮，完整执行约需十二分钟。
+报告包含吞吐、延迟分位数、客户端/服务端 CPU、内存快照和轮间波动。
+
+macOS 本地复测可先聚焦 50 并发的 POST，增加预热和重复轮数（四框架共 84 次采样，约需十二分钟）：
+
+```bash
+BENCH_SCENARIOS=post BENCH_CONCURRENCY=50 \
+  BENCH_ROUNDS=7 BENCH_MS=5000 BENCH_WARMUP_MS=3000 \
+  BENCH_OUT=benchmarks/results/mac-post.json node benchmarks/run.mjs
+node benchmarks/report.mjs benchmarks/results/mac-post.json
+open benchmarks/results/mac-post.html
+```
+
+同一轮对照使用相同 Node 版本和 lockfile，尽量减少其他 CPU 密集任务。比较 Mac 和云端
+结果时，重点看各自环境中“原生 + Zod → erest”的相对变化、每请求 CPU 和轮间波动，
+不要直接比较两台机器的绝对 QPS；客户端 CPU 接近饱和时，观察到的吞吐也可能受发压能力限制。
+
+Linux 下可选用两个不同的、当前进程允许使用的 CPU 固定客户端和服务端；macOS 不设置
+`BENCH_SERVER_CPU`，由操作系统调度：
+
+```bash
+BENCH_SERVER_CPU=0 taskset -c 1 node benchmarks/run.mjs
+```
+
+`BENCH_FRAMEWORKS=express`、`BENCH_SCENARIOS=post`、`BENCH_CONCURRENCY=50` 可筛选场景；
+`BENCH_ROUNDS`、`BENCH_MS`、`BENCH_WARMUP_MS` 调整轮数和时长，`BENCH_OUT` 指定 JSON 输出。
+快速试跑只检查响应一致性和非法输入拒绝，不能用于性能结论：
+
+```bash
+BENCH_ROUNDS=1 BENCH_MS=100 BENCH_WARMUP_MS=100 \
+  BENCH_OUT=benchmarks/results/smoke.json node benchmarks/run.mjs
+```
+
+`benchmarks/results/` 下的 JSON、CSV 和 HTML 都是被忽略的本地临时生成物，不随工具提交。
+短测结果不是线上容量结论；只有在独立复测中出现一致趋势后，才适合讨论运行时优化。
+
 ## 合约专项
 
 `test:contract` 在 Express、Koa、LeizmWeb、H3 下执行同一套 GET/POST/PUT/PATCH/DELETE 定义。
