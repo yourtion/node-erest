@@ -77,7 +77,7 @@ BENCH_ROUNDS=1 BENCH_MS=100 BENCH_WARMUP_MS=100 \
   BENCH_OUT=benchmarks/results/smoke.json node benchmarks/run.mjs
 ```
 
-`benchmarks/results/` 下的 JSON、CSV 和 HTML 都是被忽略的本地生成物，不随工具提交。
+`benchmarks/results/` 下的 JSON、CSV 和 HTML 都是被忽略的本地临时生成物，不随工具提交。
 短测结果不是线上容量结论；只有在独立复测中出现一致趋势后，才适合讨论运行时优化。
 
 ### 隔离优化实验
