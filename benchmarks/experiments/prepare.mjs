@@ -23,6 +23,23 @@ function replace(source, before, after) {
 }
 
 const changes = {
+  foreach: {
+    frameworks: ["h3"],
+    description: "Eagerly copy Web Headers with forEach instead of allocating iterator entry pairs; preserve an own __proto__ key.",
+    caveat: "Requires duplicate headers, special keys, mutation timing and all H3 behavior checks before a production change.",
+    patch(file, source) {
+      if (file !== adapterFile("h3")) return source;
+      source = replace(source, "headers: Object.fromEntries(event.req.headers),", "headers: copyHeaders(event.req.headers),");
+      return `function copyHeaders(input) {
+        const output = {};
+        input.forEach((value, key) => {
+          if (key === "__proto__") Object.defineProperty(output, key, { value, writable: true, enumerable: true, configurable: true });
+          else output[key] = value;
+        });
+        return output;
+      }\n` + source;
+    },
+  },
   "node-headers": {
     frameworks: ["h3"],
     description: "Node-only diagnostic: copy IncomingMessage headers instead of converting Web Headers.",
@@ -134,7 +151,7 @@ const changes = {
 };
 
 // A combined variant is generated only when explicitly requested after screening.
-const definitions = { ...Object.fromEntries(Object.entries(changes).map(([name, change]) => [name, [name]])) };
+const definitions = { control: [], ...Object.fromEntries(Object.keys(changes).map((name) => [name, [name]])) };
 if (process.env.BENCH_COMBINE) definitions.combined = process.env.BENCH_COMBINE.split(",");
 
 for (const [name, patches] of Object.entries(definitions)) {
@@ -157,7 +174,7 @@ for (const [name, patches] of Object.entries(definitions)) {
     runtimeRoot: relative(root, dir),
     frameworks: patches.length === 1 ? changes[patches[0]].frameworks : frameworks,
     patches,
-    descriptions: patches.map((patch) => changes[patch].description),
+    descriptions: patches.length ? patches.map((patch) => changes[patch].description) : ["Unchanged compiled runtime snapshot; control for loading an isolated copy."],
     caveats: patches.map((patch) => changes[patch].caveat),
     files,
   };
