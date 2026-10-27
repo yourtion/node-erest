@@ -101,6 +101,27 @@ node benchmarks/experiments/report.mjs benchmarks/results/experiments/screen.jso
 也可只传入合并后的 JSON 重新生成报告，无需保留中间数据文件。
 采集 profile 后运行 `node benchmarks/experiments/summarize-profiles.mjs`，生成带环境、原始 profile 哈希和采样窗口说明的定位摘要。
 
+库特性与替代实现实验可按以下步骤复现（组件微基准与 HTTP 压测应串行运行，避免互相干扰）：
+
+```bash
+node benchmarks/experiments/prepare.mjs
+node benchmarks/experiments/check-validation.mjs
+node benchmarks/experiments/check-serialization.mjs
+node benchmarks/experiments/check-library-paths.mjs
+BENCH_VARIANTS_FILE=benchmarks/results/experiments/manifest.json \
+  BENCH_VARIANTS=control,express-no-etag,zod-parse,ajv-body,manual-body,h3-json-body,h3-native-json \
+  BENCH_FRAMEWORKS=express,h3 BENCH_SCENARIOS=post BENCH_CONCURRENCY=50 \
+  BENCH_ROUNDS=3 BENCH_MS=3000 BENCH_WARMUP_MS=2000 \
+  BENCH_OUT=benchmarks/results/experiments/library-screen.json node benchmarks/run.mjs
+EXPERIMENT_EVIDENCE=benchmarks/results/experiments/validation.json,benchmarks/results/experiments/serialization.json,benchmarks/results/experiments/library-checks.json \
+  node benchmarks/experiments/report.mjs benchmarks/results/experiments/library-screen.json
+```
+
+`express-no-etag` 使用 Express 公开配置，改变缓存验证行为。`ajv-body` 和 `manual-body` 仅探测固定 fixture 的校验成本上限；
+它们不是通用 Zod 后端，不应从 JSON Schema 转换成功推断语义等价。H3 原生 JSON 变体会改变请求体或响应行为。
+检查脚本包含这些方案的已知反例；通过检查表示反例得到验证，不代表全部变体可以发布。
+报告的 `EXPERIMENT_EVIDENCE` 可将微基准和兼容性证据连同 SHA-256 一起打包；再次读取合并 JSON 时会保留这些证据。
+
 ## 合约专项
 
 `test:contract` 在 Express、Koa、LeizmWeb、H3 下执行同一套 GET/POST/PUT/PATCH/DELETE 定义。

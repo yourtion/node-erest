@@ -79,17 +79,23 @@ const findingsPath = resolve("benchmarks/results/experiments/findings.json");
 const output = resolve(process.env.EXPERIMENT_OUT || "benchmarks/results/mac-optimization");
 const savedFindings = sourceBundle ? sourceBundle.findings : existsSync(findingsPath) ? JSON.parse(readFileSync(findingsPath, "utf8")) : null;
 const inputSha256 = stages.map((stage) => createHash("sha256").update(JSON.stringify(stage.raw)).digest("hex"));
+const evidence = [...(sourceBundle?.evidence || [])];
+for (const input of (process.env.EXPERIMENT_EVIDENCE || "").split(",").filter(Boolean)) {
+  const bytes = readFileSync(resolve(input));
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  if (!evidence.some(item => item.sha256 === sha256)) evidence.push({input, sha256, data: JSON.parse(bytes)});
+}
 const bundle = { generatedAt: new Date().toISOString(),
   method: "Compare candidate to erest control within the same round, framework, scenario and concurrency. Profile runs are excluded from performance comparisons. Paired ranges are not confidence intervals.",
   profiles: sourceBundle ? sourceBundle.profiles : existsSync(profilePath) ? JSON.parse(readFileSync(profilePath, "utf8")) : null,
   headerChecks: sourceBundle ? sourceBundle.headerChecks : existsSync(checksPath) ? JSON.parse(readFileSync(checksPath, "utf8")) : null,
   findings: savedFindings && JSON.stringify(savedFindings.inputSha256) === JSON.stringify(inputSha256) ? savedFindings : null,
-  stages };
+  evidence, stages };
 writeFileSync(`${output}.json`, `${JSON.stringify(bundle, null, 2)}\n`);
 const escape = (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
 const number = (value, digits = 2) => Number(value).toFixed(digits);
 const signed = (value, digits = 2) => `${value >= 0 ? "+" : ""}${number(value, digits)}`;
-const findingsHtml = bundle.findings ? `<section><h2>结论与下一步</h2><ul>${bundle.findings.items.map((item) => `<li>${escape(item)}</li>`).join("")}</ul></section>` : "";
+const findingsHtml = (bundle.findings ? `<section><h2>结论与下一步</h2><ul>${bundle.findings.items.map((item) => `<li>${escape(item)}</li>`).join("")}</ul></section>` : "") + (evidence.length ? `<section><h2>组件测量与兼容性证据</h2><p>微基准只表示组件成本，不能直接当作 HTTP 吞吐收益。各文件完整数据和反例收录在合并 JSON。</p>${evidence.map(item => `<details><summary>${escape(item.input)}</summary><pre>${escape(JSON.stringify(item.data, null, 2))}</pre></details>`).join("")}</section>` : "");
 const sections = stages.map((stage) => `<section><h2>${escape(stage.input)}</h2>
 <p>${stage.raw.samples.length} 次采样 · ${stage.raw.config.rounds} 轮 · 预热 ${stage.raw.config.warmupMs / 1000}s / 测量 ${stage.raw.config.durationMs / 1000}s · ${escape(stage.raw.environment.node)} · ${escape(stage.raw.environment.cpu)}</p>
 <p>提交 ${escape(stage.raw.commit)}；全部 ${stage.raw.samples.reduce((sum, s) => sum + s.requests, 0).toLocaleString("en-US")} 次计时区间请求错误为 0。</p>
