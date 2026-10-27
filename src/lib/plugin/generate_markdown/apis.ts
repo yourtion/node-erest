@@ -115,6 +115,17 @@ export default function apiDocs(data: IDocData) {
       line.push(`\n源码位置：\`${sourceRel}\``);
     }
 
+    // 中间件（issue #4）：输出具名中间件的函数名，匿名函数跳过
+    const mids = item.middlewares as Set<Function> | undefined;
+    if (mids && mids.size > 0) {
+      const names = Array.from(mids)
+        .map((fn) => (typeof fn === "function" ? fn.name : ""))
+        .filter((n) => n && n !== "anonymous");
+      if (names.length > 0) {
+        line.push(`\n中间件：${names.map((n) => `\`${n}\``).join(", ")}`);
+      }
+    }
+
     if (item.description) {
       line.push(
         (item.description as string)
