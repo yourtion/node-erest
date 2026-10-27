@@ -77,6 +77,38 @@ if (framework === "express") {
   }
   app.use("/", router);
   server = app.server;
+} else if (framework === "h3") {
+  const [{ H3, getQuery, getRouterParams, readBody }, { toNodeHandler }] = await Promise.all([
+    import("h3"),
+    import("h3/node"),
+  ]);
+  app = new H3({ silent: true });
+  router = app;
+  if (mode === "erest") {
+    const mod = await import("../packages/erest-h3/dist/index.js");
+    adapter = new mod.H3Adapter();
+  } else {
+    const send = (event, result) => {
+      // Match the adapter's serialization and Content-Type behavior.
+      event.res.headers.set("content-type", "application/json; charset=utf-8");
+      return JSON.stringify(result);
+    };
+    router.on(
+      method.toUpperCase(),
+      route,
+      isGet
+        ? (event) => send(event, expectedGet)
+        : async (event) => {
+            const input = checked({
+              params: getRouterParams(event, { decode: true }),
+              query: getQuery(event),
+              body: (await readBody(event)) ?? {},
+            });
+            return send(event, scenario === "io5" ? await work(input) : compute(input));
+          }
+    );
+  }
+  server = createServer(toNodeHandler(app));
 } else {
   throw new Error(`Unknown framework: ${framework}`);
 }

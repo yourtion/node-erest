@@ -1,4 +1,4 @@
-// Build first: npm run build; npm run build --prefix packages/erest-{express,koa,leizmweb}
+// Build first: pnpm run build && pnpm run build:packages
 // Full run: node benchmarks/run.mjs
 // Smoke: BENCH_ROUNDS=1 BENCH_MS=100 BENCH_WARMUP_MS=100 node benchmarks/run.mjs
 // Filter: BENCH_FRAMEWORKS=express BENCH_SCENARIOS=post BENCH_CONCURRENCY=50 ...
@@ -17,7 +17,7 @@ import { load } from "./load.mjs";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const list = (name, fallback) => (process.env[name] || fallback).split(",");
 const config = {
-  frameworks: list("BENCH_FRAMEWORKS", "express,koa,leizmweb"),
+  frameworks: list("BENCH_FRAMEWORKS", "express,koa,leizmweb,h3"),
   scenarios: list("BENCH_SCENARIOS", "get,post,io5"),
   concurrency: list("BENCH_CONCURRENCY", "1,50").map(Number),
   rounds: Number(process.env.BENCH_ROUNDS || 3),
@@ -30,7 +30,7 @@ assert(Number.isFinite(config.durationMs) && config.durationMs > 0, "BENCH_MS mu
 assert(Number.isFinite(config.warmupMs) && config.warmupMs > 0, "BENCH_WARMUP_MS must be positive and finite");
 assert(config.concurrency.every((c) => Number.isInteger(c) && c > 0));
 assert(
-  config.frameworks.every((f) => ["express", "koa", "leizmweb"].includes(f)),
+  config.frameworks.every((f) => ["express", "koa", "leizmweb", "h3"].includes(f)),
   "Unknown BENCH_FRAMEWORKS value"
 );
 assert(
@@ -84,6 +84,7 @@ const result = {
         "node_modules/koa-bodyparser/",
         "node_modules/@leizm/web/",
         "node_modules/zod/",
+        ...(config.frameworks.includes("h3") ? ["packages/erest-h3/", "node_modules/h3/"] : []),
       ].map((p) => [p || "erest", version(`${p}package.json`)])
     ),
   },

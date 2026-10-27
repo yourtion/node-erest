@@ -42,12 +42,12 @@ node benchmarks/run.mjs
 node benchmarks/report.mjs benchmarks/results/latest.json
 ```
 
-脚本对 Express、Koa、@leizm/web 分别比较原生路由、原生路由加同等 Zod 校验、erest，
+脚本对 Express、Koa、@leizm/web、H3 分别比较原生路由、原生路由加同等 Zod 校验、erest，
 覆盖无 schema 的 GET、带路径/query/body 校验的 POST，以及增加 5ms 异步等待的 POST。
-默认单并发与 50 并发、预热 1.5 秒、采样 3 秒、重复三轮，完整执行约需九分钟。
+默认单并发与 50 并发、预热 1.5 秒、采样 3 秒、重复三轮，完整执行约需十二分钟。
 报告包含吞吐、延迟分位数、客户端/服务端 CPU、内存快照和轮间波动。
 
-macOS 本地复测可先聚焦 50 并发的 POST，增加预热和重复轮数（约需九分钟）：
+macOS 本地复测可先聚焦 50 并发的 POST，增加预热和重复轮数（四框架共 84 次采样，约需十二分钟）：
 
 ```bash
 BENCH_SCENARIOS=post BENCH_CONCURRENCY=50 \

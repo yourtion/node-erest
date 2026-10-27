@@ -217,10 +217,8 @@ const settings = [
 ]
   .map(([name, value]) => `${name}=${shellQuote(value)}`)
   .join(" ");
-const command = `npm run build
-npm run build --prefix packages/erest-express
-npm run build --prefix packages/erest-koa
-npm run build --prefix packages/erest-leizmweb
+const command = `pnpm run build
+pnpm run build:packages
 
 # macOS / Linux：用本报告的场景、时长和轮数复测
 ${settings} node benchmarks/run.mjs
@@ -253,7 +251,7 @@ ${comparisonTable}<h3 style="margin-top:24px">各组完整指标</h3>${detailTab
 <li>测量编译后的 ESM 产物，服务端 NODE_ENV=production、DEBUG 关闭；每次采样独立启动一个服务进程，客户端与服务端使用 HTTP/1.1 keep-alive，关闭流水线，每连接最多一个在途请求。客户端用 Node 原生 http 模块，不引入压测依赖。</li>
 <li>每组预热 ${data.config.warmupMs / 1000} 秒，采样 ${data.config.durationMs / 1000} 秒，重复 ${data.config.rounds} 轮。每轮轮换框架顺序和实现顺序；逐次执行，避免多组压测争抢资源。每个计时区间结束时排空在途请求，RPS 使用实际耗时。</li>
 <li>GET 返回固定 JSON，无 schema；POST 校验路径 id、query 的数字转换/默认值、body 的字符串/整数/email/数组/嵌套对象。原生 + Zod 使用相同 schema.safeParse；erest POST 使用 registerTyped。模拟 I/O 的场景在同一 POST 逻辑中额外等待 setTimeout(5)，不是实际数据库或远程服务。</li>
-<li>原生基线使用框架路由和 JSON body parser，erest 组使用同一套中间件；响应 JSON 内容通过预检核对，非法 age 在校验组必须被拒绝。Koa 基线显式按适配器行为进行 JSON.stringify 和 Content-Type 设置。计时区间仅发送合法请求；不包含错误路径性能评测。</li>
+<li>原生基线使用框架路由和 JSON body parser，erest 组使用同一套中间件；H3 两组均使用 readBody，并通过 h3/node 的 toNodeHandler 接收真实 HTTP 请求。响应 JSON 内容通过预检核对，非法 age 在校验组必须被拒绝。Koa 与 H3 基线显式按适配器行为进行 JSON.stringify 和 Content-Type 设置。计时区间仅发送合法请求；不包含错误路径性能评测。</li>
 <li>未开启 hooks、response schema、信封包装、文档生成、日志、数据库或鉴权。文档生成不进入本次请求热路径；本报告不能说明这些可选功能的性能。每个应用仅注册一个路由，不测大量路由匹配、不同 body 大小或启动时间。</li>
 <li>CPU μs/请求来自服务进程 user+system CPU 时间，包含框架、GC 和 JIT 的成本，独立于客户端 CPU。CPU 100% 为一个逻辑核。客户端 CPU 接近 100% 时，吞吐可能受发压能力限制，不能视为服务端容量上限。</li>
 <li>RSS 是压测结束时快照，GC 后堆是在结束计时后强制 GC 得到的存活堆；服务进程开始测量前也会 GC，计时期间不主动 GC。RSS 包含 V8、JIT、原生内存，不等于逐请求分配量；短测不能证明是否存在内存泄漏。所有组的 fixture 都加载 Zod，因此无校验基线不是最小依赖部署的总内存。</li>
@@ -262,7 +260,7 @@ ${comparisonTable}<h3 style="margin-top:24px">各组完整指标</h3>${detailTab
 <h2>环境与复现</h2><p>${escape(data.environment.cpu)} · ${escape(data.environment.node)} · ${escape(data.environment.os)}<br>
 cgroup CPU 配额 ${escape(data.environment.cpuMax ?? "未提供")}；内存限额 ${escape(data.environment.memoryMax ?? "未提供")} 字节；服务端 CPU ${escape(data.config.serverCpu ?? "未固定")}；客户端 CPU ${escape(data.environment.clientAffinity ?? "由操作系统调度")}。</p>
 <pre>${escape(JSON.stringify(data.environment.versions, null, 2))}</pre><pre>${escape(command)}</pre>
-<p>可通过 BENCH_FRAMEWORKS、BENCH_SCENARIOS、BENCH_CONCURRENCY 筛选；BENCH_ROUNDS、BENCH_MS、BENCH_WARMUP_MS 调整重复次数和时长；BENCH_OUT 指定输出路径。默认完整运行约需 9 分钟（取决于机器）。CPU 绑定仅用于 Linux，需按机器允许的核心编号调整。</p>
+<p>可通过 BENCH_FRAMEWORKS、BENCH_SCENARIOS、BENCH_CONCURRENCY 筛选；BENCH_ROUNDS、BENCH_MS、BENCH_WARMUP_MS 调整重复次数和时长；BENCH_OUT 指定输出路径。默认四框架完整运行约需 12 分钟（取决于机器）。CPU 绑定仅用于 Linux，需按机器允许的核心编号调整。</p>
 <p>原始数据：<a href="${escape(basename(input))}">${escape(basename(input))}</a> · <a href="${escape(basename(prefix))}-summary.csv">汇总 CSV</a> · <a href="${escape(basename(prefix))}-summary.json">汇总 JSON</a>。原始数据记录了采样脚本 SHA-256，便于核对复现版本。</p>
 <script>function filter(){for(const row of document.querySelectorAll('tr[data-framework]')){row.hidden=['framework','scenario','concurrency'].some(key=>{const value=document.getElementById(key).value;return value!=='all'&&row.dataset[key]!==value})}}for(const select of document.querySelectorAll('select'))select.addEventListener('change',filter);</script>
 </html>`;
