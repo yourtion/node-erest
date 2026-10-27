@@ -184,7 +184,7 @@ function genPostman(data: any, options: any = { postman: "postman.json" }): any 
   return JSON.parse(out[0].data);
 }
 
-describe("swagger definitions：types 注册表（convertTypeToSwaggerType）", () => {
+describe("swagger definitions：仅提供 tsType 的兼容输入", () => {
   const data = makeDocData({
     info: { title: "t", description: "d", host: "http://x", basePath: "" },
     types: {
@@ -201,15 +201,13 @@ describe("swagger definitions：types 注册表（convertTypeToSwaggerType）", 
   });
   const result = buildSwagger(data);
 
-  test("各 tsType 到 swagger type 的映射顺序", () => {
-    expect(result.definitions.StrArr.type).toBe("string");
+  test("数组保留元素类型，未知类型不伪装成字符串", () => {
+    expect(result.definitions.StrArr).toEqual({ type: "array", items: { type: "string" } });
     expect(result.definitions.Num.type).toBe("number");
     expect(result.definitions.Bool.type).toBe("boolean");
-    // Date 优先于数组判断：Date[] 仍应映射为 string
-    expect(result.definitions.DateArr.type).toBe("string");
+    expect(result.definitions.DateArr).toEqual({ type: "array", items: { type: "string", format: "date-time" } });
     expect(result.definitions.Obj.type).toBe("object");
-    // 未识别类型默认 string
-    expect(result.definitions.Unk.type).toBe("string");
+    expect(result.definitions.Unk).toEqual({});
     expect(result.definitions.UnkArr.type).toBe("array");
   });
 
@@ -230,14 +228,13 @@ describe("swagger definitions：types 注册表（convertTypeToSwaggerType）", 
   test("带 description 的类型应输出 description 字段", () => {
     expect(result.definitions.WithDesc).toStrictEqual({
       type: "string",
-      properties: {},
       description: "自定义说明",
     });
   });
 
   test("无 description 的类型不应有 description 键", () => {
-    expect(result.definitions.NoTsType).toStrictEqual({ type: "string", properties: {} });
-    expect(result.definitions.Unk).toStrictEqual({ type: "string", properties: {} });
+    expect(result.definitions.NoTsType).toStrictEqual({});
+    expect(result.definitions.Unk).toStrictEqual({});
   });
 
   test("types 为 undefined 时不生成 definitions 且不抛错", () => {
@@ -246,98 +243,49 @@ describe("swagger definitions：types 注册表（convertTypeToSwaggerType）", 
   });
 });
 
-describe("swagger definitions：schema 注册表与反射分支", () => {
-  const byObj = z.object({
-    s: z.string(),
-    n: z.number(),
-    b: z.boolean(),
-    d: z.date(),
-    a: z.array(z.string()),
-    o: z.object({}),
-    e: z.enum(["x", "y"]),
-    opt: z.string().optional(),
-    def: z.string().default("v"),
-    uni: z.union([z.string(), z.number()]),
-    rec: z.record(z.string()),
-    nl: z.string().nullable(),
-  });
-
-  test("erest.schemaRegistry（Map）直接读取：Zod 对象转 definitions", () => {
+describe("swagger definitions：通过受控管理器读取原始 schema", () => {
+  test("注册 schema 的数组、嵌套对象与 union 保留结构", () => {
+    const schema = z.object({
+      values: z.array(z.number()),
+      nested: z.object({ active: z.boolean() }),
+      selection: z.union([z.string(), z.number()]),
+      optional: z.string().optional(),
+      nullable: z.number().nullable(),
+    });
     const r = buildSwagger(
       makeDocData({
-        erest: {
-          schemaRegistry: new Map([
-            ["ByObj", byObj],
-            ["ByEmpty", z.object({})],
-            ["ByStr", z.string()],
-            ["ByUndef", z.object({ x: undefined as any })],
-            ["Junk", 42 as any],
-          ]),
-        } as any,
+        types: { Entity: { tsType: "object" } },
+        schema: { get: (name: string) => (name === "Entity" ? schema : undefined) },
       })
     );
-    expect(Object.keys(r.definitions)).toEqual(["ByObj", "ByEmpty", "ByStr", "ByUndef"]);
-
-    expect(r.definitions.ByObj).toEqual({
+    expect(r.definitions.Entity).toEqual({
       type: "object",
       properties: {
-        s: { type: "string", description: "字符串类型" },
-        n: { type: "number", description: "数字类型" },
-        b: { type: "boolean", description: "布尔类型" },
-        d: { type: "string", format: "date-time", description: "日期类型" },
-        a: { type: "array", description: "数组类型" },
-        o: { type: "object", description: "对象类型" },
-        e: { type: "string", description: "枚举类型" },
-        opt: { type: "string", description: "字符串类型" },
-        def: { type: "string", description: "字符串类型" },
-        uni: { type: "string", description: "联合类型" },
-        rec: { type: "string", description: "record 类型" },
-        nl: { type: "string", description: "nullable 类型" },
+        values: { type: "array", items: { type: "number" } },
+        nested: { type: "object", properties: { active: { type: "boolean" } }, required: ["active"] },
+        selection: { "x-anyOf": [{ type: "string" }, { type: "number" }] },
+        optional: { type: "string" },
+        nullable: { type: "number", "x-nullable": true },
       },
-      required: ["s", "n", "b", "d", "a", "o", "e", "uni", "rec", "nl"],
-    });
-
-    // 空对象 schema：属性为空对象、required 为空数组
-    expect(r.definitions.ByEmpty).toEqual({ type: "object", properties: {}, required: [] });
-
-    // 非对象顶层 schema：退化为 { type, properties:{}, description }
-    expect(r.definitions.ByStr).toEqual({ type: "string", properties: {}, description: "字符串类型" });
-
-    // shape 中值为 undefined 的字段：早退返回初始 property
-    expect(r.definitions.ByUndef).toEqual({
-      type: "object",
-      properties: { x: { type: "string", description: "" } },
-      required: ["x"],
+      required: ["values", "nested", "selection", "nullable"],
     });
   });
 
-  test("无任何 schema 注册时 definitions 为空且不抛错", () => {
-    const r = buildSwagger(makeDocData());
-    expect(r.definitions).toEqual({});
-  });
-
-  test("erest 缺失时通过 data.schema 反射找到 Map 注册表", () => {
+  test("注册类型使用原始 schema，不通过 tsType 字符串猜测 union", () => {
     const r = buildSwagger(
       makeDocData({
-        schema: {
-          note: "不是 Map",
-          reg: new Map([["ByReflection", z.object({ id: z.string() })]]),
-        } as any,
+        types: { Choice: { tsType: "string | number" } },
+        typeManager: { get: () => z.union([z.string(), z.number()]) },
       })
     );
-    expect(r.definitions.ByReflection).toEqual({
-      type: "object",
-      properties: { id: { type: "string", description: "字符串类型" } },
-      required: ["id"],
-    });
+    expect(r.definitions.Choice).toEqual({ "x-anyOf": [{ type: "string" }, { type: "number" }] });
   });
 
-  test("data.schema 为函数（非 object）时不走反射", () => {
+  test("不读取文档数据中任意 Map 或实例的私有注册表", () => {
     const r = buildSwagger(
       makeDocData({
-        schema: Object.assign(() => {}, {
-          reg: new Map([["FnSchema", z.object({})]]),
-        }) as any,
+        erest: { schemaRegistry: new Map([["Private", z.object({})]]) },
+        schema: { reg: new Map([["Private", z.object({})]]) },
       })
     );
     expect(r.definitions).toEqual({});
@@ -377,7 +325,7 @@ describe("swagger responses.200（response200）", () => {
             age: { type: "number" },
             tag: { type: "string", enum: ["a", "b"] },
             list: { type: "array", items: { type: "string" } },
-            when: { type: "date", format: "date-time" },
+            when: { type: "string", format: "date-time" },
           },
           required: ["id", "name", "tag", "list", "when"],
         },
@@ -396,6 +344,18 @@ describe("swagger responses.200（response200）", () => {
   test("无 responseSchema 时仅 description", () => {
     const r = buildWithApi({});
     expect((r.paths as any)[realPath].get.responses).toEqual({ 200: { description: "请求成功" } });
+  });
+
+  test("顶层数组和 union 响应不再丢失 schema", () => {
+    const array = buildWithApi({ responseSchema: z.array(z.number()) });
+    expect((array.paths as any)[realPath].get.responses[200].schema).toEqual({
+      type: "array",
+      items: { type: "number" },
+    });
+    const union = buildWithApi({ responseSchema: z.union([z.string(), z.number()]) });
+    expect((union.paths as any)[realPath].get.responses[200].schema).toEqual({
+      "x-anyOf": [{ type: "string" }, { type: "number" }],
+    });
   });
 });
 
@@ -539,7 +499,6 @@ describe("swagger paths 与参数提取", () => {
       description: "用户ID",
       required: true,
       type: "string",
-      example: undefined,
     });
   });
 
@@ -551,7 +510,6 @@ describe("swagger paths 与参数提取", () => {
       description: "关键词",
       required: false,
       type: "string",
-      example: undefined,
     });
     expect(op.parameters[2]).toStrictEqual({
       name: "full",
@@ -559,16 +517,14 @@ describe("swagger paths 与参数提取", () => {
       description: "",
       required: true,
       type: "string",
-      example: undefined,
     });
     expect(op.parameters[3]).toStrictEqual({
       name: "when",
       in: "query",
       description: "",
       required: false,
-      type: "date",
+      type: "string",
       format: "date-time",
-      example: undefined,
     });
     expect(op.parameters[4]).toStrictEqual({
       name: "st",
@@ -577,7 +533,6 @@ describe("swagger paths 与参数提取", () => {
       required: true,
       type: "string",
       enum: ["a", "b", "c"],
-      example: undefined,
     });
     expect(op.parameters[5]).toStrictEqual({
       name: "tags",
@@ -586,7 +541,7 @@ describe("swagger paths 与参数提取", () => {
       required: true,
       type: "array",
       items: { type: "string" },
-      example: undefined,
+      collectionFormat: "multi",
     });
   });
 
@@ -672,7 +627,7 @@ describe("swagger examples 选择与 POST 请求体聚合", () => {
           type: "object",
           properties: {
             name: { description: "名字", type: "string", example: "小明" },
-            age: { description: "", type: "number", example: 18 },
+            age: { type: "number", example: 18 },
           },
           required: ["name"],
         },
@@ -701,7 +656,7 @@ describe("swagger examples 选择与 POST 请求体聚合", () => {
         examples: [{ output: {} }],
       }),
     });
-    expect(op.parameters[0].schema.properties.n).toEqual({ description: "", type: "string" });
+    expect(op.parameters[0].schema.properties.n).toEqual({ type: "string" });
   });
 });
 
@@ -1008,12 +963,13 @@ describe("generateAxios 生成 SDK 内容", () => {
       "    const api = {",
       "      instance: axios.create({",
       "        baseURL: BASE,",
+      "        paramsSerializer: { indexes: null },",
       "      }),",
       "      ",
       "    // 用户列表",
       "    getUserList(",
       "      ",
-      "      { page, size }) {",
+      "      { page, size } = {}) {",
       "      return this.instance.get(",
       "        '/user/list'",
       "        , {",
@@ -1024,7 +980,7 @@ describe("generateAxios 生成 SDK 内容", () => {
       "    // 创建用户",
       "    postUserId(",
       "      id,",
-      "      { name, age }) {",
+      "      { name, age } = {}) {",
       "      return this.instance.post(",
       "        `/user/${id}`",
       "        , { name, age })",
@@ -1033,7 +989,7 @@ describe("generateAxios 生成 SDK 内容", () => {
       "    // 更新订单",
       "    putOrderOid(",
       "      oid,",
-      "      { sku, num }) {",
+      "      { sku, num } = {}) {",
       "      return this.instance.put(",
       "        `/order/${oid}`",
       "        , { sku, num })",
@@ -1042,7 +998,7 @@ describe("generateAxios 生成 SDK 内容", () => {
       "    // 改名",
       "    patchUserIdName(",
       "      id,",
-      "      { name }) {",
+      "      { name } = {}) {",
       "      return this.instance.patch(",
       "        `/user/${id}/name`",
       "        , { name })",

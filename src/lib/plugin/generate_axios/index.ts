@@ -16,7 +16,7 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
   }
 
   function rmPathParam(path: string) {
-    return path.replace(/:([a-z_][a-z0-9_]*)/gi, "$1");
+    return utils.mapPathParams(path, (name) => name);
   }
 
   function getReqFuncName(req: APIOption<unknown>) {
@@ -29,52 +29,80 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
     return Object.keys(resolveZodShape(schema) ?? {});
   }
 
+  function usesQueryInput(req: APIOption<unknown>) {
+    return req.method === "get" || req.method === "delete";
+  }
+
+  // 所有函数形参共用同一命名空间，保留普通字段名，仅在冲突或非法绑定时使用别名。
+  function uniqueBinding(key: string, used: Set<string>) {
+    const reserved = new Set(
+      "await break case catch class const continue debugger default delete do else enum export extends false finally for function if implements import in instanceof interface let new null package private protected public return static super switch this throw true try typeof var void while with yield arguments eval".split(
+        " "
+      )
+    );
+    let name = key.replace(/[^a-z0-9_$]/gi, "_");
+    if (!/^[a-z_$]/i.test(name) || reserved.has(name)) name = `_${name}`;
+    while (used.has(name)) name = `_${name}`;
+    used.add(name);
+    return name;
+  }
+
+  function pathBindings(req: APIOption<unknown>) {
+    const used = new Set<string>();
+    return new Map(utils.getPathParamNames(req.realPath).map((key) => [key, uniqueBinding(key, used)]));
+  }
+
+  function inputBindings(req: APIOption<unknown>) {
+    const used = new Set(pathBindings(req).values());
+    const keys = schemaFieldNames(usesQueryInput(req) ? req.querySchema : req.bodySchema);
+    return new Map(keys.map((key) => [key, uniqueBinding(key, used)]));
+  }
+
+  function inputFields(req: APIOption<unknown>) {
+    return [...inputBindings(req)].map(([key, binding]) =>
+      key === binding ? key : `${JSON.stringify(key)}: ${binding}`
+    );
+  }
+
+  function queryArgument(req: APIOption<unknown>) {
+    const used = new Set([...pathBindings(req).values(), ...inputBindings(req).values()]);
+    return uniqueBinding("query", used);
+  }
+
   function getFuncParams(req: APIOption<unknown>) {
-    const dataKeys = req.method === "get" ? schemaFieldNames(req.querySchema) : schemaFieldNames(req.bodySchema);
-    if (!dataKeys.length) {
-      return "";
-    }
-    return `{ ${dataKeys.join(", ")} }`;
+    const fields = inputFields(req);
+    const params = fields.length ? [`{ ${fields.join(", ")} } = {}`] : [];
+    if (!usesQueryInput(req) && schemaFieldNames(req.querySchema).length) params.push(`${queryArgument(req)} = {}`);
+    return params.join(", ");
   }
 
-  function hasUrlParam(path: string) {
-    return utils.getPathParamNames(path).length > 0;
-  }
-
-  function getReqSendPath(path: string) {
-    if (hasUrlParam(path)) {
-      // 生成模板字符串插值（注意：替换串不能带反斜杠转义，否则 \$ 使插值退化为字面量文本）
-      return `\`${path.replace(/:([a-z_][a-z0-9_]*)/gi, "${$1}")}\``;
-    }
-    return `'${path}'`;
+  function getReqSendPath(req: APIOption<unknown>) {
+    const bindings = pathBindings(req);
+    if (bindings.size) return `\`${utils.mapPathParams(req.realPath, (name) => "${" + bindings.get(name) + "}")}\``;
+    return `'${req.realPath}'`;
   }
 
   function getPathParams(req: APIOption<unknown>) {
-    // 优先用 paramsSchema 声明的字段名；缺失时从路径 :xxx 兜底，
-    // 避免生成的请求路径引用了未出现在签名里的变量（issue #27）。
-    let dataKeys = schemaFieldNames(req.paramsSchema);
-    if (!dataKeys.length && hasUrlParam(req.realPath)) {
-      dataKeys = utils.getPathParamNames(req.realPath);
-    }
-    if (!dataKeys.length) return "";
-    return dataKeys.map((key) => `${key},`).join("");
+    return [...pathBindings(req).values()].map((binding) => `${binding},`).join("");
   }
 
   function getReqSendData(req: APIOption<unknown>) {
-    const isGetReq = req.method === "get";
-    const dataKeys = isGetReq ? schemaFieldNames(req.querySchema) : schemaFieldNames(req.bodySchema);
-    if (!dataKeys.length) {
-      return "";
-    }
-    if (isGetReq) {
+    const isQueryReq = usesQueryInput(req);
+    const dataKeys = inputFields(req);
+    if (isQueryReq) {
+      if (!dataKeys.length) return "";
       return `{
         params: { ${dataKeys.join(", ")} }
       }`;
     }
-    return `{ ${dataKeys.join(", ")} }`;
+    const body = dataKeys.length ? `{ ${dataKeys.join(", ")} }` : "";
+    if (schemaFieldNames(req.querySchema).length) {
+      return `${body || "undefined"}, { params: ${queryArgument(req)} }`;
+    }
+    return body;
   }
 
-  const baseURL = `${data.info.host || ""}${data.info.basePath}`;
+  const baseURL = `${data.info.host || ""}${data.info.basePath || ""}`;
 
   const { apis } = data;
   const request = Object.keys(apis).map((key) => {
@@ -89,7 +117,7 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
       ${getPathParams(req)}
       ${getFuncParams(req)}) {
       return this.instance.${req.method}(
-        ${getReqSendPath(req.realPath)}
+        ${getReqSendPath(req)}
         ${reqSendData})
     }`;
   });
@@ -102,6 +130,7 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
     const api = {
       instance: axios.create({
         baseURL: BASE,
+        paramsSerializer: { indexes: null },
       }),
       ${request.join(",\n")}
     };

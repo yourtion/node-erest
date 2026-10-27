@@ -5,6 +5,36 @@
 按版本倒序列出升级动作与可见行为变化。使用说明见 `guides/`，开发检查和发布操作分别见
 [贡献指南](CONTRIBUTING.md)与[发布流程](RELEASING.md)。
 
+## v3.3.0 — OpenAPI 3.0.3 与合约一致性
+
+新增独立的 OpenAPI 3 输出，现有 `docs.swagger` 继续生成 Swagger 2，无需修改运行时路由。
+
+- 设置 `docs.openapi: true` 生成 `openapi.json`，也可指定文件名；可与 Swagger、SDK 同时输出。
+- `api.buildOpenAPI()` 返回内存文档；示例工程和 Markdown 索引支持 OpenAPI 文件。
+- 使用标准 `servers`、`components.schemas`、`requestBody.content` 和响应 `content`。
+  普通 union 使用 `anyOf`，保留 nullable、数组、声明式约束及递归引用。
+- 转换以 schema 输入语义为准；自定义函数及非 JSON 类型无法完整映射，边界见
+  [文档与 SDK](guides/documentation.md#表达范围)。
+- 新增跨三框架的合约专项，命令与覆盖范围见[贡献指南](CONTRIBUTING.md#合约专项)。
+
+### SDK 与文档修复
+
+重新生成 SDK 和文档即可采用以下修正：
+
+- Swagger 为 PUT/PATCH 输出请求体，保留字段必填信息；数组、嵌套对象、enum/default/nullable
+  及顶层数组/union 响应不再丢失结构。
+- Axios DELETE 从 query 取输入；POST/PUT/PATCH 同时声明 body 与 query 时，在 body 后传独立 query 对象。
+  可选输入对象可省略，必填字段仍由服务端校验。
+- query 数组采用重复键序列化，需要 Axios 1.x；单元素与空数组的 parser 边界见
+  [SDK 说明](guides/documentation.md#axios-sdk)。
+- Swagger 2 的异构 union 使用扩展 `x-anyOf`，可空值用 `x-nullable`；这些不是标准组合校验。
+- Markdown API 表格展示数组元素、所有 union 分支及 `registerTyped({ response })` 响应。
+- OpenAPI 自动补齐未声明 schema 的路径参数，排除不在路径模板中的 params 字段；路径参数始终必填。
+- SDK 统一路径参数提取和形参避撞，支持路径与 query/body 同名、保留字及需要别名的对象键。
+- 未设置 info.basePath 时 SDK 使用空前缀，不再把 undefined 拼入请求地址。
+
+运行时绑定规则保持兼容，不增加生产依赖；五个发布包统一为 `3.3.0`。
+
 ## v3.2.6 — 文档中间件列表（#197，issue #4）
 
 - Markdown 按路由注册顺序列出具名中间件；无中间件或仅匿名函数时省略该行。

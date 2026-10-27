@@ -22,6 +22,7 @@ pnpm run build:packages
 | `pnpm run check` | lint 和格式检查 |
 | `pnpm run format` | 格式化源码与示例 |
 | `pnpm run test:lib` | 源码测试，自动设置 ISLIB，无需先构建 |
+| `pnpm run test:contract` | OpenAPI、SDK、运行时的合约专项 |
 | `pnpm run test:cov` | 源码测试与覆盖率门槛 |
 | `pnpm test` | 构建核心/子包，验证发布产物并运行示例测试 |
 | `pnpm run test:release` | 发布工具的校验、模拟发布及失败重跑测试 |
@@ -29,6 +30,18 @@ pnpm run build:packages
 
 完整 PR 检查的定义以 [test.yml](.github/workflows/test.yml) 为准。
 文档修改重点检查命令、示例和相对链接；无需为纯文字改动重复运行全部运行时测试。
+
+## 合约专项
+
+`test:contract` 在 Express、Koa、LeizmWeb 下执行同一套 GET/POST/PUT/PATCH/DELETE 定义。
+测试经公开入口生成 OpenAPI 3、Swagger 2 和完整 Axios ESM SDK，再发起真实 HTTP 请求：
+
+- Swagger Parser 检查文档规范；独立 Ajv 校验实际参数与响应。
+- 检查参数来源、数组、union/nullable、默认值、长度/范围边界与错误返回。
+- 另有递归引用、重叠 union、命名响应及文档写入的专项。
+
+主要用例位于 [test-contract-consistency.ts](src/test/test-contract-consistency.ts) 和
+[test-openapi.ts](src/test/test-openapi.ts)。这些用例自动纳入全量测试。
 
 ## 变异测试
 
