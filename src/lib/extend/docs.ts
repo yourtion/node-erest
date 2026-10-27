@@ -355,7 +355,8 @@ export default class IAPIDoc {
       const o = schema.options;
       data.apis[k] = {} as APIOption<unknown>;
       for (const key of DOC_FIELD) {
-        data.apis[k][key] = o[key];
+        // sourceFile.absolute 仅用于内部调试，不进入公开文档或 JSON writer。
+        data.apis[k][key] = key === "sourceFile" ? { relative: o.sourceFile?.relative } : o[key];
       }
       const examples = data.apis[k].examples;
       if (examples) {
