@@ -1041,7 +1041,7 @@ describe("generateAxios 生成 SDK 内容", () => {
       "",
       "    // 改名",
       "    patchUserIdName(",
-      "      ",
+      "      id,",
       "      { name }) {",
       "      return this.instance.patch(",
       "        `/user/${id}/name`",

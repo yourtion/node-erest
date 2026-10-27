@@ -66,3 +66,8 @@ export function camelCase2underscore(str: string): string {
     .replace(/([A-Z])/g, "_$1")
     .toLowerCase();
 }
+
+/** 从路由提取具名路径参数；SDK 与文档使用相同规则。 */
+export function getPathParamNames(route: string): string[] {
+  return [...new Set(Array.from(route.matchAll(/:([a-z_][a-z0-9_]*)/gi), (match) => match[1]))];
+}
