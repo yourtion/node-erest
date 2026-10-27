@@ -52,9 +52,9 @@ macOS 本地复测可先聚焦 50 并发的 POST，增加预热和重复轮数�
 ```bash
 BENCH_SCENARIOS=post BENCH_CONCURRENCY=50 \
   BENCH_ROUNDS=7 BENCH_MS=5000 BENCH_WARMUP_MS=3000 \
-  BENCH_OUT=benchmarks/results/mac-post-local.json node benchmarks/run.mjs
-node benchmarks/report.mjs benchmarks/results/mac-post-local.json
-open benchmarks/results/mac-post-local.html
+  BENCH_OUT=benchmarks/results/mac-post.json node benchmarks/run.mjs
+node benchmarks/report.mjs benchmarks/results/mac-post.json
+open benchmarks/results/mac-post.html
 ```
 
 同一轮对照使用相同 Node 版本和 lockfile，尽量减少其他 CPU 密集任务。比较 Mac 和云端
@@ -77,12 +77,7 @@ BENCH_ROUNDS=1 BENCH_MS=100 BENCH_WARMUP_MS=100 \
   BENCH_OUT=benchmarks/results/smoke.json node benchmarks/run.mjs
 ```
 
-仓库保留 [mac-post.json](benchmarks/results/mac-post.json) 作为 erest 3.4.0 的参考基线：
-Apple M2、Node.js 24.22.1，四框架各三种实现、50 并发 POST、每组七轮，共 84 次采样。
-可运行 `node benchmarks/report.mjs benchmarks/results/mac-post.json` 重新生成报告；
-复测使用上面的 `mac-post-local.json`，避免覆盖已记录的基线。
-
-除这份明确保留的基线外，`benchmarks/results/` 下的 JSON、CSV 和 HTML 都是被忽略的本地生成物。
+`benchmarks/results/` 下的 JSON、CSV 和 HTML 都是被忽略的本地临时生成物，不随工具提交。
 短测结果不是线上容量结论；只有在独立复测中出现一致趋势后，才适合讨论运行时优化。
 
 ## 合约专项
