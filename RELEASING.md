@@ -9,7 +9,8 @@
 ## 一次性 npm 配置
 
 维护者须登录 npm，分别进入以下六个包的 Settings → Trusted Publisher，选择 GitHub Actions。
-原有五包已经在 npm 上存在；新增 `@erest/h3` 首发前须先由维护者在 npm 建包并配置 Trusted Publisher。仅合入 workflow 不会替代 npm 后台绑定；本仓库无法从代码确认绑定状态。
+六个包均已在 npm 上存在，`@erest/h3` 已首次手动发布 `3.3.0`，后续随 erest 统一发布 `3.4.0`。
+Trusted Publisher 绑定由包维护者在 npm 完成；仅合入 workflow 不会替代 npm 后台配置。
 
 | npm 包 | Organization or user | Repository | Workflow filename | Environment name |
 | --- | --- | --- | --- | --- |
@@ -28,27 +29,6 @@ workflow 名称填写文件名 `release.yml`，不要填写显示名称 `Release
 五个子包的 `repository.url` 与根包一致，且包含各自的 `repository.directory`。provenance
 要求仓库 URL 与实际发布仓库匹配。不要用 token 掩盖 OIDC 配置错误，也不要将凭据写入仓库或日志。
 官方说明：[Trusted publishers](https://docs.npmjs.com/trusted-publishers/)。
-
-### @erest/h3 首次本地发布 1.0.0
-
-在本地检出包含 H3 适配器的代码，使用 Node.js 24、pnpm 9，并登录有 `@erest` scope 发布权限的 npm 账号：
-
-```bash
-pnpm install --frozen-lockfile
-pnpm run pack:h3-bootstrap
-npm login
-npm publish ./erest-h3-1.0.0.tgz --access public --tag latest --ignore-scripts
-```
-
-`pack:h3-bootstrap` 构建并检查核心与 H3 子包，在临时目录生成 `@erest/h3@1.0.0`，
-输出根目录的 `erest-h3-1.0.0.tgz`。包内 peer 依赖为已发布的 `erest ^3.3.1`，
-不含 `workspace:` 或开发依赖；准备命令只打包，不执行发布。
-仓库 manifest 保持六包统一的 `3.4.0`，无需手动改版本再还原，也不要为这次建包推送 `v1.0.0` tag。
-
-首次发布成功后，进入 <https://www.npmjs.com/package/@erest/h3/access> 的
-Settings → Trusted Publisher，填写上表中的 GitHub 用户、仓库和 workflow，Environment name 留空。
-配置完成后合入 PR，再按下节推送 `v3.4.0`，由 GitHub Actions 将六包自动发布到 `3.4.0`。
-`1.0.0` 只用于此次建包；后续 H3 版本跟随 erest，不单独递增。
 
 ## 正式发版
 

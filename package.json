@@ -37,8 +37,7 @@
     "publish:all": "pnpm publish -r --no-git-checks --access public",
     "prepublishOnly": "npm run format && npm run test",
     "prepare": "husky",
-    "test:h3-types": "tsc -p packages/erest-h3/tsconfig.test.json",
-    "pack:h3-bootstrap": "npm run build && pnpm --filter @erest/h3 build && npm run test:h3-types && node scripts/npm-bootstrap-h3.mjs"
+    "test:h3-types": "tsc -p packages/erest-h3/tsconfig.test.json"
   },
   "repository": {
     "type": "git",

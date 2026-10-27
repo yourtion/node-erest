@@ -4,7 +4,6 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { bootstrapManifest, packH3Bootstrap } from './npm-bootstrap-h3.mjs';
 import {
   completeRelease,
   isPublished,
@@ -38,44 +37,6 @@ const failure = (code) => ({
   status: 1,
   stdout: JSON.stringify({ error: { code } }),
   stderr: code,
-});
-
-test('H3 bootstrap is installable against the published core without changing coordinated source versions', () => {
-  const source = {
-    name: '@erest/h3', version: '3.4.0',
-    scripts: { prepublishOnly: 'must not run' },
-    peerDependencies: { erest: 'workspace:^', h3: '^2.0.8' },
-    devDependencies: { erest: 'workspace:*' },
-  };
-  const original = structuredClone(source);
-  const manifest = bootstrapManifest(source);
-  assert.equal(manifest.version, '1.0.0');
-  assert.equal(manifest.peerDependencies.erest, '^3.3.1');
-  assert.equal(manifest.peerDependencies.h3, '^2.0.8');
-  assert.equal(manifest.devDependencies, undefined);
-  assert.equal(manifest.scripts, undefined);
-  assert.deepEqual(source, original);
-  assert.throws(() => bootstrapManifest({ ...source, name: 'erest' }), /Expected @erest\/h3/);
-  assert.throws(() => bootstrapManifest({ ...source, dependencies: { other: 'workspace:*' } }), /workspace/);
-});
-
-test('failed H3 bootstrap packing cleans staging and preserves the workspace manifest', (t) => {
-  const root = mkdtempSync(join(tmpdir(), 'erest-bootstrap-test-'));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
-  const source = join(root, 'packages/erest-h3');
-  mkdirSync(join(source, 'dist'), { recursive: true });
-  const manifest = JSON.stringify({ name: '@erest/h3', version: '3.4.0', peerDependencies: { erest: 'workspace:^' } });
-  writeFileSync(join(source, 'package.json'), manifest);
-  let staging;
-  assert.throws(() => packH3Bootstrap(join(root, 'output'), root, (command, args, options) => {
-    assert.equal(command, 'npm');
-    assert.equal(args[0], 'pack');
-    assert.ok(args.includes('--ignore-scripts'));
-    staging = options.cwd;
-    return { status: 1, stderr: 'pack failed' };
-  }), /pack failed/);
-  assert.throws(() => readFileSync(join(staging, 'package.json')), { code: 'ENOENT' });
-  assert.equal(readFileSync(join(source, 'package.json'), 'utf8'), manifest);
 });
 
 test('stable and prerelease tags choose distinct npm channels', () => {

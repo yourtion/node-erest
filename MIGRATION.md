@@ -13,7 +13,6 @@
 - 支持 `router: new H3()` 及 forceGroup 下的 `router: H3` 分组挂载。
 - 声明 body schema 时自动解析 JSON/URL-encoded，空 body 也会校验；未声明时保留原生请求流。
 - 六个公开包统一为 `3.4.0`，新包纳入 workspace、构建与发布产物验证。
-- 新增 `pack:h3-bootstrap`，为首次本地建包准备 `@erest/h3@1.0.0`（依赖已发布的 `erest ^3.3.1`）；绑定 Trusted Publisher 后再统一自动发布 `3.4.0`。
 
 ## v3.3.1 — SDK 位置参数兼容性与 3.3 系列首次发布
 
