@@ -6,6 +6,30 @@ import { z } from "zod";
 import lib from "./lib";
 
 const cases = [
+  {
+    method: "get",
+    route: "/:first/:second",
+    paramsSchema: z.object({ second: z.string(), first: z.string() }),
+    args: ["second", "first"],
+    url: "/first/second",
+    body: "",
+  },
+  {
+    method: "get",
+    route: "/:first/:second",
+    paramsSchema: z.object({ second: z.string() }),
+    args: ["second", "first"],
+    url: "/first/second",
+    body: "",
+  },
+  {
+    method: "get",
+    route: "/:id",
+    paramsSchema: z.object({ unused: z.string().optional(), id: z.string() }),
+    args: ["unused", "path"],
+    url: "/path",
+    body: "",
+  },
   ...["post", "put", "patch"].map((method) => ({
     method,
     route: "/:query",
@@ -72,6 +96,7 @@ describe("生成 SDK 的形参绑定与避撞", () => {
         .registerTyped(
           {
             ...("query" in entry ? { query: entry.query } : {}),
+            ...("paramsSchema" in entry ? { params: entry.paramsSchema } : {}),
             ...("bodySchema" in entry ? { body: entry.bodySchema } : {}),
           },
           () => {}
