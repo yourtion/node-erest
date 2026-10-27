@@ -27,6 +27,7 @@ const metrics = {
 };
 const stages = runs.map(({ input, raw }) => {
   assert(raw.finishedAt, `Incomplete run: ${input}`);
+  assert(!raw.instrumentation?.cpuProfile && !raw.instrumentation?.allocationProfile, `Profile timings must not enter performance comparisons: ${input}`);
   assert(raw.samples.every((s) => s.errors === 0), `Errors in ${input}`);
   const groups = [];
   const comparisons = [];

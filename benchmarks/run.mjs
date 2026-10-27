@@ -48,6 +48,8 @@ const selectedVariants = experiments
   : [];
 assert(selectedVariants.every((name) => experiments.variants[name]), "Unknown BENCH_VARIANTS value");
 if (process.env.BENCH_PROFILE_DIR) mkdirSync(resolve(process.env.BENCH_PROFILE_DIR), { recursive: true });
+if (process.env.BENCH_HEAP_PROFILE_DIR) mkdirSync(resolve(process.env.BENCH_HEAP_PROFILE_DIR), { recursive: true });
+assert(!(process.env.BENCH_PROFILE_DIR && process.env.BENCH_HEAP_PROFILE_DIR), "Collect CPU and allocation profiles in separate runs");
 function read(filePath) {
   try {
     return readFileSync(filePath, "utf8").trim();
@@ -97,6 +99,7 @@ const result = {
     ),
   },
   config,
+  instrumentation: { cpuProfile: Boolean(process.env.BENCH_PROFILE_DIR), allocationProfile: Boolean(process.env.BENCH_HEAP_PROFILE_DIR) },
   ...(experiments ? { experiments, selectedVariants } : {}),
   samples: [],
 };
@@ -137,7 +140,9 @@ async function sample(framework, scenario, concurrency, mode, round) {
     ...(config.serverCpu
       ? { execPath: "/usr/bin/taskset", execArgv: ["-c", config.serverCpu, process.execPath, "--expose-gc"] }
       : { execArgv: ["--expose-gc", ...profileArgs] }),
-    env: { ...process.env, BENCH_RUNTIME_ROOT: variant ? resolve(root, variant.runtimeRoot) : "", BENCH_SETUP: JSON.stringify(variant?.setup || {}), NODE_ENV: "production", DEBUG: "" },
+    env: { ...process.env, BENCH_RUNTIME_ROOT: variant ? resolve(root, variant.runtimeRoot) : "", BENCH_SETUP: JSON.stringify(variant?.setup || {}),
+      BENCH_HEAP_PROFILE_PATH: process.env.BENCH_HEAP_PROFILE_DIR ? resolve(process.env.BENCH_HEAP_PROFILE_DIR, `${framework}-${scenario}-c${concurrency}-${mode}-r${round}.heap.json`) : "",
+      NODE_ENV: "production", DEBUG: "" },
     stdio: ["ignore", "ignore", "inherit", "ipc"],
   });
   try {

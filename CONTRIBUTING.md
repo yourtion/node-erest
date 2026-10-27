@@ -122,6 +122,11 @@ EXPERIMENT_EVIDENCE=benchmarks/results/experiments/validation.json,benchmarks/re
 检查脚本包含这些方案的已知反例；通过检查表示反例得到验证，不代表全部变体可以发布。
 报告的 `EXPERIMENT_EVIDENCE` 可将微基准和兼容性证据连同 SHA-256 一起打包；再次读取合并 JSON 时会保留这些证据。
 
+分配热点可单独用 `BENCH_HEAP_PROFILE_DIR=benchmarks/results/experiments/allocations/raw` 运行 `benchmarks/run.mjs`，
+再执行 `node benchmarks/experiments/summarize-allocations.mjs <采样目录> <该次运行的JSON>`。
+采样包含已被 GC 回收的对象，用于估算分配压力，不能证明内存泄漏；带 profiler 的吞吐数字不能用作性能结论。
+报告脚本会拒绝混入标记为 CPU 或分配采样的运行数据，采样摘要可通过 `EXPERIMENT_EVIDENCE` 单独附加。
+
 ## 合约专项
 
 `test:contract` 在 Express、Koa、LeizmWeb、H3 下执行同一套 GET/POST/PUT/PATCH/DELETE 定义。

@@ -4,6 +4,7 @@ import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { writeFileSync } from "node:fs";
 import { expectedGet, output, schemas, validate } from "./fixture.mjs";
 
 const [framework, mode, scenario] = process.argv.slice(2);
@@ -147,10 +148,18 @@ global.gc?.();
 const idleMemory = process.memoryUsage();
 process.send({ type: "ready", port: server.address().port, idleMemory });
 let cpuStart, wallStart;
-process.on("message", (message) => {
+let heapSession;
+if (process.env.BENCH_HEAP_PROFILE_PATH) {
+  const { Session } = await import("node:inspector");
+  heapSession = new Session();
+  heapSession.connect();
+}
+const heapCommand = (method, params = {}) => new Promise((accept, reject) => heapSession.post(method, params, (error, value) => error ? reject(error) : accept(value)));
+process.on("message", async (message) => {
   if (message.type === "start") {
     // GC outside the measured interval; no forced GC during requests.
     global.gc?.();
+    if (heapSession) await heapCommand("HeapProfiler.startSampling", { samplingInterval: 32768, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true });
     cpuStart = process.cpuUsage();
     wallStart = performance.now();
     process.send({ type: "started" });
@@ -158,6 +167,11 @@ process.on("message", (message) => {
     const elapsedMs = performance.now() - wallStart;
     const cpu = process.cpuUsage(cpuStart);
     const memory = process.memoryUsage();
+    if (heapSession) {
+      const { profile } = await heapCommand("HeapProfiler.stopSampling");
+      writeFileSync(process.env.BENCH_HEAP_PROFILE_PATH, JSON.stringify(profile));
+      heapSession.disconnect();
+    }
     global.gc?.();
     process.send({
       type: "stats",
