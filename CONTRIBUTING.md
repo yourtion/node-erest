@@ -73,7 +73,7 @@ pnpm run mutation:full         # 忽略已有结果，重建基线
 [Dependabot 配置](.github/dependabot.yml) 将 GitHub Actions、根 npm 和 examples npm 的
 `open-pull-requests-limit` 设为 `0`，暂停普通版本升级 PR；需要升级时由维护者单独评估。
 该选项不限制安全更新 PR，详见 [GitHub 配置说明](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#open-pull-requests-limit)。
-安全更新和漏洞告警仍由仓库后台设置控制，本次配置调整不改动这些开关；当前连接未能核实其启用状态。
+安全更新和漏洞告警仍由仓库后台设置控制，本次配置调整不改动这些开关。
 CodeQL 工作流继续保留。已有依赖 PR 留待逐项审阅，不批量关闭。
 
 ## 维护文档
