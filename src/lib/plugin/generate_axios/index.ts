@@ -49,7 +49,9 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
 
   function pathBindings(req: APIOption<unknown>) {
     const used = new Set<string>();
-    return new Map(utils.getPathParamNames(req.realPath).map((key) => [key, uniqueBinding(key, used)]));
+    // 保持已生成 SDK 的位置参数契约：已声明字段顺序不变，遗漏的路径参数追加在后。
+    const keys = new Set([...schemaFieldNames(req.paramsSchema), ...utils.getPathParamNames(req.realPath)]);
+    return new Map([...keys].map((key) => [key, uniqueBinding(key, used)]));
   }
 
   function inputBindings(req: APIOption<unknown>) {
