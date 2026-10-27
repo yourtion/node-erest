@@ -29,6 +29,8 @@
   [SDK 说明](guides/documentation.md#axios-sdk)。
 - Swagger 2 的异构 union 使用扩展 `x-anyOf`，可空值用 `x-nullable`；这些不是标准组合校验。
 - Markdown API 表格展示数组元素、所有 union 分支及 `registerTyped({ response })` 响应。
+- OpenAPI 自动补齐未声明 schema 的路径参数，排除不在路径模板中的 params 字段；路径参数始终必填。
+- SDK 统一路径参数提取和形参避撞，支持路径与 query/body 同名、保留字及需要别名的对象键。
 
 运行时绑定规则保持兼容，不增加生产依赖；五个发布包统一为 `3.3.0`。
 

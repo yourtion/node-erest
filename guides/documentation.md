@@ -82,7 +82,10 @@ await sdk.putItemsId('42', { name: 'new name' }, { trace: 'request-1' });
 ```
 
 上例中的方法分别对应 `/users`、`/items/:id` 路由，需先注册对应 schema 再生成 SDK。
-命名规则为 HTTP 方法加路径驼峰形式，路径参数按位置传入。
+命名规则为 HTTP 方法加路径驼峰形式，路径参数按路由中的顺序传入。
+未声明或部分声明 params schema 时，缺少的路径参数按字符串补入 OpenAPI；只有路由中实际存在的参数
+才会列为 path parameter，并始终标记 required。仍建议声明完整 params schema 以获得运行时校验。
+SDK 的路径、body、query 形参共用避撞规则；同名字段使用内部别名，调用时的对象键保持原样。
 
 | 方法 | 主输入对象 | 额外 query |
 | --- | --- | --- |

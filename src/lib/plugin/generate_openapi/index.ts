@@ -4,7 +4,7 @@ import { plugin as debug } from "../../debug.js";
 import type { IDocData, IDocWritter } from "../../extend/docs.js";
 import type { IDocOptions } from "../../index.js";
 import { isZodSchema } from "../../params.js";
-import { getPath, getRealPath } from "../../utils.js";
+import { getPath, getRealPath, getPathParamNames, mapPathParams } from "../../utils.js";
 import { extractDocFields, extractJSONSchema, resolveZodShape } from "../zod-meta.js";
 
 export interface OpenAPISchema extends Record<string, unknown> {
@@ -130,7 +130,8 @@ export function buildOpenAPI(data: IDocData) {
   }
   const paths: Record<string, Record<string, OpenAPIOperation>> = {};
   for (const [key, api] of Object.entries(data.apis)) {
-    const route = (api.realPath || getRealPath(key)).replace(/:(\w+)/g, "{$1}");
+    const rawPath = api.realPath || getRealPath(key);
+    const route = mapPathParams(rawPath, (name) => `{${name}}`);
     const hint = `${api.method}.${route}`;
     const responseSchema =
       api.responseSchema ?? (typeof api.response === "string" ? manager?.get?.(api.response) : api.response);
@@ -155,13 +156,16 @@ export function buildOpenAPI(data: IDocData) {
     ] as const) {
       const shape = resolveZodShape(schema) ?? {};
       const required = (extractJSONSchema(schema).required ?? []) as string[];
-      for (const field of extractDocFields(schema, place)) {
+      const fields = extractDocFields(schema, place);
+      const names = place === "params" ? getPathParamNames(rawPath) : fields.map((field) => field.name);
+      for (const name of names) {
+        const field = fields.find((item) => item.name === name);
         operation.parameters.push({
-          name: field.name,
+          name,
           in: place === "params" ? "path" : place === "headers" ? "header" : "query",
-          required: place === "params" || required.includes(field.name),
-          ...(field.comment ? { description: field.comment } : {}),
-          schema: schemas.add(`${hint}.${place}.${field.name}`, shape[field.name]),
+          required: place === "params" || required.includes(name),
+          ...(field?.comment ? { description: field.comment } : {}),
+          schema: shape[name] ? schemas.add(`${hint}.${place}.${name}`, shape[name]) : { type: "string" },
           ...(place === "query" ? ({ style: "form", explode: true } as const) : {}),
         });
       }

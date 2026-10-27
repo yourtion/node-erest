@@ -67,7 +67,17 @@ export function camelCase2underscore(str: string): string {
     .toLowerCase();
 }
 
+/** 对路由中的具名参数使用统一的提取与替换规则。 */
+export function mapPathParams(route: string, replace: (name: string) => string): string {
+  return route.replace(/:([a-z_][a-z0-9_]*)/gi, (_match, name: string) => replace(name));
+}
+
 /** 从路由提取具名路径参数；SDK 与文档使用相同规则。 */
 export function getPathParamNames(route: string): string[] {
-  return [...new Set(Array.from(route.matchAll(/:([a-z_][a-z0-9_]*)/gi), (match) => match[1]))];
+  const names = new Set<string>();
+  mapPathParams(route, (name) => {
+    names.add(name);
+    return name;
+  });
+  return [...names];
 }
