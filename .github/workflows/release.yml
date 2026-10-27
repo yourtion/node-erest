@@ -83,7 +83,7 @@ jobs:
         with:
           name: npm-release
           path: ${{ runner.temp }}/npm-release/
-      # Each of the five npm packages must trust yourtion/node-erest/release.yml.
+      # Each of the six npm packages must trust yourtion/node-erest/release.yml.
       # No GitHub environment is used; leave that npm field blank.
       - name: Publish validated tarballs, then complete GitHub Release
         env:

@@ -5,6 +5,15 @@
 按版本倒序列出升级动作与可见行为变化。使用说明见 `guides/`，开发检查和发布操作分别见
 [贡献指南](CONTRIBUTING.md)与[发布流程](RELEASING.md)。
 
+## v3.4.0 — H3 v2 适配器
+
+- 新增独立包 `@erest/h3`，导出 `H3Adapter`、`h3Adapter`、`createERest` 和 `H3Raw`。
+- 支持 H3 `^2.0.8`（Node.js >=20.19）；不兼容 H3 v1 的 `createApp/createRouter` API。
+- 复用标准中间件、Zod 分层校验、hooks、响应信封、文档和 SDK；`reply.raw` 推导为 `H3Event`。
+- 支持 `router: new H3()` 及 forceGroup 下的 `router: H3` 分组挂载。
+- 声明 body schema 时自动解析 JSON/URL-encoded，空 body 也会校验；未声明时保留原生请求流。
+- 六个公开包统一为 `3.4.0`，新包纳入 workspace、构建与发布产物验证。
+
 ## v3.3.1 — SDK 位置参数兼容性与 3.3 系列首次发布
 
 - 恢复已声明 params schema 的 SDK 位置参数顺序，避免字段声明顺序与路由顺序不同时，把既有调用的参数值对调。

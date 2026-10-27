@@ -9,6 +9,7 @@
 | `@erest/express` | `createERest` / `ExpressAdapter` | Express 4、5 |
 | `@erest/koa` | `createERest` / `KoaAdapter` | Koa 3，`@koa/router` 13 或 `koa-router` 13 |
 | `@erest/leizmweb` | `createERest` / `LeizmWebAdapter` | @leizm/web 2 |
+| `@erest/h3` | `createERest` / `H3Adapter`（或 `h3Adapter`） | H3 ^2.0.8 |
 
 每个工厂创建的实例都使用相同的 [API 定义方式](api.md)，并推导该框架的 `ctx.reply.raw` 类型。
 以下绑定片段假定 `api` 已创建并注册路由，通用错误格式器从 `erest` 导入。
@@ -82,6 +83,50 @@ app.server.listen(3000);
 
 需要表单时，添加 `component.bodyParser.urlencoded({ extended: true })`。
 
+## H3
+
+以下是可运行的 H3 v2 示例（Node.js >=20.19），不需要额外 body parser：
+
+```javascript
+import { createServer } from 'node:http';
+import { H3 } from 'h3';
+import { toNodeHandler } from 'h3/node';
+import { z, defaultErrorFormatter } from 'erest';
+import { createERest, h3Adapter } from '@erest/h3';
+
+const app = new H3({
+  onError(error, event) {
+    // H3 将原始 erest 错误保存在 cause 中。
+    const { status, body } = defaultErrorFormatter(error.cause instanceof Error ? error.cause : error);
+    event.res.status = status;
+    return body;
+  },
+});
+const api = createERest({ groups: { users: '用户' } });
+api.api.post('/users').group('users').registerTyped(
+  { body: z.object({ name: z.string().min(1) }) },
+  (req, ctx) => ctx.reply.status(201).json({ name: req.body.name }),
+);
+api.bind({ adapter: h3Adapter, router: app });
+createServer(toNodeHandler(app)).listen(3000);
+```
+
+`H3Adapter` 和单例 `h3Adapter` 等价。只支持 H3 v2；v1 的 `createApp/createRouter` 不适用。
+声明 body schema 时，适配器通过 H3 `readBody()` 解析 JSON 或 URL-encoded；缺少请求体按 `{}` 校验，
+非法 JSON 进入错误处理/错误信封。未声明 body schema 时不读取请求流，可用 `ctx.reply.raw.req`
+处理文本、multipart 或流。`onRequest` 在解析 body 前触发；校验后可从 `ctx.body` 读取原始解析值。
+
+错误可通过 H3 应用的 `onError` 处理，或使用 erest 的 `setResponseEnvelopers({ error })`。
+`reply.raw` 是 `H3Event`，例如 `ctx.reply.raw.res.headers.set('x-trace', '1')` 或 `setCookie(ctx.reply.raw, ...)`。
+要从 `registerTyped` 返回原生 `Response`（下载、重定向、流）并跳过成功信封，先调用 `ctx.reply.markSent()`：
+
+```typescript
+api.api.get('/download').group('users').registerTyped({}, (_req, ctx) => {
+  ctx.reply.markSent();
+  return new Response('id\n1', { headers: { 'content-type': 'text/csv' } });
+});
+```
+
 ## 路由前缀与分组
 
 `info.basePath` 用于文档和 SDK URL，不会替应用挂载路由。
@@ -106,7 +151,9 @@ const api = createERest({
 api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
 ```
 
-Koa 对应 `router: Router`，LeizmWeb 对应其 `Router` 构造函数；它们使用各自的适配器。
+Koa 对应 `router: Router`，LeizmWeb 对应其 `Router` 构造函数。H3 使用
+`api.bind({ adapter: h3Adapter, app, router: H3 })`，通过 `app.mount()` 挂载各分组。
+非 forceGroup 下也可绑定到独立 H3 实例，再用 `app.mount('/api', router)` 挂载前缀。
 
 ## 原生上下文
 
@@ -117,7 +164,7 @@ Koa 对应 `router: Router`，LeizmWeb 对应其 `Router` 构造函数；它们�
 | 重定向 | `.res.redirect(...)` | `.redirect(...)` | `.response.redirect(...)` |
 | 响应头 | `.res.setHeader(...)` | `.set(...)` | `.response.setHeader(...)` |
 
-使用 raw 的代码遵循宿主框架的语义，不再通用于三个框架。响应头应在发送响应体之前设置。
+使用 raw 的代码遵循宿主框架的语义，不再通用于所有框架。响应头应在发送响应体之前设置。
 return 模式下手动发送响应，记得调用 [markSent()](api.md#原生响应)。
 
 自定义适配器实现 `erest` 导出的 `FrameworkAdapter` 接口；实现约定见 [架构导航](../AGENTS.md)。
