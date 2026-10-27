@@ -80,6 +80,25 @@ BENCH_ROUNDS=1 BENCH_MS=100 BENCH_WARMUP_MS=100 \
 `benchmarks/results/` 下的 JSON、CSV 和 HTML 都是被忽略的本地生成物，不随工具提交。
 短测结果不是线上容量结论；只有在独立复测中出现一致趋势后，才适合讨论运行时优化。
 
+### 隔离优化实验
+
+`benchmarks/experiments/prepare.mjs` 将已构建产物复制到被忽略的结果目录，生成带哈希的实验清单，
+不改动 `src/` 或原始 `dist/`。各变体的兼容性限制记录在清单中，诊断变体不能直接用于发布。
+
+```bash
+node benchmarks/experiments/prepare.mjs
+BENCH_VARIANTS_FILE=benchmarks/results/experiments/manifest.json \
+  BENCH_SCENARIOS=post BENCH_CONCURRENCY=50 BENCH_ROUNDS=3 \
+  BENCH_MS=3000 BENCH_WARMUP_MS=2000 \
+  BENCH_OUT=benchmarks/results/experiments/screen.json node benchmarks/run.mjs
+node benchmarks/experiments/report.mjs benchmarks/results/experiments/screen.json
+```
+
+`BENCH_VARIANTS` 可选择清单中的变体（逗号分隔）；每轮同时测量原生加 Zod、现有 erest 和所选变体。
+报告按同框架、场景、并发、轮次配对，与 erest 对照比较；轮间范围不是置信区间。
+`BENCH_PROFILE_DIR` 可单独采集服务端 CPU profile；开启 profiler 的结果只用于定位，不参与收益比较。
+报告脚本可传入多个完整结果文件，将各阶段原始数据和比较合并到 `mac-optimization.json`，并生成 HTML。
+
 ## 合约专项
 
 `test:contract` 在 Express、Koa、LeizmWeb、H3 下执行同一套 GET/POST/PUT/PATCH/DELETE 定义。

@@ -23,6 +23,58 @@ function replace(source, before, after) {
 }
 
 const changes = {
+  "node-headers": {
+    frameworks: ["h3"],
+    description: "Node-only diagnostic: copy IncomingMessage headers instead of converting Web Headers.",
+    caveat: "Not portable; raw array/duplicate-header normalization and mutations to Web Headers can differ. This is an attribution experiment, not a shippable replacement.",
+    patch(file, source) {
+      if (file !== adapterFile("h3")) return source;
+      return replace(source, "headers: Object.fromEntries(event.req.headers),", "headers: event.runtime?.node?.req ? { ...event.runtime.node.req.headers } : Object.fromEntries(event.req.headers),");
+    },
+  },
+  reply: {
+    frameworks,
+    description: "Use per-request Reply instances with shared prototype methods instead of four per-request method closures.",
+    caveat: "Prototype/enumerability and detached method calls differ. Requires a compatibility decision and broad Reply tests before shipping.",
+    patch(file, source) {
+      const framework = frameworks.find((name) => adapterFile(name) === file);
+      if (!framework) return source;
+      const definitions = {
+        express: { factory: "createExpressReply", args: "req, res", raw: "{ req, res }", target: "res",
+          status: "this.#target.status?.(code);",
+          json: "this.__sent = true; this.#target.json?.(body);",
+          send: "this.__sent = true; this.#target.end?.(body);" },
+        koa: { factory: "createKoaReply", args: "ctx", raw: "ctx", target: "ctx",
+          status: "this.#target.status = code;",
+          json: 'this.__sent = true; this.#target.type = "application/json"; this.#target.body = JSON.stringify(body);',
+          send: "this.__sent = true; this.#target.body = body;" },
+        leizmweb: { factory: "createLeiReply", args: "ctx", raw: "ctx", target: "ctx.response ?? {}",
+          status: "this.#target.status?.(code);",
+          json: "this.__sent = true; this.#target.json?.(body);",
+          send: 'this.__sent = true; this.#target.setHeader?.("Content-Type", "text/plain; charset=utf-8"); this.#target.end?.(body);' },
+        h3: { factory: "createH3Reply", args: "event", raw: "event", target: "event",
+          status: "this.#target.res.status = code;",
+          json: 'this.body = JSON.stringify(body) ?? ""; this.#target.res.headers.set("content-type", "application/json; charset=utf-8"); this.__sent = true;',
+          send: 'this.body = body; this.#target.res.headers.set("content-type", "text/plain; charset=utf-8"); this.__sent = true;' },
+      };
+      const d = definitions[framework];
+      const start = source.indexOf(`function ${d.factory}(`);
+      const end = source.indexOf("\nexport const ", start);
+      assert(start >= 0 && end > start, "Reply factory boundaries not found");
+      const implementation = `class SharedReply {
+        #target;
+        __sent = false;
+        constructor(raw, target) { this.raw = raw; this.#target = target; }
+        status(code) { ${d.status} return this; }
+        json(body) { ${d.json} }
+        send(body) { ${d.send} }
+        markSent() { this.__sent = true; }
+      }
+      function ${d.factory}(${d.args}) { return new SharedReply(${d.raw}, ${d.target}); }
+`;
+      return source.slice(0, start) + implementation + source.slice(end);
+    },
+  },
   hoist: {
     frameworks: frameworks.slice(0, 3),
     description: "Capture compiled schemas, requiredOneOf and onValidate at bind time; validate ctx directly.",
