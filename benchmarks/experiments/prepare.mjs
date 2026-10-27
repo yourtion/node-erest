@@ -23,6 +23,74 @@ function replace(source, before, after) {
 }
 
 const changes = {
+  "express-no-etag": {
+    frameworks: ["express"],
+    setup: { expressEtag: false },
+    description: "Use Express's public app.disable('etag') setting.",
+    caveat: "Changes cache validators and conditional requests. Only for applications that do not need dynamic ETags.",
+    patch(_file, source) { return source; },
+  },
+  "zod-parse": {
+    frameworks,
+    description: "Use Zod parse instead of safeParse, preserving first-issue mapping and thrown non-Zod exceptions.",
+    caveat: "Error-heavy traffic pays stack capture/throw costs; validate transform-thrown ZodError behavior before shipping.",
+    patch(file, source) {
+      if (file !== "dist/lib/params.js") return source;
+      return replace(source, `const result = schema.safeParse(input);
+        if (result.success)
+            return result.data;
+        const issue = result.error.issues[0];`, `let issue;
+        try { return schema.parse(input); }
+        catch (error) {
+            if (!(error instanceof z.ZodError)) throw error;
+            issue = error.issues[0];
+        }`);
+    },
+  },
+  "ajv-body": {
+    frameworks,
+    description: "Fixture-only body validation compiled from public Zod JSON Schema; clone before Ajv removes additional properties; Zod handles invalid inputs.",
+    caveat: "Not a general Zod replacement. Refinements, transforms, JS string length and JSON Schema semantics need explicit support checks.",
+    patch(file, source) {
+      if (file !== "dist/lib/params.js") return source;
+      const helper = new URL("./validation-candidates.mjs", import.meta.url).href;
+      return `import { makeAjvBodyParser } from ${JSON.stringify(helper)};\n` + replace(source,
+        "const bodyParse = bodySchema ? makeParse(bodySchema) : undefined;",
+        "const bodyParse = bodySchema ? makeAjvBodyParser(bodySchema, makeParse(bodySchema)) : undefined;");
+    },
+  },
+  "manual-body": {
+    frameworks,
+    description: "Hand-written body fast path for the benchmark fixture; preserve copying and defer invalid input to Zod.",
+    caveat: "Fixture-specific upper-bound probe, not a reusable schema compiler; arbitrary schemas and observable getters are unsupported.",
+    patch(file, source) {
+      if (file !== "dist/lib/params.js") return source;
+      const helper = new URL("./validation-candidates.mjs", import.meta.url).href;
+      return `import { makeManualBodyParser } from ${JSON.stringify(helper)};\n` + replace(source,
+        "const bodyParse = bodySchema ? makeParse(bodySchema) : undefined;",
+        "const bodyParse = bodySchema ? makeManualBodyParser(bodySchema, makeParse(bodySchema)) : undefined;");
+    },
+  },
+  "h3-json-body": {
+    frameworks: ["h3"],
+    description: "Use the native Request.json() body path rather than H3 readBody.",
+    caveat: "JSON-only diagnostic; empty bodies, urlencoded input and parse-error envelopes differ.",
+    patch(file, source) {
+      if (file !== adapterFile("h3")) return source;
+      source = replace(source, 'import { getQuery, getRouterParams, readBody } from "h3";', 'import { getQuery, getRouterParams, readBody, HTTPError } from "h3";');
+      return replace(source, "(await readBody(ctx.reply.raw)) ?? {}", `(await ctx.reply.raw.req.json().catch(error => { if (error instanceof SyntaxError) throw new HTTPError({status: 400, message: "Invalid JSON body"}); throw error; })) ?? {}`);
+    },
+  },
+  "h3-native-json": {
+    frameworks: ["h3"],
+    description: "Let H3 serialize returned objects instead of serializing within Reply.json.",
+    caveat: "Diagnostic: changes serialization timing, Content-Type, primitive/null handling, and error/hook behavior.",
+    patch(file, source) {
+      if (file !== adapterFile("h3")) return source;
+      source = replace(source, 'reply.body = JSON.stringify(body) ?? "";', 'reply.body = body;');
+      return replace(source, '            event.res.headers.set("content-type", "application/json; charset=utf-8");\n', '');
+    },
+  },
   foreach: {
     frameworks: ["h3"],
     description: "Eagerly copy Web Headers with forEach instead of allocating iterator entry pairs; preserve an own __proto__ key.",
@@ -176,12 +244,14 @@ for (const [name, patches] of Object.entries(definitions)) {
     patches,
     descriptions: patches.length ? patches.map((patch) => changes[patch].description) : ["Unchanged compiled runtime snapshot; control for loading an isolated copy."],
     caveats: patches.map((patch) => changes[patch].caveat),
+    setup: Object.assign({}, ...patches.map((patch) => changes[patch].setup)),
     files,
   };
 }
 const manifest = {
   commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
   prepareSha256: hash(readFileSync(fileURLToPath(import.meta.url))),
+  helperSha256: hash(readFileSync(new URL("./validation-candidates.mjs", import.meta.url))),
   baseline,
   variants,
 };

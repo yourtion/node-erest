@@ -137,7 +137,7 @@ async function sample(framework, scenario, concurrency, mode, round) {
     ...(config.serverCpu
       ? { execPath: "/usr/bin/taskset", execArgv: ["-c", config.serverCpu, process.execPath, "--expose-gc"] }
       : { execArgv: ["--expose-gc", ...profileArgs] }),
-    env: { ...process.env, BENCH_RUNTIME_ROOT: variant ? resolve(root, variant.runtimeRoot) : "", NODE_ENV: "production", DEBUG: "" },
+    env: { ...process.env, BENCH_RUNTIME_ROOT: variant ? resolve(root, variant.runtimeRoot) : "", BENCH_SETUP: JSON.stringify(variant?.setup || {}), NODE_ENV: "production", DEBUG: "" },
     stdio: ["ignore", "ignore", "inherit", "ipc"],
   });
   try {

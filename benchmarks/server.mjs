@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 import { expectedGet, output, schemas, validate } from "./fixture.mjs";
 
 const [framework, mode, scenario] = process.argv.slice(2);
+const setup = JSON.parse(process.env.BENCH_SETUP || "{}");
 const runtimeRoot = process.env.BENCH_RUNTIME_ROOT
   ? pathToFileURL(`${resolve(process.env.BENCH_RUNTIME_ROOT)}/`)
   : new URL("../", import.meta.url);
@@ -27,6 +28,7 @@ const sendKoa = (ctx, result) => {
 if (framework === "express") {
   const { default: express } = await import("express");
   app = express();
+  if (setup.expressEtag === false) app.disable("etag");
   app.use(express.json());
   router = app;
   server = createServer(app);
