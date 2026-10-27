@@ -1,154 +1,78 @@
-# erest 端到端示例
+# 博客示例
 
-一个**迷你博客业务域**，串联 erest 的**全部核心能力**：一份 API 定义，三个框架入口。
+[返回首页](../README.md) · [框架接入](../guides/adapters.md) · [API 测试](../guides/testing.md)
 
-## 演示的 erest 能力
-
-| 能力 | 位置 | 说明 |
-|------|------|------|
-| `registerTyped` + `reply` | `src/api.js` | 框架无关 handler，类型自动推导，三入口复用 |
-| `forceGroup` + 分组前缀 | `src/api.js` | public / post / admin 三组，各有前缀 |
-| 组级 `before()` 钩子 | `src/hooks.js` | post/admin 组的鉴权（拒绝未授权请求），框架无关 |
-| 组级 `middleware()` | `src/hooks.js` | admin 组的请求日志，框架无关 |
-| 全局 `beforeHooks` | `src/hooks.js` | 计时 hook，框架无关 |
-| 自定义错误注册 `errors.register` | `src/errors.js` | 注册 PERMISSION_DENIED / NOT_FOUND（与运行时 code 对应） |
-| `ERestError` 工厂 | `src/errors.js` | `ERestError` 静态构造（带 code/statusCode） |
-| 自定义 type 注册 | `src/types.js` | 注册 `Slug` 类型（`z.string().regex(...)`） |
-| 自定义 schema 注册 | `src/types.js` | 注册 `CreatePost` / `UpdatePost` |
-| `define()` 声明式定义 | `src/api.js` | 声明式注册 `DELETE /admin/users/:id`（handler 框架无关，三入口复用） |
-| `requiredOneOf` 多选一必填 | `src/api.js` | `GET /posts` 的 slug/status 至少传一个 |
-| `mock()` | `docs/generate.js` | 无 handler 时由 setMockHandler 生成 mock 响应 |
-| `response()` schema | `src/api.js` | 用户列表 API 声明响应 schema |
-| 分层参数 | `src/api.js` | `PUT /posts/:id` 的 path id 与 body 互不覆盖 |
-| 文档生成 `genDocs` | `docs/generate.js` | swagger / postman / markdown / axios SDK |
-| 测试驱动文档 `takeExample` + `genDocs` | `docs/generate-from-test.js` | test-agent 跑真实请求 → 文档 ✅ + 真实示例 |
-| 测试集成 `initTest` + `api.test` | `test/api.test.js` | vitest 写 success / error / takeExample |
-
-## 目录结构
-
-```
-examples/
-├── src/
-│   ├── api.js          # 核心：forceGroup 三组 + 所有业务 API（handler 框架无关）
-│   ├── store.js        # 内存存储（用户 + 文章 + token 鉴权）
-│   ├── hooks.js        # 鉴权/日志/计时钩子（框架无关，v3 标准化签名）
-│   ├── errors.js       # 自定义错误注册 + ERestError 工厂
-│   ├── types.js        # 自定义 Slug type + PostSchema 注册
-│   └── entries/
-│       ├── leizmweb.js # @leizm/web 入口
-│       ├── express.js  # Express 入口
-│       └── koa.js      # Koa 入口
-├── docs/
-│   ├── generate.js           # 文档生成脚本（npm run docs，mock 模式）
-│   └── generate-from-test.js # 测试驱动文档（npm run docs:test，✅ + 真实示例）
-├── test/
-│   └── api.test.js     # vitest 测试套件（npm test）
-├── types/
-│   └── erest.d.ts      # NodeNext 模块增强声明（可选，仅 TS 工程）
-└── vitest.config.js
-```
-
-## 三组业务 API
-
-| 组 | 前缀 | 鉴权 | 端点 |
-|----|------|------|------|
-| `public` | `/public` | 无 | `GET /public/posts`、`GET /public/posts/:slug` |
-| `post` | `/posts` | 需登录 | `GET/POST/PUT/DELETE /posts/posts[/:id]` |
-| `admin` | `/admin` | 需管理员 | `GET /admin/stats`、`GET /admin/users`、`DELETE /admin/users/:id`（define） |
-
-鉴权用 `X-Admin-Token` header：`user-token`（普通用户）、`admin-token`（管理员）。
+一份迷你博客 API 定义，分别接入 Express、Koa、LeizmWeb。数据存储在内存中，重启后重置。
 
 ## 运行
 
-examples 是 pnpm workspace 子包，在仓库根目录安装依赖即可（自动 link 本地 erest）：
+在仓库根目录安装并构建核心包和适配器，再选择一个入口启动（端口均为 3100）：
 
 ```bash
-# 在仓库根目录
-pnpm install
-pnpm run build          # 构建 erest 产物（examples 通过 workspace 引用 dist/）
-
-# 任选一个框架启动（都监听 3100）
-pnpm --filter erest-example start:express   # 或 start:leizmweb / start:koa
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm run build:packages
+pnpm --filter erest-example start:express
+# 也可使用 start:koa 或 start:leizmweb
 ```
 
-### 示例请求（三框架行为一致）
+| 组 | 完整路径 | 鉴权 |
+| --- | --- | --- |
+| public | `GET /public/posts`、`GET /public/posts/:slug` | 无 |
+| post | `GET/POST /posts/posts`、`PUT/DELETE /posts/posts/:id` | 登录 |
+| admin | `GET /admin/stats`、`GET /admin/users`、`DELETE /admin/users/:id` | 管理员 |
+
+通过 `X-Admin-Token` 传入 `user-token`（普通用户）或 `admin-token`（管理员）：
 
 ```bash
-# 公开：已发布文章
 curl http://localhost:3100/public/posts
-curl http://localhost:3100/public/posts/hello-erest
-
-# 需登录（header X-Admin-Token: user-token）
-curl -H "X-Admin-Token: user-token" http://localhost:3100/posts/posts
-curl -X POST -H "X-Admin-Token: user-token" -H "Content-Type: application/json" \
-  -d '{"slug":"new-post","title":"新文章","content":"内容"}' http://localhost:3100/posts/posts
-
-# 需管理员（header X-Admin-Token: admin-token）
-curl -H "X-Admin-Token: admin-token" http://localhost:3100/admin/users
-curl -H "X-Admin-Token: admin-token" http://localhost:3100/admin/stats
-
-# 鉴权失败示例
-curl -i http://localhost:3100/posts/posts                         # 401 无 token
-curl -i -H "X-Admin-Token: user-token" http://localhost:3100/admin/users  # 403 权限不足
-# 校验失败示例
-curl -i -X POST -H "X-Admin-Token: user-token" -H "Content-Type: application/json" \
-  -d '{"slug":"Bad Slug","title":"x","content":"y"}' http://localhost:3100/posts/posts  # 400
+curl -H 'X-Admin-Token: user-token' 'http://localhost:3100/posts/posts?status=published'
+curl -X POST http://localhost:3100/posts/posts \
+  -H 'X-Admin-Token: user-token' -H 'Content-Type: application/json' \
+  -d '{"slug":"new-post","title":"新文章","content":"内容"}'
+curl -H 'X-Admin-Token: admin-token' http://localhost:3100/admin/stats
 ```
+
+缺少 token 返回 401，普通用户访问管理接口返回 403，非法字段返回 400。
+
+## 代码入口
+
+| 文件 | 内容 |
+| --- | --- |
+| [src/api.js](src/api.js) | 分组、registerTyped、分层参数、response、requiredOneOf 与 define |
+| [src/entries/](src/entries/) | 三个框架的解析器、适配器绑定与错误中间件 |
+| [src/hooks.js](src/hooks.js) | before 鉴权、middleware 日志、全局计时 |
+| [src/types.js](src/types.js) / [src/errors.js](src/errors.js) | Zod 类型/schema 与业务错误注册 |
+| [src/store.js](src/store.js) | 内存数据和 token |
+| [test/api.test.js](test/api.test.js) | 使用 TestAgent 验证业务 API |
+
+handler 和 before/middleware 使用 erest 标准上下文，在三个入口间共享。
+`registerTyped` 使用 `(req, ctx)`，`register` / `define` 使用 `(ctx, next)`，均通过 `ctx.reply` 响应。
+TypeScript 与 CommonJS 集成见[框架与 ESM](../guides/adapters.md#typescript-与-esm)。
 
 ## 测试
 
+构建完成后运行：
+
 ```bash
-pnpm --filter erest-example test   # vitest 跑 initTest 套件：success / error / takeExample
+pnpm --filter erest-example test
 ```
 
-测试用 Express 作为载体（`initTest` 对三框架均支持，这里选最通用的）。
-覆盖：公开接口、鉴权（401/403）、参数校验（400）、define 路由、测试结果回填文档示例。
+测试使用 Express，覆盖公开接口、鉴权、校验、define 和真实示例记录。
 
 ## 文档生成
 
 ```bash
-pnpm --filter erest-example docs   # 生成到 docs/out/
+pnpm --filter erest-example docs       # examples/docs/out/
+pnpm --filter erest-example docs:test  # examples/docs/out-from-test/
 ```
 
-产出：
-- `swagger.json` — OpenAPI，可导入 Swagger UI / Apifox
-- `postman.json` — Postman Collection
-- `Home.md` + 各组 `.md` + `errors.md` / `schema.md` / `types.md` — Markdown 文档
-- `sdk.js` — 基于 axios 的前端 SDK
+[docs/generate.js](docs/generate.js) 直接生成 `swagger.json`（Swagger 2.0）、`postman.json`、
+`sdk.js` 和 Markdown 分组页面。
+未执行请求的路由显示未测试标记，无真实请求示例。
 
-> 上面的 `npm run docs` 不跑测试，markdown 里所有 API 显示 ❌、无示例（mock 模式）。
+[docs/generate-from-test.js](docs/generate-from-test.js) 启动临时测试服务，发出真实请求，
+通过 `.takeExample(name).success()` 记录请求与响应，再生成 Markdown。
+执行过的路由显示已测试标记；该标记不替代业务断言。
 
-### 测试驱动文档（✅ + 真实示例）
-
-```bash
-pnpm --filter erest-example docs:test   # 生成到 docs/out-from-test/
-```
-
-用 test-agent 跑真实请求（`.success().takeExample()`），让文档通过测试变绿：
-
-- 被测路由显示 **✅**（`tested` 标记翻转），未测的保持 ❌
-- 「使用示例」段落的 `output` 是 **真实响应**（非 mock）
-- 详见 [docs/generate-from-test.js](./docs/generate-from-test.js)，根 README 的「测试驱动的文档」章节有原理说明
-
-## 设计说明：handler 与 hooks 均框架无关
-
-erest v3 标准化后，**业务 handler 与 before/middleware 钩子都框架无关**，同一份代码被
-Express / Koa / @leizm/web 三个入口复用：
-
-- **业务 handler**（`registerTyped`）：用 `(req, ctx)` 签名，声明一次，三框架复用。
-- **组级 `before`/`middleware` 钩子**：用统一的 `(ctx, next)` 签名（erest 标准 Context），
-  在 `hooks.js` 里只写一份（`authBefore` / `adminBefore` / `logMiddleware` / `timingBefore`），
-  三入口共用。`ctx.headers` 读 token、`ctx.state.currentUser` 传递用户、`next()` 推进链。
-- **`define()` 的 handler**：同样用 `(ctx, next)` 签名，经 `ctx.$params` 读校验后参数、
-  `ctx.ctx.reply.json()` 写响应。虽然 define 路由仍各自在入口内注册（演示该 API），但其 handler
-  也是框架无关的。
-
-这是 v3 标准化的核心收益：整个请求处理链（global before → group before → api before →
-checker → group middleware → api middleware → handler）全部框架无关，框架适配完全下沉到
-adapter 层。
-
-## TypeScript 集成（NodeNext）
-
-erest 3.0 起为 **ESM-only**（仅发布 ESM 产物，无 CJS）。在 `module: nodenext` +
-`verbatimModuleSyntax` 下，`import ERest from 'erest'` 直接可用（构造器与类型均正确），
-无需任何 workaround。CommonJS 工程请用动态 `import()` 加载（详见根 README 的 ESM 集成章节）。
+格式选项见[文档与 SDK](../guides/documentation.md)，示例记录见[API 测试](../guides/testing.md#保存真实示例)。
