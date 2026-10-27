@@ -125,7 +125,8 @@ return 模式下手动发送响应，记得调用 [markSent()](api.md#原生响�
 ## TypeScript 与 ESM
 
 erest 仅发布 ESM。使用 `package.json` 的 `"type": "module"` 或 `.mjs` 文件；
-TypeScript 工程安装 `typescript`、`@types/node` 及宿主框架所需的类型包。
+TypeScript 工程安装 `typescript`、`@types/node`、`@types/debug` 及宿主框架所需的类型包。
+`@types/debug` 用于公开测试代理的调试器声明。
 
 ```json
 {

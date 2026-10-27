@@ -102,7 +102,7 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
     return body;
   }
 
-  const baseURL = `${data.info.host || ""}${data.info.basePath}`;
+  const baseURL = `${data.info.host || ""}${data.info.basePath || ""}`;
 
   const { apis } = data;
   const request = Object.keys(apis).map((key) => {

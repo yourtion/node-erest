@@ -63,7 +63,7 @@ describe("生成 SDK 的形参绑定与避撞", () => {
       await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
       const { port } = server.address() as { port: number };
       const service = lib({
-        info: { host: `http://127.0.0.1:${port}`, basePath: "" },
+        info: { host: `http://127.0.0.1:${port}` },
         docs: { markdown: false, axios: true },
       });
       service.api[method as "post"](route)
