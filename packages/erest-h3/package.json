@@ -1,0 +1,41 @@
+{
+  "name": "@erest/h3",
+  "version": "3.4.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourtion/node-erest.git",
+    "directory": "packages/erest-h3"
+  },
+  "description": "H3 v2 adapter for erest",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "peerDependencies": {
+    "erest": "workspace:^",
+    "h3": "^2.0.8"
+  },
+  "devDependencies": {
+    "erest": "workspace:*",
+    "h3": "^2.0.8",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "erest",
-  "version": "3.3.1",
-  "description": "Framework-agnostic REST API framework with Zod validation, auto docs & test scaffolding. Express/Koa/@leizm/web adapters as separate packages.",
+  "version": "3.4.0",
+  "description": "Framework-agnostic REST API framework with Zod validation, auto docs & test scaffolding. Express/Koa/@leizm/web/H3 adapters as separate packages.",
   "type": "module",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
@@ -18,7 +18,7 @@
   "scripts": {
     "doc": "typedoc --excludeExternals --out docs/ src/lib/",
     "dev": "export ISLIB=1 && vitest --watch",
-    "test": "npm run build && npm run build:packages && vitest run && pnpm --filter erest-example test",
+    "test": "npm run build && npm run build:packages && npm run test:h3-types && vitest run && pnpm --filter erest-example test",
     "test:contract": "ISLIB=1 vitest run src/test/test-contract-consistency.ts src/test/test-openapi.ts",
     "test:lib": "export ISLIB=1 && vitest run",
     "test:cov": "export ISLIB=1 && vitest run --coverage",
@@ -29,14 +29,16 @@
     "test:examples": "pnpm --filter erest-example test",
     "bench": "export ISLIB=1 && vitest bench --config vitest.bench.config.ts",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
-    "format": "oxfmt --write src examples/src examples/test",
-    "check": "oxlint src examples/src examples/test && oxfmt --check src examples/src examples/test",
+    "format": "oxfmt --write src packages/erest-h3/src examples/src examples/test",
+    "check": "oxlint src packages/erest-h3/src examples/src examples/test && oxfmt --check src packages/erest-h3/src examples/src examples/test",
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
-    "build:packages": "pnpm --filter @erest/express --filter @erest/koa --filter @erest/leizmweb --filter @erest/gen build",
+    "build:packages": "pnpm --filter @erest/express --filter @erest/koa --filter @erest/leizmweb --filter @erest/h3 --filter @erest/gen build",
     "publish:all": "pnpm publish -r --no-git-checks --access public",
     "prepublishOnly": "npm run format && npm run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:h3-types": "tsc -p packages/erest-h3/tsconfig.test.json",
+    "pack:h3-bootstrap": "npm run build && pnpm --filter @erest/h3 build && npm run test:h3-types && node scripts/npm-bootstrap-h3.mjs"
   },
   "repository": {
     "type": "git",
@@ -52,7 +54,8 @@
     "zod",
     "typescript",
     "swagger",
-    "postman"
+    "postman",
+    "h3"
   ],
   "author": "Yourtion Guo <yourtion@gmail.com>",
   "license": "MIT",
@@ -101,7 +104,8 @@
     "typedoc": "^0.28.19",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "h3": "^2.0.8"
   },
   "lint-staged": {
     "*.{ts,js}": [

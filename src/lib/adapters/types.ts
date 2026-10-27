@@ -6,8 +6,8 @@
 import type API from "../api.js";
 import type ERest from "../index.js";
 
-/** Known framework types (three built-in adapters); third-party adapters use arbitrary string names */
-export type FrameworkType = "express" | "koa" | "leizmweb" | (string & {});
+/** Known framework types (four built-in adapters); third-party adapters use arbitrary string names */
+export type FrameworkType = "express" | "koa" | "leizmweb" | "h3" | (string & {});
 
 /** Group info interface for adapters */
 export interface IAdapterGroupInfo<T> {
@@ -19,7 +19,7 @@ export interface IAdapterGroupInfo<T> {
 
 /**
  * Framework adapter interface
- * Provides unified interface for different web frameworks (Express/Koa/@leizm/web built-in via subpackages;
+ * Provides unified interface for different web frameworks (Express/Koa/@leizm/web/H3 built-in via subpackages;
  * third-party adapters implement this interface with an arbitrary `name`)
  *
  * `Raw` 泛型不在接口方法签名中出现——它仅作为类型标记，由具体 adapter 实现类通过
@@ -28,7 +28,7 @@ export interface IAdapterGroupInfo<T> {
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Raw 为类型标记，供子类 implements 锁定（见上 JSDoc）
 export interface FrameworkAdapter<T = unknown, Raw = unknown> {
-  /** Framework identifier (e.g. "express"/"koa"/"leizmweb", or a custom adapter name) */
+  /** Framework identifier (e.g. "express"/"koa"/"leizmweb"/"h3", or a custom adapter name) */
   readonly name: string;
 
   /**
@@ -80,7 +80,7 @@ export type CheckerFunction<T> = (erest: ERest<T>, schema: API<T>) => T;
  *
  * 由各 adapter 注入到请求对象（`$reply`），让 registerTyped 的 handler 用统一的
  * `reply.json()/status()` 写响应，从而与具体框架解耦——同一份 handler 可被
- * Express / Koa / @leizm/web 三个框架复用。
+ * Express / Koa / @leizm/web / H3 四个框架复用。
  *
  * `raw` 是逃生舱：当需要框架特有能力（setCookie/redirect/stream/文件下载等）时，
  * 通过 `reply.raw` 访问框架原生对象。类型由 `ERest<T, Raw>` 的 Raw 泛型驱动，
@@ -112,7 +112,7 @@ export interface Reply<Raw = unknown> {
  *
  * 由各 adapter 在中间件链最前面构造并注入，让 before/middleware/handler 用统一的
  * `(ctx, next)` 签名，无需关心框架原生 ctx/res 差异。同一份中间件可被
- * Express / Koa / @leizm/web 三个框架复用。
+ * Express / Koa / @leizm/web / H3 四个框架复用。
  *
  * params/query/body 为框架原始请求数据（校验前的原始值，由 checker 校验后填入 $validated）。
  */

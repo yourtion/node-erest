@@ -4,6 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { bootstrapManifest, packH3Bootstrap } from './npm-bootstrap-h3.mjs';
 import {
   completeRelease,
   isPublished,
@@ -37,6 +38,44 @@ const failure = (code) => ({
   status: 1,
   stdout: JSON.stringify({ error: { code } }),
   stderr: code,
+});
+
+test('H3 bootstrap is installable against the published core without changing coordinated source versions', () => {
+  const source = {
+    name: '@erest/h3', version: '3.4.0',
+    scripts: { prepublishOnly: 'must not run' },
+    peerDependencies: { erest: 'workspace:^', h3: '^2.0.8' },
+    devDependencies: { erest: 'workspace:*' },
+  };
+  const original = structuredClone(source);
+  const manifest = bootstrapManifest(source);
+  assert.equal(manifest.version, '1.0.0');
+  assert.equal(manifest.peerDependencies.erest, '^3.3.1');
+  assert.equal(manifest.peerDependencies.h3, '^2.0.8');
+  assert.equal(manifest.devDependencies, undefined);
+  assert.equal(manifest.scripts, undefined);
+  assert.deepEqual(source, original);
+  assert.throws(() => bootstrapManifest({ ...source, name: 'erest' }), /Expected @erest\/h3/);
+  assert.throws(() => bootstrapManifest({ ...source, dependencies: { other: 'workspace:*' } }), /workspace/);
+});
+
+test('failed H3 bootstrap packing cleans staging and preserves the workspace manifest', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'erest-bootstrap-test-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const source = join(root, 'packages/erest-h3');
+  mkdirSync(join(source, 'dist'), { recursive: true });
+  const manifest = JSON.stringify({ name: '@erest/h3', version: '3.4.0', peerDependencies: { erest: 'workspace:^' } });
+  writeFileSync(join(source, 'package.json'), manifest);
+  let staging;
+  assert.throws(() => packH3Bootstrap(join(root, 'output'), root, (command, args, options) => {
+    assert.equal(command, 'npm');
+    assert.equal(args[0], 'pack');
+    assert.ok(args.includes('--ignore-scripts'));
+    staging = options.cwd;
+    return { status: 1, stderr: 'pack failed' };
+  }), /pack failed/);
+  assert.throws(() => readFileSync(join(staging, 'package.json')), { code: 'ENOENT' });
+  assert.equal(readFileSync(join(source, 'package.json'), 'utf8'), manifest);
 });
 
 test('stable and prerelease tags choose distinct npm channels', () => {
@@ -225,7 +264,7 @@ test('create or complete GitHub release with the matching prerelease state', () 
 });
 
 const repository = { type: 'git', url: 'git+https://github.com/yourtion/node-erest.git' };
-const names = ['erest', '@erest/express', '@erest/koa', '@erest/leizmweb', '@erest/gen'];
+const names = ['erest', '@erest/express', '@erest/koa', '@erest/leizmweb', '@erest/h3', '@erest/gen'];
 
 function fixture(t, version = '3.2.3') {
   const root = mkdtempSync(join(tmpdir(), 'erest-release-test-'));
@@ -237,7 +276,7 @@ function fixture(t, version = '3.2.3') {
       name: names[index], version, repository, type: 'module',
       main: './dist/index.js', types: './dist/index.d.ts',
     };
-    if (index > 0 && index < 4) manifest.peerDependencies = { erest: 'workspace:^' };
+    if (index > 0 && index < 5) manifest.peerDependencies = { erest: 'workspace:^' };
     writeFileSync(join(path, 'package.json'), JSON.stringify(manifest));
   }
   mkdirSync(join(root, 'examples'));
@@ -269,7 +308,7 @@ function localPacker(root, changeManifest = (value) => value) {
   };
 }
 
-test('release set includes exactly five public packages, matching versions and repository metadata', (t) => {
+test('release set includes exactly six public packages, matching versions and repository metadata', (t) => {
   const root = fixture(t);
   const packages = workspaceRelease('v3.2.3', root);
   assert.deepEqual(packages.map((pkg) => pkg.name), names);
@@ -301,7 +340,7 @@ test('workspace-aware pack checks real tarball contents and records integrity fo
   const root = fixture(t);
   const destination = join(root, '.bundle');
   const bundle = packWorkspace('v3.2.3', destination, root, localPacker(root));
-  assert.equal(bundle.packages.length, 5);
+  assert.equal(bundle.packages.length, 6);
   const restored = readBundle('v3.2.3', destination, root);
   assert.deepEqual(restored.map((pkg) => pkg.name), names);
   const adapter = inspectTarball(restored[1].tarball);
@@ -365,7 +404,7 @@ test('release publication resumes after a partial npm failure and completes GitH
   assert.equal(githubCalls, 0);
   failPackage = undefined;
   publishReleaseSet(packages, 'yourtion/node-erest', run);
-  assert.equal(published.size, 5);
+  assert.equal(published.size, 6);
   assert.equal(npmCalls.filter((name) => name === 'erest').length, 1);
   assert.equal(githubCalls, 2);
 });

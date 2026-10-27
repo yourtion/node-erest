@@ -33,6 +33,7 @@ packages/             # v3.0：框架适配器实现独立子包（npm scope @er
 ├── erest-express/    # @erest/express — ExpressAdapter（Express 4/5）
 ├── erest-koa/        # @erest/koa — KoaAdapter（Koa 3）
 ├── erest-leizmweb/   # @erest/leizmweb — LeizmWebAdapter（@leizm/web 2）
+├── erest-h3/         # @erest/h3 — H3Adapter（H3 2）
 └── erest-gen/        # @erest/gen — codegen CLI（命令名 erest-gen）
 ```
 
@@ -42,7 +43,7 @@ packages/             # v3.0：框架适配器实现独立子包（npm scope @er
 |-----------|--------|
 | 参数校验逻辑 | `params.ts` 的 `compileValidate`（bind 阶段预编译） |
 | 加新框架适配 | 新建子包 `packages/erest-<fw>/src/index.ts`，实现 `FrameworkAdapter` 接口（见 `adapters/types.ts`） |
-| 改某框架适配实现 | `packages/erest-{express,koa,leizmweb}/src/index.ts`（`makeParamsChecker`/`bindRoute`/`createGroupRouter`/`attachGroupRouter`） |
+| 改某框架适配实现 | `packages/erest-{express,koa,leizmweb,h3}/src/index.ts`（`makeParamsChecker`/`bindRoute`/`createGroupRouter`/`attachGroupRouter`） |
 | 改文档生成 | `plugin/<format>/` + `plugin/zod-meta.ts`（统一 Zod 提取） |
 | 加生命周期 hook | `hooks.ts` 定义 + 各子包 `src/index.ts` 的 dispatch/checker 注入 |
 | 改类型推导 | `api.ts` 的 `registerTyped` 泛型层 |
@@ -60,7 +61,7 @@ packages/             # v3.0：框架适配器实现独立子包（npm scope @er
 5. **breaking change 登记 MIGRATION.md** —— 公开 API 变动同步更新迁移指南。
 6. **`_def` 读取集中** —— Zod 内部结构（`_def.type`/`_def.typeName`/`_def.shape`）只在 `plugin/zod-meta.ts` 读取，且必须通过 `getZodTypeName`/`getZodShape`/`getZodInner`/`extractDocFields` 工具函数（双轨兼容 Zod 3 与 Zod 4）。其他文件禁止直接读 `_def`。
 7. **改了就 bump 版本** —— 任何涉及公开 API（接口/类型/行为/依赖声明）的改动，**必须同步 bump 版本号**，不能只改代码不留版本痕迹：
-   - 根包 `erest` 与受影响的子包（`packages/erest-{express,koa,leizmweb,gen}/`）的 `version` 字段一起改，保持一致（`pnpm publish -r` 整体发布，版本不齐会乱）。
+   - 根包 `erest` 与受影响的子包（`packages/erest-{express,koa,leizmweb,h3,gen}/`）的 `version` 字段一起改，保持一致（`pnpm publish -r` 整体发布，版本不齐会乱）。
    - 语义化版本：bug 修复/文档/非 breaking 新增 → patch（x.y.Z）；新增向后兼容能力 → minor（x.Y.0）；breaking → major（X.0.0）。
    - 同步在 `MIGRATION.md` 加对应版本章节（即使非 breaking 也要登记新增/修复项）。
    - 默认通过 `.github/workflows/release.yml` 自动发版：版本 PR 合入 `main` 且 CI 通过后，维护者推送匹配的 `vX.Y.Z` tag。每个 npm 包须先绑定 Trusted Publisher，详见 `RELEASING.md`。

@@ -4,7 +4,7 @@
 [![Test](https://github.com/yourtion/node-erest/actions/workflows/test.yml/badge.svg)](https://github.com/yourtion/node-erest/actions/workflows/test.yml)
 [![codecov](https://codecov.io/github/yourtion/node-erest/graph/badge.svg)](https://codecov.io/github/yourtion/node-erest)
 
-用一份 Zod schema 定义和校验 API，为 Express、Koa、@leizm/web 生成文档与 Axios SDK。
+用一份 Zod schema 定义和校验 API，为 Express、Koa、@leizm/web、H3 生成文档与 Axios SDK。
 TypeScript handler 的参数类型由 schema 推导。
 
 - **统一 API 定义**：支持分组、中间件、分层参数和响应校验。
@@ -24,6 +24,9 @@ npm install erest zod @erest/koa koa @koa/router@^13 koa-bodyparser
 
 # @leizm/web 2
 npm install erest zod @erest/leizmweb @leizm/web
+
+# H3 2（需要 Node.js >=20.19）
+npm install erest zod @erest/h3 h3@^2.0.8
 ```
 
 ## 快速开始
@@ -80,7 +83,7 @@ curl -X POST http://localhost:3000/users \
 | 需要做什么 | 文档 |
 | --- | --- |
 | 定义 schema、handler、响应、分组与中间件 | [API 定义](guides/api.md) |
-| 接入三个框架、配置路由前缀和 TypeScript | [框架与 ESM](guides/adapters.md) |
+| 接入四个框架、配置路由前缀和 TypeScript | [框架与 ESM](guides/adapters.md) |
 | 生成 OpenAPI、其他文档和 Axios SDK | [文档与 SDK](guides/documentation.md) |
 | 测试业务 API、保存真实示例 | [API 测试](guides/testing.md) |
 | 运行完整博客示例 | [示例工程](examples/README.md) |

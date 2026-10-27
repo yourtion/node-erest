@@ -8,8 +8,8 @@
 
 ## 一次性 npm 配置
 
-维护者须登录 npm，分别进入以下五个包的 Settings → Trusted Publisher，选择 GitHub Actions。
-它们已经在 npm 上存在，无需新包引导流程。仅合入 workflow 不会替代 npm 后台绑定；本仓库无法从代码确认绑定状态。
+维护者须登录 npm，分别进入以下六个包的 Settings → Trusted Publisher，选择 GitHub Actions。
+原有五包已经在 npm 上存在；新增 `@erest/h3` 首发前须先由维护者在 npm 建包并配置 Trusted Publisher。仅合入 workflow 不会替代 npm 后台绑定；本仓库无法从代码确认绑定状态。
 
 | npm 包 | Organization or user | Repository | Workflow filename | Environment name |
 | --- | --- | --- | --- | --- |
@@ -17,6 +17,7 @@
 | `@erest/express` | `yourtion` | `node-erest` | `release.yml` | 留空 |
 | `@erest/koa` | `yourtion` | `node-erest` | `release.yml` | 留空 |
 | `@erest/leizmweb` | `yourtion` | `node-erest` | `release.yml` | 留空 |
+| `@erest/h3` | `yourtion` | `node-erest` | `release.yml` | 留空 |
 | `@erest/gen` | `yourtion` | `node-erest` | `release.yml` | 留空 |
 
 workflow 名称填写文件名 `release.yml`，不要填写显示名称 `Release` 或完整路径。如果 npm 界面
@@ -24,13 +25,34 @@ workflow 名称填写文件名 `release.yml`，不要填写显示名称 `Release
 本 workflow 没有 GitHub environment，所以 npm 的 Environment name 留空。将来添加 environment
 或重命名 workflow 时，要同步修改每个包的绑定。
 
-四个子包的 `repository.url` 与根包一致，且包含各自的 `repository.directory`。provenance
+五个子包的 `repository.url` 与根包一致，且包含各自的 `repository.directory`。provenance
 要求仓库 URL 与实际发布仓库匹配。不要用 token 掩盖 OIDC 配置错误，也不要将凭据写入仓库或日志。
 官方说明：[Trusted publishers](https://docs.npmjs.com/trusted-publishers/)。
 
+### @erest/h3 首次本地发布 1.0.0
+
+在本地检出包含 H3 适配器的代码，使用 Node.js 24、pnpm 9，并登录有 `@erest` scope 发布权限的 npm 账号：
+
+```bash
+pnpm install --frozen-lockfile
+pnpm run pack:h3-bootstrap
+npm login
+npm publish ./erest-h3-1.0.0.tgz --access public --tag latest --ignore-scripts
+```
+
+`pack:h3-bootstrap` 构建并检查核心与 H3 子包，在临时目录生成 `@erest/h3@1.0.0`，
+输出根目录的 `erest-h3-1.0.0.tgz`。包内 peer 依赖为已发布的 `erest ^3.3.1`，
+不含 `workspace:` 或开发依赖；准备命令只打包，不执行发布。
+仓库 manifest 保持六包统一的 `3.4.0`，无需手动改版本再还原，也不要为这次建包推送 `v1.0.0` tag。
+
+首次发布成功后，进入 <https://www.npmjs.com/package/@erest/h3/access> 的
+Settings → Trusted Publisher，填写上表中的 GitHub 用户、仓库和 workflow，Environment name 留空。
+配置完成后合入 PR，再按下节推送 `v3.4.0`，由 GitHub Actions 将六包自动发布到 `3.4.0`。
+`1.0.0` 只用于此次建包；后续 H3 版本跟随 erest，不单独递增。
+
 ## 正式发版
 
-1. 将根包和四个公开子包的版本统一更新，更新 `MIGRATION.md`，通过 PR 合入 `main`。
+1. 将根包和五个公开子包的版本统一更新，更新 `MIGRATION.md`，通过 PR 合入 `main`。
 2. 确认该提交的 CI 通过，且上一次发版已经完成。拉取 `main` 后创建并推送精确 tag：
 
    ```bash
@@ -41,7 +63,7 @@ workflow 名称填写文件名 `release.yml`，不要填写显示名称 `Release
    git push origin "v${RELEASE_VERSION}"
    ```
 
-   `RELEASE_VERSION` 读取当前 manifest 版本；推送前核对五个包的版本一致。`pnpm run tag`
+   `RELEASE_VERSION` 读取当前 manifest 版本；推送前核对六个包的版本一致。`pnpm run tag`
    只创建本地 tag，不执行 npm 发布。也可用 `git tag v<version>` 创建 tag。
 3. 在 Actions → Release 查看结果。只有推送 tag 触发发布，普通 PR/main push 不发布。
 
@@ -60,15 +82,15 @@ tag 必须是严格的 `vX.Y.Z`，支持例如 `v3.3.0-rc.1` 的预发布，拒�
 - frozen-lockfile 安装、`check`、`test:release`；
 - 显式执行 `prepublishOnly`（format、根包与子包构建、发布产物测试及示例测试）和覆盖率门槛；
 - pnpm workspace-aware pack，检查每个真实 tarball 的 manifest、exports/main/types、CLI shebang/执行权限及内部依赖；
-- 在临时消费项目安装五个 tarball，验证核心与三框架 adapter 的 ESM 导入以及 codegen CLI 入口；
+- 在临时消费项目安装六个 tarball，验证核心与四框架 adapter 的 ESM 导入以及 codegen CLI 入口；
 - 确认 lifecycle 未改动 tag 的受跟踪源码。
 
-产物以 `npm-release` Actions artifact 保留 30 天，包含五个 `.tgz` 和记录 SHA-256 的
+产物以 `npm-release` Actions artifact 保留 30 天，包含六个 `.tgz` 和记录 SHA-256 的
 `release.json`。发布 job 重新校验全部产物的身份、内容哈希和内部依赖，使用 npm CLI 发布同一批
 tarball；不重新 pack 或构建。pnpm 负责 workspace 协议转换，不能直接用 npm 在 workspace
 目录打包。声明与实际文件必须一致；通配符 exports 需要先扩展验证器。
 
-先发布依赖，再发布消费者；当前顺序为 `erest`、三个 adapter、`@erest/gen`。每个包先查询
+先发布依赖，再发布消费者；当前顺序为 `erest`、四个 adapter、`@erest/gen`。每个包先查询
 精确版本，已存在则跳过，只有结构化 npm `E404` 才视为缺失。认证、网络、限流、publish 错误均
 终止流程。全部必需包完成后才创建或完成 GitHub Release，notes 由 GitHub 生成；tarball 保留在
 Actions artifact，不额外附加 GitHub Release assets。
