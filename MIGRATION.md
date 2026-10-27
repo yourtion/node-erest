@@ -5,6 +5,12 @@
 按版本倒序列出升级动作与可见行为变化。使用说明见 `guides/`，开发检查和发布操作分别见
 [贡献指南](CONTRIBUTING.md)与[发布流程](RELEASING.md)。
 
+## v3.2.5 — 文档源码位置（#196，issue #5）
+
+- Markdown 展示注册路由的相对源码路径。
+- 公开文档数据、doc.json 和 all.json 仅输出 sourceFile.relative；内部 absolute 保留供调试使用。
+- 五包版本统一为 3.2.5，最终与其余能力一并发布。
+
 ## v3.2.4 — SDK 路径参数兜底（#195，issue #27）
 
 - 未声明 params schema 时，Axios SDK 从路由提取路径参数；数字和下划线参数名与请求插值使用同一规则。
