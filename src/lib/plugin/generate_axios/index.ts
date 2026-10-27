@@ -10,13 +10,13 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
   debug("generateAxios: %s - %o", dir, options);
 
   function slashToCamel(name: string) {
-    return name.replace(/\/[a-z]/g, (match) => {
+    return name.replace(/\/[a-z_]/gi, (match) => {
       return match.slice(1).toUpperCase();
     });
   }
 
   function rmPathParam(path: string) {
-    return path.replace(/:([a-z]+)/gi, "$1");
+    return path.replace(/:([a-z_][a-z0-9_]*)/gi, "$1");
   }
 
   function getReqFuncName(req: APIOption<unknown>) {
@@ -38,19 +38,24 @@ export default function generateAxios(data: IDocData, dir: string, options: IDoc
   }
 
   function hasUrlParam(path: string) {
-    return /:[a-z]+/i.test(path);
+    return utils.getPathParamNames(path).length > 0;
   }
 
   function getReqSendPath(path: string) {
     if (hasUrlParam(path)) {
       // 生成模板字符串插值（注意：替换串不能带反斜杠转义，否则 \$ 使插值退化为字面量文本）
-      return `\`${path.replace(/:([a-z]+)/gi, "${$1}")}\``;
+      return `\`${path.replace(/:([a-z_][a-z0-9_]*)/gi, "${$1}")}\``;
     }
     return `'${path}'`;
   }
 
-  function getPathParams(_req: APIOption<unknown>) {
-    const dataKeys = schemaFieldNames(_req.paramsSchema);
+  function getPathParams(req: APIOption<unknown>) {
+    // 优先用 paramsSchema 声明的字段名；缺失时从路径 :xxx 兜底，
+    // 避免生成的请求路径引用了未出现在签名里的变量（issue #27）。
+    let dataKeys = schemaFieldNames(req.paramsSchema);
+    if (!dataKeys.length && hasUrlParam(req.realPath)) {
+      dataKeys = utils.getPathParamNames(req.realPath);
+    }
     if (!dataKeys.length) return "";
     return dataKeys.map((key) => `${key},`).join("");
   }

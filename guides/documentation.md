@@ -55,7 +55,7 @@ await sdk.getUsersId('42');
 ```
 
 上例分别对应 `/users`、`/users/:id`，需先注册对应路由及 schema。
-命名规则为 HTTP 方法加路径驼峰形式；路径参数须声明 params schema，并按位置传入。
+命名规则为 HTTP 方法加路径驼峰形式；路径参数按位置传入；缺少 params schema 时会从路径提取参数名。仍建议声明 schema，以获得运行时校验和完整文档。
 GET 的主输入取自 query，POST/PUT/PATCH 的主输入取自 body。
 需要额外请求头等设置可通过 `sdk.instance.defaults` 或 Axios 拦截器配置。
 
