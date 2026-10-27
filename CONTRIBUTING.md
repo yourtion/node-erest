@@ -98,6 +98,8 @@ node benchmarks/experiments/report.mjs benchmarks/results/experiments/screen.jso
 报告按同框架、场景、并发、轮次配对，与 erest 对照比较；轮间范围不是置信区间。
 `BENCH_PROFILE_DIR` 可单独采集服务端 CPU profile；开启 profiler 的结果只用于定位，不参与收益比较。
 报告脚本可传入多个完整结果文件，将各阶段原始数据和比较合并到 `mac-optimization.json`，并生成 HTML。
+也可只传入合并后的 JSON 重新生成报告，无需保留中间数据文件。
+采集 profile 后运行 `node benchmarks/experiments/summarize-profiles.mjs`，生成带环境、原始 profile 哈希和采样窗口说明的定位摘要。
 
 ## 合约专项
 

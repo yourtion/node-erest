@@ -2,9 +2,15 @@
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { createHash } from "node:crypto";
 
 const inputs = process.argv.slice(2);
 assert(inputs.length, "Pass screening and/or confirmation JSON paths");
+const loaded = inputs.map((input) => ({ input, data: JSON.parse(readFileSync(resolve(input), "utf8")) }));
+const sourceBundle = loaded.find(({ data }) => Array.isArray(data.stages))?.data;
+const runs = loaded.flatMap(({ input, data }) => Array.isArray(data.stages)
+  ? data.stages.map((stage) => ({ input: stage.input, raw: stage.raw }))
+  : [{ input, raw: data }]);
 const median = (values) => {
   const sorted = values.toSorted((a, b) => a - b);
   const i = Math.floor(sorted.length / 2);
@@ -19,8 +25,7 @@ const metrics = {
   heapMiB: (s) => s.serverRetainedHeapMiB,
   clientCpu: (s) => s.clientCpuPercent,
 };
-const stages = inputs.map((input) => {
-  const raw = JSON.parse(readFileSync(resolve(input), "utf8"));
+const stages = runs.map(({ input, raw }) => {
   assert(raw.finishedAt, `Incomplete run: ${input}`);
   assert(raw.samples.every((s) => s.errors === 0), `Errors in ${input}`);
   const groups = [];
@@ -38,6 +43,7 @@ const stages = inputs.map((input) => {
   for (const group of groups.filter((g) => !["erest", "native-zod"].includes(g.mode))) {
     const candidates = grouped.get(`${group.framework}/${group.scenario}/${group.concurrency}/${group.mode}`);
     const baseline = grouped.get(`${group.framework}/${group.scenario}/${group.concurrency}/erest`);
+    const isolated = grouped.get(`${group.framework}/${group.scenario}/${group.concurrency}/control`);
     assert(baseline, "No erest control");
     const pairs = candidates.map((candidate) => {
       const control = baseline.find((b) => b.round === candidate.round);
@@ -48,11 +54,18 @@ const stages = inputs.map((input) => {
         rssMiBDelta: candidate.serverRssMiB - control.serverRssMiB,
         heapMiBDelta: candidate.serverRetainedHeapMiB - control.serverRetainedHeapMiB };
     });
+    const isolatedGains = isolated && group.mode !== "control" ? candidates.map((candidate) => {
+      const control = isolated.find((sample) => sample.round === candidate.round);
+      assert(control, "Unpaired isolated control");
+      return (candidate.rps / control.rps - 1) * 100;
+    }) : null;
     comparisons.push({ framework: group.framework, scenario: group.scenario, concurrency: group.concurrency, mode: group.mode,
+      versusIsolatedControl: isolatedGains ? { medianGainPercent: median(isolatedGains), minGainPercent: Math.min(...isolatedGains), maxGainPercent: Math.max(...isolatedGains), values: isolatedGains } : null,
       medianGainPercent: median(pairs.map((p) => p.throughputPercent)),
       minGainPercent: Math.min(...pairs.map((p) => p.throughputPercent)),
       maxGainPercent: Math.max(...pairs.map((p) => p.throughputPercent)),
       medianCpuUsDelta: median(pairs.map((p) => p.cpuUsDelta)),
+      medianP95MsDelta: median(pairs.map((p) => p.p95MsDelta)),
       medianRssMiBDelta: median(pairs.map((p) => p.rssMiBDelta)),
       medianHeapMiBDelta: median(pairs.map((p) => p.heapMiBDelta)),
       allRoundsPositive: pairs.every((p) => p.throughputPercent > 0), pairs,
@@ -64,11 +77,13 @@ const profilePath = resolve("benchmarks/results/experiments/profiles-summary.jso
 const checksPath = resolve("benchmarks/results/experiments/headers-check.json");
 const findingsPath = resolve("benchmarks/results/experiments/findings.json");
 const output = resolve(process.env.EXPERIMENT_OUT || "benchmarks/results/mac-optimization");
+const savedFindings = sourceBundle ? sourceBundle.findings : existsSync(findingsPath) ? JSON.parse(readFileSync(findingsPath, "utf8")) : null;
+const inputSha256 = stages.map((stage) => createHash("sha256").update(JSON.stringify(stage.raw)).digest("hex"));
 const bundle = { generatedAt: new Date().toISOString(),
   method: "Compare candidate to erest control within the same round, framework, scenario and concurrency. Profile runs are excluded from performance comparisons. Paired ranges are not confidence intervals.",
-  profiles: existsSync(profilePath) ? JSON.parse(readFileSync(profilePath, "utf8")) : null,
-  headerChecks: existsSync(checksPath) ? JSON.parse(readFileSync(checksPath, "utf8")) : null,
-  findings: existsSync(findingsPath) ? JSON.parse(readFileSync(findingsPath, "utf8")) : null,
+  profiles: sourceBundle ? sourceBundle.profiles : existsSync(profilePath) ? JSON.parse(readFileSync(profilePath, "utf8")) : null,
+  headerChecks: sourceBundle ? sourceBundle.headerChecks : existsSync(checksPath) ? JSON.parse(readFileSync(checksPath, "utf8")) : null,
+  findings: savedFindings && JSON.stringify(savedFindings.inputSha256) === JSON.stringify(inputSha256) ? savedFindings : null,
   stages };
 writeFileSync(`${output}.json`, `${JSON.stringify(bundle, null, 2)}\n`);
 const escape = (value) => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
@@ -78,8 +93,8 @@ const findingsHtml = bundle.findings ? `<section><h2>结论与下一步</h2><ul>
 const sections = stages.map((stage) => `<section><h2>${escape(stage.input)}</h2>
 <p>${stage.raw.samples.length} 次采样 · ${stage.raw.config.rounds} 轮 · 预热 ${stage.raw.config.warmupMs / 1000}s / 测量 ${stage.raw.config.durationMs / 1000}s · ${escape(stage.raw.environment.node)} · ${escape(stage.raw.environment.cpu)}</p>
 <p>提交 ${escape(stage.raw.commit)}；全部 ${stage.raw.samples.reduce((sum, s) => sum + s.requests, 0).toLocaleString("en-US")} 次计时区间请求错误为 0。</p>
-<div class="scroll"><table><thead><tr><th>框架</th><th>变体</th><th>吞吐配对中位变化</th><th>轮间范围</th><th>CPU μs/请求变化</th><th>RSS MiB 变化</th><th>GC 后堆 MiB 变化</th></tr></thead><tbody>
-${stage.comparisons.map((c) => `<tr><td>${escape(c.framework)}</td><td>${escape(c.mode)}</td><td>${signed(c.medianGainPercent)}%</td><td>${signed(c.minGainPercent)}% ～ ${signed(c.maxGainPercent)}%</td><td>${signed(c.medianCpuUsDelta, 3)}</td><td>${signed(c.medianRssMiBDelta)}</td><td>${signed(c.medianHeapMiBDelta, 3)}</td></tr>`).join("")}
+<div class="scroll"><table><thead><tr><th>框架</th><th>变体</th><th>吞吐配对中位变化</th><th>轮间范围</th><th>CPU μs/请求变化</th><th>P95 ms 变化</th><th>RSS MiB 变化</th><th>GC 后堆 MiB 变化</th></tr></thead><tbody>
+${stage.comparisons.map((c) => `<tr><td>${escape(c.framework)}</td><td>${escape(c.mode)}</td><td>${signed(c.medianGainPercent)}%</td><td>${signed(c.minGainPercent)}% ～ ${signed(c.maxGainPercent)}%</td><td>${signed(c.medianCpuUsDelta, 3)}</td><td>${signed(c.medianP95MsDelta, 3)}</td><td>${signed(c.medianRssMiBDelta)}</td><td>${signed(c.medianHeapMiBDelta, 3)}</td></tr>`).join("")}
 </tbody></table></div><h3>各组指标中位数</h3><div class="scroll"><table><thead><tr><th>框架</th><th>变体</th><th>req/s</th><th>CPU μs/请求</th><th>P95 ms</th><th>客户端 CPU %</th><th>RSS MiB</th><th>GC 后堆 MiB</th></tr></thead><tbody>
 ${stage.groups.map((g) => `<tr><td>${escape(g.framework)}</td><td>${escape(g.mode)}</td><td>${number(g.rps, 0)}</td><td>${number(g.cpuUs, 3)}</td><td>${number(g.p95Ms, 3)}</td><td>${number(g.clientCpu, 1)}</td><td>${number(g.rssMiB)}</td><td>${number(g.heapMiB)}</td></tr>`).join("")}
 </tbody></table></div><details><summary>实验实现和兼容性限制</summary><pre>${escape(JSON.stringify(stage.raw.experiments?.variants ?? {}, null, 2))}</pre></details></section>`).join("");
