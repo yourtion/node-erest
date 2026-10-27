@@ -1,4 +1,4 @@
-// node benchmarks/report.mjs benchmarks/results/2026-10-27.json
+// node benchmarks/report.mjs benchmarks/results/latest.json
 // Produces self-contained HTML plus summary JSON and CSV beside the raw samples.
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, basename } from "node:path";
@@ -240,7 +240,6 @@ const html = `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name
 <h2>典型 POST 的吞吐量</h2><div class="charts">${charts}</div>
 <h2>本次观察</h2><ul>${findings}</ul>
 <p>加入 5ms 异步等待后，同等校验基线下的吞吐变化为：${ioFindings || "本次未测"}。这只是固定等待模型；线上数据库、连接池和下游服务的瓶颈会改变结果。</p>
-<p>从实现看，bind 阶段预组装校验函数和中间件链，但每个请求仍会创建 Context、Reply、分层校验结果、扁平参数和 registerTyped 的请求对象，并执行 Promise 调度。因此“预编译”不等于整个接入层零分配或零开销。后续优化可优先检查这些路径；本次没有做分配剖析或逐项优化实验，不能把实测差异拆分归因到某一项。</p>
 <h2>接入影响与原始指标</h2>
 <p>吞吐变化 = erest 吞吐中位数 ÷ 基线吞吐中位数 − 1；负值表示下降。配对范围按同轮次计算，不是置信区间。延迟是客户端从发起请求到读完响应的时间；50 并发时包含排队与调度，不能把延迟差当作纯 erest 执行时间。表内延迟分位数为各轮分位数的中位数，不是合并所有请求后的分位数。</p>
 <label>框架<select id="framework"><option value="all">全部</option>${data.config.frameworks.map((f) => `<option>${f}</option>`).join("")}</select></label>
