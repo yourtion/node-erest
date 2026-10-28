@@ -54,9 +54,11 @@ for (const raw of rawCases) {
   record.headerCases++;
   if (!actual.ok) continue;
   assert.equal(Object.getPrototypeOf(actual.value), Object.prototype);
+  assert.deepEqual(Object.keys(actual.value), Object.keys(expected.value));
   assert.deepEqual(Object.getOwnPropertyDescriptors(actual.value), Object.getOwnPropertyDescriptors(expected.value));
   const second = next.headers.toObjectSnapshot();
   assert.notEqual(second, actual.value);
+  assert.deepEqual(Object.keys(second), Object.keys(expected.value));
   assert.deepEqual(Object.getOwnPropertyDescriptors(second), Object.getOwnPropertyDescriptors(expected.value));
   actual.value["x-local"] = "does-not-change-source";
   // Materializing the old snapshot freezes the input view, including later Node-side changes.
@@ -84,6 +86,25 @@ for (const operation of [h => h.get("HOST"), h => h.has("HOST"), h => h.getSetCo
   Object.fromEntries(old.headers); next.headers.toObjectSnapshot();
   assert.deepEqual(result(() => operation(next.headers)), result(() => operation(old.headers)));
   record.headerCases++;
+}
+for (const late of [false, true]) for (const kind of ["setter", "readonly"]) {
+  const key = "x-prototype";
+  const old = headerInput(OriginalRequest, [key, "own-value"]);
+  const next = headerInput(CandidateRequest, [key, "own-value"]);
+  if (late) { Object.fromEntries(old.headers); next.headers.toObjectSnapshot(); }
+  const original = Object.getOwnPropertyDescriptor(Object.prototype, key);
+  let writes = 0;
+  Object.defineProperty(Object.prototype, key, kind === "setter"
+    ? { configurable: true, set() { writes++; }, get() { return "inherited"; } }
+    : { configurable: true, writable: false, value: "inherited" });
+  try {
+    assert.deepEqual(result(() => next.headers.toObjectSnapshot()), result(() => Object.fromEntries(old.headers)), `${name}: ${kind} property ${late ? "after" : "before"} first snapshot`);
+    assert.equal(writes, 0, "Snapshot must create own data properties without invoking inherited setters");
+    record.headerCases++;
+  } finally {
+    if (original) Object.defineProperty(Object.prototype, key, original);
+    else delete Object.prototype[key];
+  }
 }
 }
 

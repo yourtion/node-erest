@@ -98,7 +98,10 @@ ${request}            if (result instanceof Promise) return resume(ctx, result);
           if (this.#headers) return Object.fromEntries(this.#headers);
           if (this.#snapshot) {
             ${lean ? `const output = {};
-            for (const key of Object.keys(this.#snapshot).sort()) output[key] = this.#snapshot[key];
+            for (const key of Object.keys(this.#snapshot).sort()) {
+              if (key in output) return Object.fromEntries(this._headers);
+              output[key] = this.#snapshot[key];
+            }
             return output;` : `return { ...this.#snapshot };`}
           }
           const raw = this.#req.rawHeaders;
@@ -108,7 +111,7 @@ ${request}            if (result instanceof Promise) return resume(ctx, result);
             if (typeof name !== "string" || !_validHeaderNameRE.test(name) || typeof value !== "string"
               || value !== value.trim() || /[\\0\\r\\n\\u0100-\\uFFFF]/.test(value)) return Object.fromEntries(this._headers);
             const key = name.toLowerCase();
-            if (key === "__proto__" || Object.hasOwn(values, key)) return Object.fromEntries(this._headers);
+            if (key in values) return Object.fromEntries(this._headers);
             values[key] = value;
           }
           const snapshot = {};

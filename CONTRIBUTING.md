@@ -148,6 +148,7 @@ BENCH_VARIANTS_FILE=benchmarks/results/experiments/manifest.json \
 H3 和 srvx 的副本位于变体的 `node_modules`，原始包不改动；清单记录版本及修改文件哈希。
 `h3-snapshot-control` 是未修改的依赖副本对照，筛选和复测需同时保留。
 `h3-snapshot-lean` 移除首次快照的第三份对象复制，保留独立的内部查找表和有序公共对象；再次快照时重新排序缓存键。
+原型已有同名属性时（包括 setter 或只读属性）回退原逻辑，避免赋值触发继承属性；重复快照也保留这一检查。
 报告可用 `EXPERIMENT_COMPARE_TO='{"h3-snapshot":"h3-snapshot-control"}'` 指定该配对对照；规则和逐轮差值会写入合并 JSON，
 重新从该 JSON 生成报告时会保留。CPU 和 P95 的指定对照差值也保存在 JSON 中。
 差分检查覆盖特殊/重复头、Web 和 Node 侧修改、原型与属性、同步/异步错误、响应校验和并发隔离；通过这些用例不等于完整上游兼容认证。
