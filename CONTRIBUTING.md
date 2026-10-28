@@ -141,10 +141,15 @@ BENCH_VARIANTS_FILE=benchmarks/results/experiments/manifest.json \
 
 `context-ctor` / `context-slack` 保留普通对象原型和可见属性顺序，后者只通过构造器预热探索 V8 的内部槽位预留，
 没有跨请求对象复用。`typed-shared` 将收尾函数移到注册阶段，保留独立的 typed request、Promise 错误和 await 语义。
+`typed-direct` 使用现有 schema builder + `register(ctx)` API，在相同 Zod 校验后手动写 Reply，作为 typed wrapper 整体成本的归因对照；
+它仅与当前手动回复 fixture 等价，不保留 `registerTyped` 的返回值信封、响应校验、请求类型推导，不能透明替换。
 `h3-snapshot` 在隔离的 srvx 副本内部实现实验 `toObjectSnapshot()`：简单且未修改的唯一头走快路径，其他情况回退原逻辑。
 它需要上游新接口或维护依赖补丁，当前发布版本没有此接口。适配器仅调用该接口，不读取依赖私有字段。
 H3 和 srvx 的副本位于变体的 `node_modules`，原始包不改动；清单记录版本及修改文件哈希。
 `h3-snapshot-control` 是未修改的依赖副本对照，筛选和复测需同时保留。
+`h3-snapshot-lean` 移除首次快照的第三份对象复制，保留独立的内部查找表和有序公共对象；再次快照时重新排序缓存键。
+报告可用 `EXPERIMENT_COMPARE_TO='{"h3-snapshot":"h3-snapshot-control"}'` 指定该配对对照；规则和逐轮差值会写入合并 JSON，
+重新从该 JSON 生成报告时会保留。CPU 和 P95 的指定对照差值也保存在 JSON 中。
 差分检查覆盖特殊/重复头、Web 和 Node 侧修改、原型与属性、同步/异步错误、响应校验和并发隔离；通过这些用例不等于完整上游兼容认证。
 
 ## 合约专项

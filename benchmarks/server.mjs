@@ -127,6 +127,12 @@ if (mode === "erest") {
   const service = new ERest({ info: { basePath: "" }, groups: { bench: "Benchmark" }, docs: { markdown: false } });
   const api = service.api[method](route).group("bench");
   if (isGet) api.register((ctx) => ctx.reply.json(expectedGet));
+  else if (setup.directHandler) {
+    for (const [key, schema] of Object.entries(schemas)) api[key](schema);
+    api.register(scenario === "io5"
+      ? async ctx => ctx.reply.json(await work(ctx.$validated))
+      : ctx => ctx.reply.json(compute(ctx.$validated)));
+  }
   else
     api.registerTyped(
       schemas,

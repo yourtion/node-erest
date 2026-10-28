@@ -62,7 +62,7 @@ ${request}            if (result instanceof Promise) return resume(ctx, result);
     return source.slice(0, start) + next + source.slice(end);
   }
 
-  function prepareH3(dir, patched) {
+  function prepareH3(dir, patched, lean = false) {
     const h3 = realpathSync(resolve(root, "node_modules/h3"));
     const srvx = realpathSync(resolve(h3, "../srvx"));
     const modules = resolve(dir, "node_modules");
@@ -96,7 +96,11 @@ ${request}            if (result instanceof Promise) return resume(ctx, result);
       headers = replace(headers, "\t\tentries() {", `
         toObjectSnapshot() {
           if (this.#headers) return Object.fromEntries(this.#headers);
-          if (this.#snapshot) return { ...this.#snapshot };
+          if (this.#snapshot) {
+            ${lean ? `const output = {};
+            for (const key of Object.keys(this.#snapshot).sort()) output[key] = this.#snapshot[key];
+            return output;` : `return { ...this.#snapshot };`}
+          }
           const raw = this.#req.rawHeaders;
           const values = {};
           for (let i = 0; i < raw.length; i += 2) {
@@ -109,8 +113,8 @@ ${request}            if (result instanceof Promise) return resume(ctx, result);
           }
           const snapshot = {};
           for (const key of Object.keys(values).sort()) snapshot[key] = values[key];
-          this.#snapshot = snapshot;
-          return { ...snapshot };
+          this.#snapshot = ${lean ? "values" : "snapshot"};
+          return ${lean ? "snapshot" : "{ ...snapshot }"};
         }
 \t\tentries() {`);
       candidate = candidate.slice(0, start) + headers + candidate.slice(end);
@@ -128,9 +132,13 @@ ${request}            if (result instanceof Promise) return resume(ctx, result);
     "context-ctor": { frameworks, description: "Construct a plain-object Context through a shared constructor, retaining key order and Object.prototype.", caveat: "Must check property descriptors, optional-key visibility, retained contexts and concurrent request isolation.", patch: (file, source) => contextPatch(file, source, false) },
     "context-slack": { frameworks, description: "Warm a Context constructor with all later fields, reserving V8 in-object slack without exposing optional keys early.", caveat: "Engine-dependent allocation experiment; larger initial objects can offset transition savings. No object reuse across requests.", patch: (file, source) => contextPatch(file, source, true) },
     "typed-shared": { frameworks, description: "Move typed-handler finish closure to registration time; allocate async continuation only for Promise results and preserve Promise rejection semantics.", caveat: "Verify sync throw, async reject, response checks, onion ordering, bookkeeping and independent typed request objects.", patch: sharedTyped },
+    "typed-direct": { frameworks, setup: { directHandler: true }, description: "Attribution control using existing schema builders plus register(ctx), reading $validated and manually writing Reply; skips typed wrapper entirely.", caveat: "Only equivalent for this manual-reply fixture. Does not retain registerTyped return/envelope bookkeeping, response validation or typed request inference.", patch: (_file, source) => source },
     "h3-snapshot-control": { frameworks: ["h3"], description: "Unmodified H3/srvx copies to control dependency relocation effects.", caveat: "Control only.", patch: (_file, source) => source, prepareRuntime: dir => prepareH3(dir, false) },
     "h3-snapshot": { frameworks: ["h3"], description: "Prototype an owning-library snapshot API in srvx; simple headers bypass Web Headers materialization while public operations retain a frozen input snapshot.", caveat: "Requires an upstream API or maintained dependency patch; duplicate/special/modified headers fall back to native Headers. Not a released library feature.",
       patch(file, source) { return file === adapterFile("h3") ? replace(source, "headers: Object.fromEntries(event.req.headers),", 'headers: typeof event.req.headers.toObjectSnapshot === "function" ? event.req.headers.toObjectSnapshot() : Object.fromEntries(event.req.headers),') : source; },
       prepareRuntime: dir => prepareH3(dir, true) },
+    "h3-snapshot-lean": { frameworks: ["h3"], description: "Snapshot API with separate internal lookup object and ordered public object; remove the initial third object copy.", caveat: "Same upstream API requirement and fallback rules; repeat snapshots must sort cached keys again.",
+      patch(file, source) { return file === adapterFile("h3") ? replace(source, "headers: Object.fromEntries(event.req.headers),", 'headers: typeof event.req.headers.toObjectSnapshot === "function" ? event.req.headers.toObjectSnapshot() : Object.fromEntries(event.req.headers),') : source; },
+      prepareRuntime: dir => prepareH3(dir, true, true) },
   };
 }

@@ -13,7 +13,7 @@ const moduleAt = (root, path) => import(pathToFileURL(resolve(root, path)).href)
 const record = { node: process.version, manifest, headerCases: 0, typedCases: [], httpCases: [] };
 const baselineSrvx = createRequire(import.meta.resolve("h3")).resolve("srvx/node");
 const { NodeRequest: OriginalRequest } = await import(pathToFileURL(baselineSrvx));
-const { NodeRequest: CandidateRequest } = await moduleAt(manifest.variants["h3-snapshot"].runtimeRoot, "node_modules/srvx/dist/adapters/node.mjs");
+const candidateRequests = await Promise.all(["h3-snapshot", "h3-snapshot-lean"].map(async name => [name, (await moduleAt(manifest.variants[name].runtimeRoot, "node_modules/srvx/dist/adapters/node.mjs")).NodeRequest]));
 
 function headerInput(Ctor, raw) {
   const req = { rawHeaders: raw.slice(), headers: Object.fromEntries(Array.from({length:raw.length / 2}, (_, i) => [String(raw[i * 2]).toLowerCase(), raw[i * 2 + 1]])) };
@@ -32,6 +32,10 @@ const rawCases = [
   ["2", "two", "10", "ten", "1", "one"], ["x-empty", ""],
 ];
 let seed = 0x24c0ffee;
+for (let byte = 0; byte < 256; byte++) {
+  const value = String.fromCharCode(byte);
+  rawCases.push(["x-byte", value + "v"], ["x-byte", "v" + value + "v"], ["x-byte", "v" + value]);
+}
 const random = n => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed % n; };
 for (let i = 0; i < 400; i++) {
   const raw = [];
@@ -41,15 +45,19 @@ for (let i = 0; i < 400; i++) {
   }
   rawCases.push(raw);
 }
+for (const [name, CandidateRequest] of candidateRequests) {
 for (const raw of rawCases) {
   const old = headerInput(OriginalRequest, raw), next = headerInput(CandidateRequest, raw);
   const expected = result(() => Object.fromEntries(old.headers));
   const actual = result(() => next.headers.toObjectSnapshot());
-  assert.deepEqual(actual, expected, `Header snapshot mismatch: ${JSON.stringify(raw)}`);
+  assert.deepEqual(actual, expected, `${name} header snapshot mismatch: ${JSON.stringify(raw)}`);
   record.headerCases++;
   if (!actual.ok) continue;
   assert.equal(Object.getPrototypeOf(actual.value), Object.prototype);
   assert.deepEqual(Object.getOwnPropertyDescriptors(actual.value), Object.getOwnPropertyDescriptors(expected.value));
+  const second = next.headers.toObjectSnapshot();
+  assert.notEqual(second, actual.value);
+  assert.deepEqual(Object.getOwnPropertyDescriptors(second), Object.getOwnPropertyDescriptors(expected.value));
   actual.value["x-local"] = "does-not-change-source";
   // Materializing the old snapshot freezes the input view, including later Node-side changes.
   for (const input of [old, next]) {
@@ -76,6 +84,7 @@ for (const operation of [h => h.get("HOST"), h => h.has("HOST"), h => h.getSetCo
   Object.fromEntries(old.headers); next.headers.toObjectSnapshot();
   assert.deepEqual(result(() => operation(next.headers)), result(() => operation(old.headers)));
   record.headerCases++;
+}
 }
 
 async function typedOutcome(root, name) {
@@ -156,7 +165,7 @@ async function appFor(framework, root, setup) {
   return {server,retained,url:`http://127.0.0.1:${server.address().port}`};
 }
 for(const framework of ["express","koa","leizmweb","h3"]) {
-  const names=["control","context-ctor","context-slack","typed-shared",...(framework==="h3"?["h3-snapshot-control","h3-snapshot"]:[])];
+  const names=["control","context-ctor","context-slack","typed-shared",...(framework==="h3"?["h3-snapshot-control","h3-snapshot","h3-snapshot-lean"]:[])];
   let expected;
   for(const name of names) {
     const variant=manifest.variants[name];const app=await appFor(framework,variant.runtimeRoot,variant.setup);
