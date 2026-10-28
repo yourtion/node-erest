@@ -88,8 +88,8 @@ if (framework === "express") {
   server = app.server;
 } else if (framework === "h3") {
   const [{ H3, getQuery, getRouterParams, readBody }, { toNodeHandler }] = await Promise.all([
-    import("h3"),
-    import("h3/node"),
+    import(setup.h3Entry ? pathToFileURL(resolve(setup.h3Entry)).href : "h3"),
+    import(setup.h3Entry ? pathToFileURL(resolve(setup.h3Entry)).href : "h3/node"),
   ]);
   app = new H3({ silent: true });
   router = app;

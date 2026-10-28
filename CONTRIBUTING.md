@@ -127,6 +127,26 @@ EXPERIMENT_EVIDENCE=benchmarks/results/experiments/validation.json,benchmarks/re
 采样包含已被 GC 回收的对象，用于估算分配压力，不能证明内存泄漏；带 profiler 的吞吐数字不能用作性能结论。
 报告脚本会拒绝混入标记为 CPU 或分配采样的运行数据，采样摘要可通过 `EXPERIMENT_EVIDENCE` 单独附加。
 
+Context / typed handler / H3 快照的定向实验：
+
+```bash
+node benchmarks/experiments/prepare.mjs
+node benchmarks/experiments/check-targeted.mjs
+BENCH_VARIANTS_FILE=benchmarks/results/experiments/manifest.json \
+  BENCH_VARIANTS=control,context-ctor,context-slack,typed-shared,h3-snapshot-control,h3-snapshot \
+  BENCH_SCENARIOS=post BENCH_CONCURRENCY=50 BENCH_ROUNDS=3 \
+  BENCH_MS=2000 BENCH_WARMUP_MS=1500 \
+  BENCH_OUT=benchmarks/results/experiments/targeted-screen.json node benchmarks/run.mjs
+```
+
+`context-ctor` / `context-slack` 保留普通对象原型和可见属性顺序，后者只通过构造器预热探索 V8 的内部槽位预留，
+没有跨请求对象复用。`typed-shared` 将收尾函数移到注册阶段，保留独立的 typed request、Promise 错误和 await 语义。
+`h3-snapshot` 在隔离的 srvx 副本内部实现实验 `toObjectSnapshot()`：简单且未修改的唯一头走快路径，其他情况回退原逻辑。
+它需要上游新接口或维护依赖补丁，当前发布版本没有此接口。适配器仅调用该接口，不读取依赖私有字段。
+H3 和 srvx 的副本位于变体的 `node_modules`，原始包不改动；清单记录版本及修改文件哈希。
+`h3-snapshot-control` 是未修改的依赖副本对照，筛选和复测需同时保留。
+差分检查覆盖特殊/重复头、Web 和 Node 侧修改、原型与属性、同步/异步错误、响应校验和并发隔离；通过这些用例不等于完整上游兼容认证。
+
 ## 合约专项
 
 `test:contract` 在 Express、Koa、LeizmWeb、H3 下执行同一套 GET/POST/PUT/PATCH/DELETE 定义。

@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { resolve, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { targetedChanges } from "./targeted-patches.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const destination = resolve(root, "benchmarks/results/experiments/runtimes");
@@ -23,6 +24,7 @@ function replace(source, before, after) {
 }
 
 const changes = {
+  ...targetedChanges({ frameworks, adapterFile, replace, root }),
   "express-no-etag": {
     frameworks: ["express"],
     setup: { expressEtag: false },
@@ -229,6 +231,8 @@ for (const [name, patches] of Object.entries(definitions)) {
   writeFileSync(resolve(dir, "package.json"), '{"type":"module"}\n');
   cpSync(resolve(root, "dist/lib"), resolve(dir, "dist/lib"), { recursive: true });
   for (const framework of frameworks) cpSync(resolve(root, `packages/erest-${framework}/dist`), resolve(dir, `packages/erest-${framework}/dist`), { recursive: true });
+  const extra = patches.filter(patch => changes[patch].prepareRuntime).map(patch => changes[patch].prepareRuntime(dir));
+  assert(extra.length <= 1, "Combine at most one dependency-copy experiment");
   const files = {};
   for (const file of Object.keys(baseline)) {
     const original = readFileSync(resolve(root, file), "utf8");
@@ -244,7 +248,8 @@ for (const [name, patches] of Object.entries(definitions)) {
     patches,
     descriptions: patches.length ? patches.map((patch) => changes[patch].description) : ["Unchanged compiled runtime snapshot; control for loading an isolated copy."],
     caveats: patches.map((patch) => changes[patch].caveat),
-    setup: Object.assign({}, ...patches.map((patch) => changes[patch].setup)),
+    setup: Object.assign({}, ...patches.map((patch) => changes[patch].setup), ...extra.map(item => item.setup)),
+    dependencies: extra[0]?.dependencies,
     files,
   };
 }
@@ -252,6 +257,7 @@ const manifest = {
   commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
   prepareSha256: hash(readFileSync(fileURLToPath(import.meta.url))),
   helperSha256: hash(readFileSync(new URL("./validation-candidates.mjs", import.meta.url))),
+  targetedPatchesSha256: hash(readFileSync(new URL("./targeted-patches.mjs", import.meta.url))),
   baseline,
   variants,
 };
