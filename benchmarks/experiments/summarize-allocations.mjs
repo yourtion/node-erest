@@ -24,10 +24,13 @@ for(const file of readdirSync(directory).filter(x=>x.endsWith(".heap.json"))) {
   if(!sample)throw new Error(`Missing measurement for ${file}`);
   const totalBytes=[...groups.values()].reduce((a,b)=>a+b,0);
   profiles.push({file,sha256:createHash("sha256").update(bytes).digest("hex"),framework:sample.framework,mode:sample.mode,requests:sample.requests,totalBytes,estimatedBytesPerRequest:totalBytes/sample.requests,
+    projectFrames:[...groups].filter(([key]) => /(?:packages\/erest-|dist\/lib\/|srvx\/dist\/|toObjectSnapshot)/.test(key)).sort((a,b)=>b[1]-a[1]).map(([key,selfSize])=>({...JSON.parse(key),selfSize,bytesPerRequest:selfSize/sample.requests})),
     frames:[...groups].sort((a,b)=>b[1]-a[1]).slice(0,30).map(([key,selfSize])=>({...JSON.parse(key),selfSize,bytesPerRequest:selfSize/sample.requests,percent:selfSize/totalBytes*100}))});
 }
 if(profiles.length!==run.samples.length) throw new Error("Missing or extra allocation profiles");
 const result={environment:run.environment,commit:run.commit,harnessSha256:run.harnessSha256,
+  experiments:run.experiments ? {commit:run.experiments.commit,prepareSha256:run.experiments.prepareSha256,targetedPatchesSha256:run.experiments.targetedPatchesSha256,
+    variants:Object.fromEntries(run.selectedVariants.map(name=>[name,run.experiments.variants[name]]))} : null,
   runSha256:createHash("sha256").update(runBytes).digest("hex"),summarizerSha256:createHash("sha256").update(readFileSync(new URL(import.meta.url))).digest("hex"),config:run.config,instrumentation:run.instrumentation,
   method:"V8 sampling interval 32768 bytes, include objects collected by minor/major GC. Profile starts after pre-measurement GC and stops before post-measurement GC. Approximate allocation estimates include stop/IPC overhead; timings excluded from HTTP comparisons. Allocation is not retained memory or proof of a leak.",profiles};
 const output=resolve(directory,"../allocations-summary.json");writeFileSync(output,JSON.stringify(result,null,2)+"\n");console.log(output);

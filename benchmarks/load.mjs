@@ -21,6 +21,10 @@ export async function load(port, scenario, concurrency, durationMs) {
         }
       : {},
   };
+  if (Number(process.env.BENCH_EXTRA_HEADERS || 0)) {
+    options.headers ??= {};
+    for (let i = 0; i < Number(process.env.BENCH_EXTRA_HEADERS); i++) options.headers[`x-bench-${i}`] = "0123456789abcdef";
+  }
   // 1us histogram resolution through 2s; last bucket counts longer responses.
   const histogram = new Uint32Array(2_000_001);
   let count = 0,

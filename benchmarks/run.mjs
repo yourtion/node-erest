@@ -24,11 +24,13 @@ const config = {
   durationMs: Number(process.env.BENCH_MS || 3000),
   warmupMs: Number(process.env.BENCH_WARMUP_MS || 1500),
   serverCpu: process.env.BENCH_SERVER_CPU || null,
+  extraHeaders: Number(process.env.BENCH_EXTRA_HEADERS || 0),
 };
 assert(Number.isInteger(config.rounds) && config.rounds > 0, "BENCH_ROUNDS must be a positive integer");
 assert(Number.isFinite(config.durationMs) && config.durationMs > 0, "BENCH_MS must be positive and finite");
 assert(Number.isFinite(config.warmupMs) && config.warmupMs > 0, "BENCH_WARMUP_MS must be positive and finite");
 assert(config.concurrency.every((c) => Number.isInteger(c) && c > 0));
+assert(Number.isInteger(config.extraHeaders) && config.extraHeaders >= 0 && config.extraHeaders <= 128, "BENCH_EXTRA_HEADERS must be an integer from 0 through 128");
 assert(
   config.frameworks.every((f) => ["express", "koa", "leizmweb", "h3"].includes(f)),
   "Unknown BENCH_FRAMEWORKS value"
