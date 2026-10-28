@@ -80,7 +80,13 @@ ${request}            if (result instanceof Promise) return resume(ctx, result);
       assert(start >= 0 && end > start);
       let headers = candidate.slice(start, end);
       headers = replace(headers, "\t\t#headers;", "\t\t#headers;\n\t\t#snapshot;");
-      headers = replace(headers, "\t\t\tif (!this.#headers) {", "\t\t\tif (!this.#headers && this.#snapshot) this.#headers = new NativeHeaders(this.#snapshot);\n\t\t\tif (!this.#headers) {");
+      headers = replace(headers, "\t\t\tif (!this.#headers) {", `
+          if (!this.#headers && this.#snapshot) {
+            const headers = new NativeHeaders();
+            for (const key of Object.keys(this.#snapshot)) headers.append(key, this.#snapshot[key]);
+            this.#headers = headers;
+          }
+\t\t\tif (!this.#headers) {`);
       for (const method of ["get", "has"]) {
         const before = `\t\t${method}(name) {\n\t\t\tif (this.#headers) return this.#headers.${method}(name);`;
         const result = method === "get" ? 'Object.hasOwn(this.#snapshot, lower) ? this.#snapshot[lower] : null' : 'Object.hasOwn(this.#snapshot, lower)';
