@@ -98,7 +98,8 @@ ${request}            if (result instanceof Promise) return resume(ctx, result);
           }`;
         headers = replace(headers, before, after);
       }
-      headers = replace(headers, 'const value = this.#req.headers["set-cookie"];', 'const value = (this.#snapshot || this.#req.headers)["set-cookie"];');
+      headers = replace(headers, 'const value = this.#req.headers["set-cookie"];', `if (this.#snapshot) return Object.hasOwn(this.#snapshot, "set-cookie") ? [this.#snapshot["set-cookie"]] : [];
+          const value = this.#req.headers["set-cookie"];`);
       headers = replace(headers, "\t\tentries() {", `
         toObjectSnapshot() {
           if (this.#headers) return Object.fromEntries(this.#headers);

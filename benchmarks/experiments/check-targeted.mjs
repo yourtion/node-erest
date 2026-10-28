@@ -27,6 +27,7 @@ const rawCases = [
   [], ["X-Test", "a", "Host", "localhost", "content-type", "application/json"],
   ["x-a", "1", "X-A", "2"], ["cookie", "a=1", "cookie", "b=2"],
   ["set-cookie", "a=1", "set-cookie", "b=2"], ["__proto__", "own", "constructor", "value"],
+  ["set-cookie", ""],
   ["x-space", " \tvalue\t "], ["x-latin", "café"], ["x-wide", "😀"],
   [":method", "POST", "host", "localhost"], ["bad name", "a"], ["x-null", "\0"],
   ["2", "two", "10", "ten", "1", "one"], ["x-empty", ""],
@@ -54,6 +55,7 @@ for (const raw of rawCases) {
   record.headerCases++;
   if (!actual.ok) continue;
   assert.equal(Object.getPrototypeOf(actual.value), Object.prototype);
+  assert.deepEqual(next.headers.getSetCookie(), old.headers.getSetCookie());
   assert.deepEqual(Object.keys(actual.value), Object.keys(expected.value));
   assert.deepEqual(Object.getOwnPropertyDescriptors(actual.value), Object.getOwnPropertyDescriptors(expected.value));
   const second = next.headers.toObjectSnapshot();
