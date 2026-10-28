@@ -18,7 +18,7 @@ const method = isGet ? "get" : "post";
 const route = isGet ? "/ping" : "/users/:id";
 const compute = (req) => (isGet ? expectedGet : output(req));
 const work = (req) => (scenario === "io5" ? delay(5).then(() => compute(req)) : compute(req));
-const checked = (req) => (mode === "native-zod" ? validate(req) : req);
+const checked = (req) => (mode === "native-zod" && !isGet ? validate(req) : req);
 let app, router, server, adapter;
 const sendKoa = (ctx, result) => {
   // Match the adapter's serialization and Content-Type behavior.
