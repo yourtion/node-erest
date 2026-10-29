@@ -32,6 +32,6 @@
     "h3": "^2.0.8"
   },
   "devDependencies": {
-    "vitest": "^3.0.0"
+    "vitest": "^5.0.1"
   }
 }
