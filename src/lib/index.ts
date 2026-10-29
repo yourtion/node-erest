@@ -194,6 +194,11 @@ class ERest<T = DEFAULT_HANDLER, Raw = unknown, State extends Record<string, unk
     return this.hooks;
   }
 
+  /** @internal Response policy snapshot for adapters and native error boundaries. */
+  getResponseEnvelopers() {
+    return { success: this.apiInfo.successEnveloper, error: this.apiInfo.errorEnveloper };
+  }
+
   /** @internal hooks 是否非空（零开销裁剪判断） */
   hasHooks() {
     return hasHooks(this.hooks);

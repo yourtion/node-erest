@@ -79,3 +79,11 @@ api.genDocs('./docs', false); // 先创建输出目录
 读取响应会标记该路由已测试；`takeExample` 记录请求与响应，生成的 Markdown 会展示示例和测试标记。
 它们反映实际执行情况，不替代业务断言。可运行[示例工程的 docs:test](../examples/README.md#文档生成)
 查看生成结果。
+
+## 成功与失败断言（v3.5）
+
+`.success()` 要求 HTTP 状态小于 400，且 testUnwrapper 没有返回业务错误；
+`.error()` 要求 HTTP >=400 或 testUnwrapper 明确返回业务错误。
+成功响应调用 `.error()` 会 reject，网络失败和格式器抛错也会 reject，不能作为业务失败通过测试。
+`.raw()` 不进行成功/失败判断，适合直接断言 `status`、`body`、`headers`。
+只有符合成功/失败预期的响应才通过 `takeExample()` 保存为对应示例。

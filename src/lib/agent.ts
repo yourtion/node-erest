@@ -283,7 +283,7 @@ export class TestAgent {
   }
 
   /** 获取输出结果 */
-  private async output(raw = false, save = false): Promise<unknown> {
+  private async output(raw = false, save = false, expectError = false): Promise<unknown> {
     const api = this.options.erest.api.$apis.get(this.key);
     if (api) {
       api.options.tested = true;
@@ -295,7 +295,15 @@ export class TestAgent {
     if (raw) return res;
     const formatOutputReverse = this.options.erest.api.formatOutputReverse || defaultFormatOutput;
     const [err2, ret] = formatOutputReverse(res.body);
-    if (err2) throw err2;
+    const responseError = err2 || (res.status >= 400 ? new Error(`HTTP ${res.status}: ${res.text}`) : null);
+    if (expectError) {
+      if (!responseError) {
+        throw new Error(`${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`);
+      }
+      if (save) this.saveExample();
+      return responseError;
+    }
+    if (responseError) throw responseError;
     if (save) this.saveExample();
     return ret;
   }
@@ -316,13 +324,7 @@ export class TestAgent {
   /** 期望输出失败结果 */
   public async error(): Promise<unknown> {
     this.debug("error");
-    try {
-      const ret = await this.output();
-      throw new Error(`${this.key} 期望API输出失败结果，但实际输出成功结果：${inspect(ret)}`);
-    } catch (err) {
-      this.saveExample();
-      return err;
-    }
+    return this.output(false, true, true);
   }
 
   /** 获取原始输出 */

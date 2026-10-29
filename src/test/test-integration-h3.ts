@@ -121,7 +121,7 @@ describe("H3 v2 integration", () => {
     service.setResponseEnvelopers({
       success,
       error: (err) => ({
-        status: err instanceof HTTPError ? err.status : 422,
+        status: err instanceof HTTPError ? err.status : ((err as { statusCode?: number }).statusCode ?? 422),
         body: { message: (err as Error).message },
       }),
     });

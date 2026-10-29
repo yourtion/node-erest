@@ -1,17 +1,9 @@
 /** 同一套 schema 经真实 HTTP、生成的 Axios SDK、OpenAPI 3 和 Swagger 2 的合约回归。 */
-import { createServer, type Server } from "node:http";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import SwaggerParser from "@apidevtools/swagger-parser";
-import { Application, component, Router } from "@leizm/web";
 import type { AxiosInstance, AxiosResponse } from "axios";
 import Ajv from "ajv-draft-04";
-import express from "express";
-import Koa from "koa";
-import bodyParser from "koa-bodyparser";
-import KoaRouter from "koa-router";
-import { H3 } from "h3";
-import { toNodeHandler } from "h3/node";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { z } from "zod";
 import IAPIDoc from "../lib/extend/docs";
@@ -19,8 +11,8 @@ import apiDocs from "../lib/plugin/generate_markdown/apis";
 import { buildSwagger } from "../lib/plugin/generate_swagger";
 import type { OpenAPIOperation } from "../lib/plugin/generate_openapi";
 import type { Context } from "../lib/adapters/types";
-import { expressAdapter, koaAdapter, leizmwebAdapter, h3Adapter } from "./adapters";
 import lib from "./lib";
+import { frameworks } from "./frameworks.js";
 
 const methods = ["get", "post", "put", "patch", "delete"] as const;
 const inputSchema = z.object({
@@ -43,35 +35,7 @@ type GeneratedSDK = { instance: AxiosInstance } & Record<
   Record<`${(typeof methods)[number]}ContractOptionalInput`, (input?: object) => Promise<AxiosResponse>> &
   Record<`${(typeof methods)[number]}ContractBadResponse`, () => Promise<AxiosResponse>>;
 
-function bindServer(framework: string, service: ReturnType<typeof lib>): Server {
-  if (framework === "h3") {
-    const app = new H3();
-    service.bind({ adapter: h3Adapter, router: app });
-    return createServer(toNodeHandler(app));
-  }
-  if (framework === "express") {
-    const app = express();
-    app.use(express.json());
-    service.bind({ adapter: expressAdapter, router: app });
-    return createServer(app);
-  }
-  if (framework === "koa") {
-    const app = new Koa();
-    app.use(bodyParser());
-    const router = new KoaRouter();
-    service.bind({ adapter: koaAdapter, router });
-    app.use(router.routes());
-    return createServer(app.callback());
-  }
-  const app = new Application();
-  app.use("/", component.bodyParser.json());
-  const router = new Router();
-  service.bind({ adapter: leizmwebAdapter, router });
-  app.use("/", router);
-  return app.server;
-}
-
-describe.each(["express", "koa", "leizmweb", "h3"])("合约一致性：%s", (framework) => {
+describe.each(frameworks)("合约一致性：$name", (framework) => {
   let lastRequest: Context;
   const service = lib({
     info: { host: "http://127.0.0.1", basePath: "", title: "Contract" },
@@ -114,7 +78,7 @@ describe.each(["express", "koa", "leizmweb", "h3"])("合约一致性：%s", (fra
       .title(`${method} bad response`)
       .registerTyped({ response: z.object({ result: z.number() }) }, () => ({ result: "bad" }) as never);
   }
-  const server = bindServer(framework, service);
+  const server = framework.server(service, false);
   const docs = new IAPIDoc(service).buildDocData();
   const swagger = buildSwagger(docs);
   let sdk: GeneratedSDK;

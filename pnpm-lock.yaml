@@ -108,6 +108,9 @@ importers:
       '@erest/express':
         specifier: workspace:*
         version: link:../packages/erest-express
+      '@erest/h3':
+        specifier: workspace:*
+        version: link:../packages/erest-h3
       '@erest/koa':
         specifier: workspace:*
         version: link:../packages/erest-koa
@@ -123,6 +126,9 @@ importers:
       express:
         specifier: ^5.1.0
         version: 5.2.1(supports-color@7.2.0)
+      h3:
+        specifier: ^2.0.8
+        version: 2.0.8
       koa:
         specifier: ^3.0.0
         version: 3.0.0(supports-color@7.2.0)

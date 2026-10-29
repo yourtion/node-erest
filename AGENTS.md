@@ -16,6 +16,8 @@ src/lib/
 ├── utils.ts          # 通用工具（路径/schemaKey 等）
 ├── adapters/         # 框架适配器（v3.0：仅保留接口与工具，实现已拆到子包）
 │   ├── types.ts      # FrameworkAdapter/Context/Reply/Middleware 接口
+│   ├── runtime.ts    # 公共 checker/dispatch、错误边界与隐式 OPTIONS
+│   ├── errors.ts     # 解析错误归一化、onError 去重
 │   ├── utils.ts      # compose（洋葱式）+ buildHandlerChain
 │   └── index.ts      # 仅 re-export types + compose/buildHandlerChain
 ├── extend/
@@ -45,9 +47,9 @@ packages/             # v3.0：框架适配器实现独立子包（npm scope @er
 | 加新框架适配 | 新建子包 `packages/erest-<fw>/src/index.ts`，实现 `FrameworkAdapter` 接口（见 `adapters/types.ts`） |
 | 改某框架适配实现 | `packages/erest-{express,koa,leizmweb,h3}/src/index.ts`（`makeParamsChecker`/`bindRoute`/`createGroupRouter`/`attachGroupRouter`） |
 | 改文档生成 | `plugin/<format>/` + `plugin/zod-meta.ts`（统一 Zod 提取） |
-| 加生命周期 hook | `hooks.ts` 定义 + 各子包 `src/index.ts` 的 dispatch/checker 注入 |
+| 加生命周期 hook | `hooks.ts` 定义 + `adapters/runtime.ts` 的公共 dispatch/checker |
 | 改类型推导 | `api.ts` 的 `registerTyped` 泛型层 |
-| 改错误处理 | `error.ts` + 各子包 `src/index.ts` 的 catch |
+| 改错误处理 | `error.ts` + `adapters/errors.ts` / `runtime.ts` + 子包 `createErrorHandler` |
 | 改路由绑定 | `index.ts` 的 `bind()` + 各子包 `src/index.ts` 的 `bindRoute` |
 | 加新的 schema 类型别名 | `params.ts` 的 `zodTypeMap` |
 | 改 Zod 内部结构读取 | `plugin/zod-meta.ts`（`_def.type`/`_def.typeName` 双轨兼容，禁止其他文件读 `_def`） |

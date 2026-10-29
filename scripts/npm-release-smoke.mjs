@@ -29,6 +29,7 @@ try {
     for (const name of ['@erest/express', '@erest/koa', '@erest/leizmweb', '@erest/h3']) {
       const adapter = await import(name);
       assert.equal(typeof adapter.createERest, 'function', name);
+      assert.equal(typeof adapter.createErrorHandler, 'function', name);
     }
     const { H3 } = await import('h3');
     const { createERest, h3Adapter } = await import('@erest/h3');

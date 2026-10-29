@@ -1,144 +1,82 @@
-/**
- * @file Express Framework Adapter
- * @author Yourtion Guo <yourtion@gmail.com>
- */
-
-import type { API } from "erest";
-import type { ERest } from "erest";
-import { ERest as ERestCtor, compose, wrapWithEnvelope } from "erest";
-import type { Envelopers, LifecycleHooks } from "erest";
-import type { Context, FrameworkAdapter, Middleware, Reply } from "erest";
-import type { Request, Response } from "express";
-
-/**
- * Express framework adapter
- *
- * 标准化改造后：bindRoute 注册一个 Express 原生中间件，内部构造标准 Context
- * 并用 compose 串起标准化 handler 链。框架只看到这一个中间件，避开 Express
- * 对 handler 数组的签名假设。
- */
-/** Express 原生对象类型（reply.raw 在 Express 下为此类型） */
+/** Express adapter: native routing and I/O, shared erest execution semantics. */
+import {
+  ERest as ERestCtor,
+  createParamsChecker,
+  createDispatcher,
+  createErrorResponder,
+  registerOptionsRoute,
+} from "erest";
+import type { API, ERest, Envelopers, LifecycleHooks, Context, FrameworkAdapter, Middleware, Reply } from "erest";
+import type { Request, Response, ErrorRequestHandler } from "express";
 export type ExpressRaw = { req: Request; res: Response };
-
 export class ExpressAdapter<T = unknown> implements FrameworkAdapter<T, ExpressRaw> {
   readonly name = "express" as const;
-
-  /**
-   * 构造标准 Context 的参数检查器（标准化 Middleware）。
-   * 从 ctx 读取原始 params/query/body/headers，校验后填入 ctx.$validated。
-   */
   makeParamsChecker(erest: ERest<T>, api: API<T>): T {
-    const checker: Middleware = (ctx, next) => {
-      const compiled = api.options.compiled;
-      if (!compiled) return next();
-      const layered = compiled.validate({
-        params: ctx.params,
-        query: ctx.query as Record<string, unknown> | undefined,
-        body: ctx.body as Record<string, unknown> | undefined,
-        headers: ctx.headers as Record<string, unknown> | undefined,
-      });
-      // requiredOneOf 检查（多选一必填，Zod 之上的便利方法）
-      const requiredOneOf = api.options.requiredOneOf;
-      if (requiredOneOf && requiredOneOf.length > 0) {
-        const flat = { ...layered.params, ...layered.query, ...layered.body, ...layered.headers };
-        for (const names of requiredOneOf) {
-          if (!names.some((n) => typeof flat[n] !== "undefined")) {
-            throw erest.getError().missingParameter(`one of ${names.join(", ")} is required`);
-          }
-        }
-      }
-      ctx.$validated = layered;
-      ctx.$params = { ...layered.params, ...layered.query, ...layered.body, ...layered.headers };
-      ctx.$pathParams = layered.params;
-      ctx.$query = layered.query;
-      ctx.$body = layered.body;
-      ctx.$headers = layered.headers;
-      // Stage 3：onValidate hook（校验后触发，观察者）
-      const onValidate = erest.getHooks()?.onValidate;
-      if (onValidate) {
-        try {
-          onValidate(ctx, layered);
-        } catch {
-          /* ignore */
-        }
-      }
-      return next();
-    };
-    return checker as unknown as T;
+    return createParamsChecker(erest, api);
   }
-
   bindRoute(router: unknown, api: API<T>, handlers: T[], hooks?: LifecycleHooks, envelopers?: Envelopers): void {
-    const routerTyped = router as Record<string, (...args: unknown[]) => unknown>;
-    const method = api.options.method as string;
-    // 包装为单个 Express 中间件：构造标准 Context + compose 标准化 handler 链
-    const rawDispatch = compose(handlers as unknown as Middleware[]);
-    // envelope 接入：注册了 enveloper 时包装 dispatch（成功/错误分支统一信封）
-    const dispatch = envelopers ? wrapWithEnvelope(rawDispatch, envelopers) : rawDispatch;
-    // Stage 3：零开销裁剪——无 hooks 时装配不含 hook 调用的 dispatch
-    const hasHook = Boolean(hooks && (hooks.onRequest || hooks.onValidate || hooks.onError || hooks.onResponse));
-    const nativeMiddleware = (req: Record<string, unknown>, res: unknown, next: (err?: unknown) => void) => {
-      const reply: Reply<ExpressRaw> = createExpressReply(req, res);
-      const ctx: Context = {
-        method: String(req.method ?? "").toUpperCase(),
-        path: String(req.path ?? req.url ?? ""),
-        headers: (req.headers ?? {}) as Record<string, string>,
-        params: (req.params ?? {}) as Record<string, unknown>,
-        query: (req.query ?? {}) as Record<string, unknown>,
-        // Express 5 兼容：5 对未匹配的 content-type（如 multipart）不再初始化 req.body={},
-        // 而是保持 undefined。此处归一化为 {} 以恢复 Express 4 行为，确保定义了
-        // body schema 的接口在 body 缺失时仍会触发校验（而非被 params.ts 的
-        // `body !== undefined` 判断静默跳过）。
-        body: (req.body ?? {}) as Record<string, unknown> | undefined,
-        state: {},
-        reply,
-      };
-      req.$ctx = ctx;
-      if (hasHook && hooks) {
-        try {
-          hooks.onRequest?.(ctx);
-        } catch {
-          /* hook 是观察者，异常不影响主流程 */
-        }
-        dispatch(ctx)
-          .then(() => {
-            try {
-              hooks.onResponse?.(ctx);
-            } catch {
-              /* ignore */
-            }
-            next();
-          })
-          .catch((err) => {
-            try {
-              hooks.onError?.(ctx, err);
-            } catch {
-              /* ignore */
-            }
-            next(err);
-          });
-      } else {
-        dispatch(ctx)
-          .then(() => next())
-          .catch((err) => next(err));
-      }
+    const dispatch = createDispatcher(handlers as unknown as Middleware[], hooks, envelopers);
+    const nativeMiddleware = (req: Request, res: Response, next: (error?: unknown) => void) => {
+      const ctx = createExpressContext(req, res);
+      (req as Request & { $ctx?: Context }).$ctx = ctx;
+      dispatch(ctx)
+        .then(() => {
+          if (!(ctx.reply as { __sent?: boolean }).__sent) next();
+        })
+        .catch(next);
     };
-    routerTyped[method].bind(router)(api.options.path, nativeMiddleware);
+    const routes = router as Record<string, (path: string, handler: typeof nativeMiddleware) => void>;
+    routes[String(api.options.method)](String(api.options.path), nativeMiddleware);
+    registerOptionsRoute(router as object, String(api.options.path), String(api.options.method), (allow) => {
+      routes.options(String(api.options.path), (_req, res) => {
+        res.setHeader("Allow", allow());
+        res.status(204).end();
+      });
+    });
   }
-
   createGroupRouter(RouterCtor: unknown, _prefix: string): unknown {
     return new (RouterCtor as new () => unknown)();
   }
-
   attachGroupRouter(app: unknown, groupRouter: unknown, prefix: string): void {
-    const appTyped = app as Record<string, (...args: unknown[]) => unknown>;
-    const normalizedPrefix = prefix[0] === "/" ? prefix : `/${prefix}`;
-    appTyped.use(normalizedPrefix, groupRouter);
+    (app as { use: (prefix: string, router: unknown) => void }).use(
+      prefix.startsWith("/") ? prefix : `/${prefix}`,
+      groupRouter
+    );
   }
 }
+function createExpressContext(req: Request, res: Response): Context {
+  return {
+    method: req.method.toUpperCase(),
+    path: req.path,
+    headers: req.headers as Record<string, string>,
+    params: req.params,
+    query: req.query,
+    body: req.body ?? {},
+    state: {},
+    reply: createExpressReply(req, res),
+  };
+}
+/** Install after routes to include native parser errors in erest's error policy. */
+export function createErrorHandler<T>(service: ERest<T>): ErrorRequestHandler {
+  const respond = createErrorResponder(service);
+  return (error, req, res, next) => {
+    if (res.headersSent) return next(error);
+    const existing = (req as Request & { $ctx?: Context }).$ctx;
+    try {
+      respond(existing ?? createExpressContext(req, res), error, Boolean(existing));
+    } catch (err) {
+      next(err);
+    }
+  };
+}
 
-/** 构造 Express 的 Reply 封装（含 raw 逃生舱：原生 { req, res }） */
 function createExpressReply(req: unknown, res: unknown): Reply<ExpressRaw> & { __sent: boolean } {
-  const expressRes = res as { status?: (c: number) => unknown; json?: (b: unknown) => void; end?: (b: string) => void };
+  const expressRes = res as {
+    status?: (c: number) => unknown;
+    json?: (b: unknown) => void;
+    end?: (b: string) => void;
+    setHeader?: (name: string, value: string) => void;
+  };
   const reply: Reply<ExpressRaw> & { __sent: boolean } = {
     __sent: false,
     status(code: number) {
@@ -146,11 +84,12 @@ function createExpressReply(req: unknown, res: unknown): Reply<ExpressRaw> & { _
       return reply;
     },
     json(body: unknown) {
-      reply.__sent = true;
       expressRes.json?.(body);
+      reply.__sent = true;
     },
     send(body: string) {
       reply.__sent = true;
+      expressRes.setHeader?.("Content-Type", "text/plain; charset=utf-8");
       expressRes.end?.(body);
     },
     markSent() {

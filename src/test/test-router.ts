@@ -502,7 +502,7 @@ describe("Router - Error Handling and Edge Cases", () => {
       const endTime = Date.now();
 
       // Should bind all APIs
-      expect(router.stack.length).toBe(apiCount);
+      expect(router.stack.filter((layer: any) => layer.route?.methods.get).length).toBe(apiCount);
 
       // Should complete in reasonable time (less than 1 second)
       expect(endTime - startTime).toBeLessThan(1000);
@@ -527,7 +527,7 @@ describe("Router - Unified bind() Method", () => {
 
       apiService.bind({ adapter: expressAdapter, router });
 
-      expect(router.stack.length).toBe(1);
+      expect(router.stack.length).toBe(2); // business route + implicit OPTIONS
       expect(router.stack[0].route?.path).toBe("/unified-test");
     });
 
@@ -594,7 +594,7 @@ describe("Router - Unified bind() Method", () => {
       apiService.bind({ adapter: koaAdapter, router });
 
       // koa-router keeps registered layers in router.stack
-      expect(router.stack.length).toBe(1);
+      expect(router.stack.length).toBe(2); // business route + implicit OPTIONS
       expect(router.stack[0].path).toBe("/koa-test");
       expect(router.stack[0].methods).toContain("GET");
     });
@@ -615,7 +615,7 @@ describe("Router - Unified bind() Method", () => {
       apiService.bind({ adapter: koaAdapter, router });
 
       // 标准化后 checker 在 compose 链内部，验证路由已注册（含 checker 的链被包装为一个中间件）
-      expect(router.stack.length).toBe(1);
+      expect(router.stack.length).toBe(2); // business route + implicit OPTIONS
       expect(router.stack[0].path).toBe("/koa-params");
     });
   });

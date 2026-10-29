@@ -1,6 +1,6 @@
 {
   "name": "erest",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "Framework-agnostic REST API framework with Zod validation, auto docs & test scaffolding. Express/Koa/@leizm/web/H3 adapters as separate packages.",
   "type": "module",
   "main": "dist/lib/index.js",
@@ -29,15 +29,16 @@
     "test:examples": "pnpm --filter erest-example test",
     "bench": "export ISLIB=1 && vitest bench --config vitest.bench.config.ts",
     "tag": "git tag v`node -p 'require(\"./package\").version'`",
-    "format": "oxfmt --write src packages/erest-h3/src examples/src examples/test",
-    "check": "oxlint src packages/erest-h3/src examples/src examples/test && oxfmt --check src packages/erest-h3/src examples/src examples/test",
+    "format": "oxfmt --write src packages/erest-express/src packages/erest-koa/src packages/erest-leizmweb/src packages/erest-h3/src examples/src examples/test",
+    "check": "oxlint src packages/erest-express/src packages/erest-koa/src packages/erest-leizmweb/src packages/erest-h3/src examples/src examples/test && oxfmt --check src packages/erest-express/src packages/erest-koa/src packages/erest-leizmweb/src packages/erest-h3/src examples/src examples/test",
     "clean": "rm -rf dist",
     "build": "npm run clean && tsc",
     "build:packages": "pnpm --filter @erest/express --filter @erest/koa --filter @erest/leizmweb --filter @erest/h3 --filter @erest/gen build",
     "publish:all": "pnpm publish -r --no-git-checks --access public",
     "prepublishOnly": "npm run format && npm run test",
     "prepare": "husky",
-    "test:h3-types": "tsc -p packages/erest-h3/tsconfig.test.json"
+    "test:h3-types": "tsc -p packages/erest-h3/tsconfig.test.json",
+    "test:adapters": "vitest run src/test/test-adapter-contract.ts src/test/test-portable-business.ts"
   },
   "repository": {
     "type": "git",
