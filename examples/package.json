@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "erest 端到端示例：迷你博客业务域，一份 API 定义，三个框架入口。演示 registerTyped/reply、forceGroup、hooks、自定义错误/类型、define/mock、文档生成、测试集成。",
+  "description": "erest 端到端示例：迷你博客业务域，一份 API 定义，四个框架入口。演示 registerTyped/reply、forceGroup、hooks、自定义错误/类型、define/mock、文档生成、测试集成。",
   "scripts": {
     "start:leizmweb": "node src/entries/leizmweb.js",
     "start:express": "node src/entries/express.js",
@@ -13,7 +13,9 @@
     "dev:koa": "node --watch src/entries/koa.js",
     "test": "vitest run",
     "docs": "node docs/generate.js",
-    "docs:test": "node docs/generate-from-test.js"
+    "docs:test": "node docs/generate-from-test.js",
+    "start:h3": "node src/entries/h3.js",
+    "dev:h3": "node --watch src/entries/h3.js"
   },
   "dependencies": {
     "@leizm/web": "^2.7.0",
@@ -25,7 +27,9 @@
     "koa": "^3.0.0",
     "koa-bodyparser": "^4.4.1",
     "koa-router": "^13.1.0",
-    "zod": "^4.0.0"
+    "zod": "^4.0.0",
+    "@erest/h3": "workspace:*",
+    "h3": "^2.0.8"
   },
   "devDependencies": {
     "vitest": "^3.0.0"

@@ -8,7 +8,7 @@
  */
 import { Application, Router, component } from "@leizm/web";
 import ERest from "erest";
-import { LeizmWebAdapter } from "@erest/leizmweb";
+import { LeizmWebAdapter, createErrorHandler } from "@erest/leizmweb";
 import { API_INFO, GROUPS, registerApi } from "../api.js";
 import { createStore } from "../store.js";
 import { authBefore, adminBefore, logMiddleware, timingBefore } from "../hooks.js";
@@ -32,11 +32,8 @@ registerApi(api, store, {
 // forceGroup 绑定
 api.bind({ adapter: new LeizmWebAdapter(), app, router: Router });
 
-// 错误处理中间件（双参数 = 错误处理中间件）；ERestError 用 statusCode
-app.use("/", (ctx, err) => {
-  const status = err?.statusCode || err?.status || 500;
-  ctx.response.status(status).json({ error: err?.message || "internal error", code: err?.code });
-});
+// 双参数原生错误中间件，接入统一错误策略。
+app.use("/", createErrorHandler(api));
 
 app.server.listen(3100, () => {
   console.log("erest @leizm/web 入口：http://localhost:3100");

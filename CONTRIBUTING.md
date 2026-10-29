@@ -22,6 +22,7 @@ pnpm run build:packages
 | `pnpm run check` | lint 和格式检查 |
 | `pnpm run format` | 格式化源码与示例 |
 | `pnpm run test:lib` | 源码测试，自动设置 ISLIB，无需先构建 |
+| `pnpm run test:adapters` | 构建后验证四框架 HTTP 行为与同一博客业务；源码模式加 `ISLIB=1` |
 | `pnpm run test:contract` | OpenAPI、SDK、运行时的合约专项 |
 | `pnpm run test:cov` | 源码测试与覆盖率门槛 |
 | `pnpm test` | 构建核心/子包，验证发布产物并运行示例测试 |
@@ -91,6 +92,18 @@ BENCH_ROUNDS=1 BENCH_MS=100 BENCH_WARMUP_MS=100 \
 
 主要用例位于 [test-contract-consistency.ts](src/test/test-contract-consistency.ts) 和
 [test-openapi.ts](src/test/test-openapi.ts)。这些用例自动纳入全量测试。
+
+## 适配器公共契约
+
+构建核心和全部适配器后运行 `pnpm run test:adapters`；源码模式用 `ISLIB=1 pnpm run test:adapters`。
+CI 在 Node 20/22/24 下显式验证构建产物，覆盖率阶段也执行相同源码测试。
+`src/test/frameworks.ts` 是宿主装配的唯一注册表，新适配器必须加入此表并通过全部公共用例。
+
+`test-adapter-contract.ts` 检查重复 query、路径解码/路由匹配、文本/空响应、HEAD/OPTIONS、
+解析失败、校验/业务错误、观察钩子和中间件短路；`test-portable-business.ts` 原样导入
+examples 的 schema、handler、store 和鉴权逻辑，对每个框架运行相同的 13 个业务场景。
+所有请求有超时，服务在结束后关闭，错误用例直接断言 HTTP 状态与错误码。
+不使用每个框架一份预期快照来掩盖差异。能力边界见[框架接入](guides/adapters.md#跨框架-http-契约v35)。
 
 ## 变异测试
 

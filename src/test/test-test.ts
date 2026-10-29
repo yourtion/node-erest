@@ -464,6 +464,7 @@ describe("TestAgent 行为（fetch 驱动）", () => {
         } else if (req.url!.includes("set-cookie")) {
           res.setHeader("Set-Cookie", "sid=abc; Path=/");
         }
+        if (req.url === "/echo-err") res.statusCode = 422;
         res.setHeader("content-type", "application/json");
         res.end(JSON.stringify({ method: req.method, url: req.url, body }));
       });
@@ -708,17 +709,43 @@ describe("TestAgent 行为（fetch 驱动）", () => {
     expect((ex[0].output as Record<string, unknown>).url).toBe("/echo-t?a=1");
   });
 
-  test("error 对成功响应应返回含提示的 Error 并保存 example", async () => {
+  test("error 对成功响应必须 reject；仅实际错误保存 example", async () => {
     const o1 = makeAgent(erestA, "get", "/echo", "GET_/echo13");
-    const err1 = (await o1.error()) as Error;
-    expect(err1).toBeInstanceOf(Error);
-    expect(err1.message).toContain("期望API输出失败结果，但实际输出成功结果");
+    await expect(o1.error()).rejects.toThrow("期望API输出失败结果，但实际输出成功结果");
 
     const o2 = makeAgent(erestA, "get", "/echo-err", "GET_/echo-err");
     await o2.takeExample("ExError").error();
     const ex2 = erestA.api.$apis.get("GET_/echo-err")!.options.examples;
     expect(ex2.length).toBe(1);
     expect(ex2[0].name).toBe("ExError");
+  });
+
+  test("error 不得将连接失败或格式器异常当成业务失败", async () => {
+    const transport = makeAgent(erestA, "get", "/echo", "GET_/transport");
+    transport.bindRequest(
+      async () => {
+        throw new Error("connection unavailable");
+      },
+      async () => {}
+    );
+    await expect(transport.error()).rejects.toThrow("connection unavailable");
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new TypeError("fetch failed"));
+    try {
+      await expect(makeAgent(erestA, "get", "/echo", "GET_/network").error()).rejects.toThrow("fetch failed");
+    } finally {
+      fetchMock.mockRestore();
+    }
+    const service = lib();
+    service.api.formatOutputReverse = () => {
+      throw new Error("broken formatter");
+    };
+    await expect(makeAgent(service, "get", "/echo", "GET_/formatter").error()).rejects.toThrow("broken formatter");
+  });
+
+  test("HTTP 错误即使没有 testUnwrapper 也不能通过 success", async () => {
+    await expect(makeAgent(erestA, "get", "/echo-err", "GET_/echo-err").success()).rejects.toThrow("HTTP 422");
+    await expect(makeAgent(erestA, "get", "/echo-err", "GET_/echo-err").error()).resolves.toBeInstanceOf(Error);
+    expect((await makeAgent(erestA, "get", "/echo-err", "GET_/echo-err").raw()).status).toBe(422);
   });
 
   test("error 应透传 formatOutputReverse 返回的错误", async () => {

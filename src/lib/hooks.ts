@@ -17,7 +17,7 @@ export interface LifecycleHooks {
   onValidate?: (ctx: Context, result: LayeredParams | Error) => void;
   /** 链中抛错时：结构化错误日志（保留 ERestError code/details） */
   onError?: (ctx: Context, error: ERestError | Error) => void;
-  /** 链正常结束、响应已写入：结束计时、状态码、慢请求标记 */
+  /** 处理完成（含已格式化的错误响应）；不是 socket flush/客户端接收完成通知。未处理的异常不触发。 */
   onResponse?: (ctx: Context) => void;
 }
 

@@ -49,6 +49,9 @@ jobs:
     - name: Check H3 adapter and handler types
       run: pnpm run test:h3-types
 
+    - name: Verify adapter contracts and unchanged business against built packages
+      run: pnpm run test:adapters
+
     - name: Run tests with coverage
       run: pnpm run test:cov
 

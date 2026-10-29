@@ -10,6 +10,13 @@
 
 export * from "./types.js";
 export {
+  createParamsChecker,
+  createDispatcher,
+  createErrorResponder,
+  decodePathParams,
+  registerOptionsRoute,
+} from "./runtime.js";
+export {
   type BuildHandlerChainOptions,
   buildHandlerChain,
   compose,

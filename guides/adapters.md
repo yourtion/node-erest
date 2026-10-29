@@ -12,22 +12,18 @@
 | `@erest/h3` | `createERest` / `H3Adapter`（或 `h3Adapter`） | H3 ^2.0.8 |
 
 每个工厂创建的实例都使用相同的 [API 定义方式](api.md)，并推导该框架的 `ctx.reply.raw` 类型。
-以下绑定片段假定 `api` 已创建并注册路由，通用错误格式器从 `erest` 导入。
+以下绑定片段假定 `api` 已创建并注册路由，原生错误边界 `createErrorHandler` 从对应适配器包导入。配置错误信封后再创建错误边界。
 
 ## Express
 
 ```javascript
 import express from 'express';
-import { ExpressAdapter } from '@erest/express';
-import { defaultErrorFormatter } from 'erest';
+import { ExpressAdapter, createErrorHandler } from '@erest/express';
 
 const app = express();
 app.use(express.json());
 api.bind({ adapter: new ExpressAdapter(), router: app });
-app.use((err, _req, res, _next) => {
-  const { status, body } = defaultErrorFormatter(err);
-  res.status(status).json(body);
-});
+app.use(createErrorHandler(api));
 app.listen(3000);
 ```
 
@@ -40,18 +36,10 @@ app.listen(3000);
 import Koa from 'koa';
 import Router from '@koa/router';
 import bodyParser from 'koa-bodyparser';
-import { KoaAdapter } from '@erest/koa';
-import { defaultErrorFormatter } from 'erest';
+import { KoaAdapter, createErrorHandler } from '@erest/koa';
 
 const app = new Koa();
-app.use(async (ctx, next) => {
-  try { await next(); }
-  catch (err) {
-    const { status, body } = defaultErrorFormatter(err);
-    ctx.status = status;
-    ctx.body = body;
-  }
-});
+app.use(createErrorHandler(api)); // 必须在 bodyParser 和 routes 前
 app.use(bodyParser());
 const router = new Router();
 api.bind({ adapter: new KoaAdapter(), router });
@@ -65,19 +53,14 @@ app.listen(3000);
 
 ```javascript
 import { Application, Router, component } from '@leizm/web';
-import { LeizmWebAdapter } from '@erest/leizmweb';
-import { defaultErrorFormatter } from 'erest';
+import { LeizmWebAdapter, createErrorHandler } from '@erest/leizmweb';
 
 const app = new Application();
 app.use('/', component.bodyParser.json());
 const router = new Router();
 api.bind({ adapter: new LeizmWebAdapter(), router });
 app.use('/', router);
-app.use('/', (ctx, err) => {
-  if (!err) return ctx.next();
-  const { status, body } = defaultErrorFormatter(err);
-  ctx.response.status(status).json(body);
-});
+app.use('/', createErrorHandler(api));
 app.server.listen(3000);
 ```
 
@@ -91,18 +74,11 @@ app.server.listen(3000);
 import { createServer } from 'node:http';
 import { H3 } from 'h3';
 import { toNodeHandler } from 'h3/node';
-import { z, defaultErrorFormatter } from 'erest';
-import { createERest, h3Adapter } from '@erest/h3';
+import { z } from 'erest';
+import { createERest, h3Adapter, createErrorHandler } from '@erest/h3';
 
-const app = new H3({
-  onError(error, event) {
-    // H3 将原始 erest 错误保存在 cause 中。
-    const { status, body } = defaultErrorFormatter(error.cause instanceof Error ? error.cause : error);
-    event.res.status = status;
-    return body;
-  },
-});
 const api = createERest({ groups: { users: '用户' } });
+const app = new H3({ onError: createErrorHandler(api) });
 api.api.post('/users').group('users').registerTyped(
   { body: z.object({ name: z.string().min(1) }) },
   (req, ctx) => ctx.reply.status(201).json({ name: req.body.name }),
@@ -154,6 +130,40 @@ api.bind({ adapter: new ExpressAdapter(), app, router: express.Router });
 Koa 对应 `router: Router`，LeizmWeb 对应其 `Router` 构造函数。H3 使用
 `api.bind({ adapter: h3Adapter, app, router: H3 })`，通过 `app.mount()` 挂载各分组。
 非 forceGroup 下也可绑定到独立 H3 实例，再用 `app.mount('/api', router)` 挂载前缀。
+
+## 跨框架 HTTP 契约（v3.5）
+
+所有内置适配器共享校验与 hook 执行逻辑。业务模块只依赖 `erest`，框架、解析器和
+`createErrorHandler` 放在启动装配层；示例工程提供四个可替换入口。
+
+- `reply.send()` 始终发送 `text/plain; charset=utf-8`，不会把类似 HTML 的字符串识别为 HTML。
+- `json(null)` 为 JSON `null`；`json(undefined)`/`send('')` 为空响应，默认 200；
+  `status(204).send('')` 为 204 无响应体。
+- 写入响应或 `markSent()` 后停止向宿主的后续路由传递，避免响应被覆盖；erest 内部仍保留洋葱回程。
+- GET 路由支持 HEAD；已注册路径的 OPTIONS 统一返回 204 和汇总的 `Allow`，不执行业务中间件或 hooks。
+  这不是 CORS 配置；CORS 仍由宿主负责。
+- 重复 query 键按数组输入；空 query 值保留空字符串。使用默认的简单 query parser；
+  自定义嵌套对象 parser 的行为由应用负责。
+- 命名路径参数在匹配后按 `decodeURIComponent` 解码一次，包含 UTF-8、`%2F` 和 `%25`。
+  静态路由在冲突的参数路由之前注册。大小写、尾斜杠、正则/通配符语法和宿主 404/405 内容
+  不属于统一契约；有这些需求时必须配置宿主并补对应测试。
+
+`createErrorHandler(api)` 把宿主 body parser 错误接入 erest 的 hooks 与错误信封。
+Express/LeizmWeb 放在路由后，Koa 放在 body parser/路由前，H3 放在应用 `onError`。
+可以继续使用自己的原生错误处理中间件，但此时路由外的错误观察和响应格式由应用负责。
+原生解析失败时 `onRequest` 在错误边界创建上下文时触发；不表示解析之前已触发，也不调用 `onValidate`。
+非法 JSON 统一为 `ERestError`（`code: INVALID_BODY`、`statusCode: 400`、`message: Invalid JSON body`），
+原始异常保留在 `cause`。其他业务错误保留对象身份。
+
+hook 顺序：成功为 `onRequest → onValidate → onResponse`；校验失败为
+`onRequest → onValidate(Error) → onError → onResponse`；解析失败为
+`onRequest → onError → onResponse`。`onError` 在错误信封之前触发，错误传递到宿主时不会重复观察。
+无错误信封且未接入错误边界时，未处理的错误不会触发 `onResponse`。
+`onResponse` 表示处理完成（包含已格式化错误），不表示 socket 已写完或客户端已收到。
+所有 hooks 是同步观察者，其异常不改变请求结果。
+
+构建后执行 `pnpm run test:adapters`，会针对全部内置适配器运行同一 HTTP 契约和博客业务测试。
+新适配器必须加入 `src/test/frameworks.ts`，不得复制业务 handler 或按框架放宽断言。
 
 ## 原生上下文
 

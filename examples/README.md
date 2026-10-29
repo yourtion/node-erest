@@ -2,7 +2,7 @@
 
 [返回首页](../README.md) · [框架接入](../guides/adapters.md) · [API 测试](../guides/testing.md)
 
-一份迷你博客 API 定义，分别接入 Express、Koa、LeizmWeb。数据存储在内存中，重启后重置。
+一份迷你博客 API 定义，分别接入 Express、Koa、LeizmWeb、H3。数据存储在内存中，重启后重置。
 
 ## 运行
 
@@ -13,7 +13,7 @@ pnpm install --frozen-lockfile
 pnpm run build
 pnpm run build:packages
 pnpm --filter erest-example start:express
-# 也可使用 start:koa 或 start:leizmweb
+# 也可使用 start:koa、start:leizmweb 或 start:h3
 ```
 
 | 组 | 完整路径 | 鉴权 |
@@ -40,13 +40,13 @@ curl -H 'X-Admin-Token: admin-token' http://localhost:3100/admin/stats
 | 文件 | 内容 |
 | --- | --- |
 | [src/api.js](src/api.js) | 分组、registerTyped、分层参数、response、requiredOneOf 与 define |
-| [src/entries/](src/entries/) | 三个框架的解析器、适配器绑定与错误中间件 |
+| [src/entries/](src/entries/) | 四个框架的解析器、适配器绑定与错误中间件 |
 | [src/hooks.js](src/hooks.js) | before 鉴权、middleware 日志、全局计时 |
 | [src/types.js](src/types.js) / [src/errors.js](src/errors.js) | Zod 类型/schema 与业务错误注册 |
 | [src/store.js](src/store.js) | 内存数据和 token |
 | [test/api.test.js](test/api.test.js) | 使用 TestAgent 验证业务 API |
 
-handler 和 before/middleware 使用 erest 标准上下文，在三个入口间共享。
+handler 和 before/middleware 使用 erest 标准上下文，在四个入口间共享。
 `registerTyped` 使用 `(req, ctx)`，`register` / `define` 使用 `(ctx, next)`，均通过 `ctx.reply` 响应。
 TypeScript 与 CommonJS 集成见[框架与 ESM](../guides/adapters.md#typescript-与-esm)。
 
@@ -58,7 +58,7 @@ TypeScript 与 CommonJS 集成见[框架与 ESM](../guides/adapters.md#typescrip
 pnpm --filter erest-example test
 ```
 
-测试使用 Express，覆盖公开接口、鉴权、校验、define 和真实示例记录。
+此测试演示 Express 的 TestAgent 用法。根目录 `pnpm run test:adapters` 还会将同一业务代码绑定到四个框架，验证公开接口、鉴权、校验、CRUD 和分组路径；错误直接断言 HTTP 状态和错误码。
 
 ## 文档生成
 

@@ -7,6 +7,7 @@
 export type ERestErrorCode =
   | "MISSING_PARAM"
   | "INVALID_PARAM"
+  | "INVALID_BODY"
   | "INTERNAL_ERROR"
   | "NOT_FOUND"
   | "PERMISSION_DENIED"

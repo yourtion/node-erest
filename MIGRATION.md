@@ -5,6 +5,26 @@
 按版本倒序列出升级动作与可见行为变化。使用说明见 `guides/`，开发检查和发布操作分别见
 [贡献指南](CONTRIBUTING.md)与[发布流程](RELEASING.md)。
 
+## v3.5.0 — 四框架 HTTP 契约与错误边界
+
+六个公开包统一升级为 3.5.0。新增各适配器的 `createErrorHandler(api)`，安装位置见
+[框架接入](guides/adapters.md#跨框架-http-契约v35)。它把原生 body parser 错误接入 hooks 和错误信封；
+配置 `setResponseEnvelopers` 后再创建错误边界。
+
+- 修复 TestAgent `.error()` 的假阳性：成功响应必须 reject；网络/准备阶段/格式器抛出的错误也 reject。
+  `.success()` 拒绝 HTTP >=400，即使未配置 testUnwrapper；HTTP 200 的业务错误仍通过 testUnwrapper 返回。
+  以前依赖 `.error()` 返回“预期失败却成功”的 Error 的测试，请改用 `await expect(...).rejects`。
+- `onError` 在错误信封前观察原始业务异常且不重复；`onValidate` 也观察校验失败。
+  `onResponse` 表示处理完成，含已格式化错误，不代表网络发送完成。
+- 非法 JSON 在统一错误管线中变为 `INVALID_BODY`/400，原异常在 `cause`；
+  原来针对 H3 HTTPError 的格式器应优先读取 `statusCode`，不再只用 `instanceof HTTPError`。
+- Express/Koa `send()` 固定为纯文本；Koa `json(undefined)` 与其他适配器一致为空 200。
+  响应已写入时不再调用宿主 next，避免重叠路由覆盖；需要后处理的逻辑放在 erest 洋葱中间件中。
+- LeizmWeb 补齐 GET 的 HEAD；四框架已注册路径 OPTIONS 统一为 204 + Allow。
+  自定义 OPTIONS/CORS 中间件应在 erest 路由前处理请求。
+- LeizmWeb/H3 命名路径参数解码一次，与 Express/Koa 对齐，包含编码斜杠 `%2F`。
+- 新增公共适配器契约和同一博客业务的四框架 HTTP 测试，CI 同时验证源码与构建产物。
+
 ## v3.4.0 — H3 v2 适配器
 
 - 新增独立包 `@erest/h3`，导出 `H3Adapter`、`h3Adapter`、`createERest` 和 `H3Raw`。

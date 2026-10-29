@@ -5,6 +5,8 @@
 
 import type API from "../api.js";
 import type { Context, IAdapterGroupInfo, Middleware } from "./types.js";
+import type { LifecycleHooks } from "../hooks.js";
+import { normalizeRequestError, observeError } from "./errors.js";
 
 export interface BuildHandlerChainOptions<T> {
   /** Global before hooks */
@@ -85,10 +87,11 @@ export interface Envelopers {
  */
 export function wrapWithEnvelope(
   dispatch: (ctx: Context) => Promise<void>,
-  envelopers: Envelopers
+  envelopers: Envelopers,
+  onError?: LifecycleHooks["onError"]
 ): (ctx: Context) => Promise<void> {
   const { success: successEnveloper, error: errorEnveloper } = envelopers;
-  if (!successEnveloper && !errorEnveloper) return dispatch; // 零开销：未注册时直接返回原 dispatch
+  if (!successEnveloper && !errorEnveloper && !onError) return dispatch;
 
   return async function (ctx: Context): Promise<void> {
     try {
@@ -105,7 +108,10 @@ export function wrapWithEnvelope(
         const wrapped = successEnveloper(returnValue, ctx);
         ctx.reply.json(wrapped);
       }
-    } catch (err) {
+    } catch (originalError) {
+      const err = normalizeRequestError(originalError);
+      observeError(ctx, err, onError);
+      if ((ctx.reply as { __sent?: boolean }).__sent) throw err;
       if (errorEnveloper) {
         const { body, status } = errorEnveloper(err, ctx);
         ctx.reply.status(status).json(body);
