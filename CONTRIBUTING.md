@@ -121,14 +121,20 @@ pnpm run mutation:full         # 忽略已有结果，重建基线
 基线只有在语义输入与运行环境兼容时才复用；不兼容时自动全量运行。可用 `mutation:full` 强制重建本地基线。
 
 [Mutation Testing](.github/workflows/mutation.yml) 工作流使用 Node.js 24 和 pnpm 9：
-面向 main 的 PR 只读取兼容的主分支基线，main 成功运行后才写入共享基线。
+仅在推送到 main 时自动运行，也可在 Actions → Mutation Testing → Run workflow 手动触发。
+PR 不自动运行变异测试；[Test](.github/workflows/test.yml) 仍在 Node 20/22/24 下运行普通测试、
+覆盖率和合约测试（包含在全量测试中），以及适配器、类型和发布产物检查。
+同一分支的任务共用并发组；后续触发不会自动取消正在执行的任务。
+只有 main 的成功运行才写入共享基线。
 兼容性规则由 [mutation-cache-inputs.json](.github/mutation-cache-inputs.json) 和
 [baseline-inputs.mjs](.github/scripts/baseline-inputs.mjs) 定义：默认哈希所有 Git 跟踪文件，
 只有经过审查并登记的非语义文件或字段可豁免。当前仅排除 README 内容及根包 version 字段；
 依赖声明、lockfile、其他文档、测试、适配器、配置和运行环境仍参与兼容性检查。
 本地包装器也使用同一清单并验证伴随的 `.inputs.json`；缺少或不兼容的元数据会触发全量运行。
-手动触发并选择 `full` 可强制重建，只有 main 的成功运行会更新共享基线。
+手动触发时可选择分支；选择 `full` 可强制重建，非 main 分支只读取兼容基线并上传报告。
 报告作为 `mutation-reports-*` artifact 保留 14 天。当前未设置最低变异分数门槛。
+若合并门禁要求 `mutation` 检查，维护者须单独从 PR 必需检查中移除该项，保留普通 Test 检查，
+否则移除 PR 触发后会一直等待该检查；工作流修改不会自动调整仓库后台门禁。
 
 ## 依赖与安全检查
 
